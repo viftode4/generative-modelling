@@ -34,7 +34,11 @@ Add course materials as they are created, for example:
 - `data/` - local datasets (ignored by Git)
 - `outputs/` - generated samples, plots, and reports (ignored by Git)
 - `models/` - trained checkpoints/weights (ignored by Git)
-- `external/` - local clones/submodules of upstream code (ignored by Git by default)
+- `external/` - external reference code tracked as Git submodules
+
+## Setup
+
+See [knowledgebase/setup.md](knowledgebase/setup.md) for reproducible submodule, Python environment, and inference setup.
 
 ## Getting started
 
@@ -43,8 +47,10 @@ Add course materials as they are created, for example:
 3. Add project code, notebooks, and documentation.
 4. Commit source files, notes, and small reproducible artifacts; keep large generated data/checkpoints out of Git.
 
-To fetch the upstream reference implementation locally without committing it:
+To initialize or update the upstream reference implementation submodule:
 
 ```powershell
 ./scripts/fetch-upstream.ps1
+# or
+git submodule update --init --recursive
 ```

@@ -52,4 +52,5 @@ ENV/
 /external/*
 !/external/.gitignore
 !/external/README.md
+!/external/zigzag-diffusion-sampling/
 

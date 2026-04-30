@@ -16,18 +16,19 @@ Primary references:
 
 1. **Start with the knowledgebase.** Before research, implementation, or summarization, read `knowledgebase/README.md` and the relevant paper/project notes.
 2. **Preserve provenance.** Any factual claim about the paper, code, experiment, or result should link to a source or identify that it is an inference.
-3. **Do not commit large artifacts.** Keep datasets, checkpoints, generated images, outputs, and upstream clones out of Git unless explicitly requested.
-4. **Prefer reproducible notes.** When running experiments, record commands, environment, seed, hardware, inputs, outputs, and interpretation in `knowledgebase/logs/`.
-5. **Separate source from generated work.** Put reusable code in `src/`, notebooks in `notebooks/`, and generated outputs in ignored directories like `outputs/` or `runs/`.
-6. **Update project memory.** If a decision, assumption, or important finding is made, update `knowledgebase/decision-log.md`, `knowledgebase/research-log.md`, or the relevant paper note.
-7. **Verify before claiming completion.** Run the smallest meaningful checks and report exactly what passed and what remains untested.
+3. **Do not commit large artifacts.** Keep datasets, checkpoints, generated images, outputs, and run logs out of Git unless explicitly requested.
+4. **Treat upstream code as external.** The reference implementation is tracked as a Git submodule at `external/zigzag-diffusion-sampling/`; do not vendor-copy or silently modify it. If changes are needed, make them in this repository's own `src/` or scripts unless explicitly working on the submodule.
+5. **Prefer reproducible notes.** When running experiments, record commands, environment, seed, hardware, inputs, outputs, and interpretation in `knowledgebase/logs/`.
+6. **Separate source from generated work.** Put reusable code in `src/`, notebooks in `notebooks/`, and generated outputs in ignored directories like `outputs/` or `runs/`.
+7. **Update project memory.** If a decision, assumption, or important finding is made, update `knowledgebase/decision-log.md`, `knowledgebase/research-log.md`, or the relevant paper note.
+8. **Verify before claiming completion.** Run the smallest meaningful checks and report exactly what passed and what remains untested.
 
 ## AI collaboration style
 
 - Be explicit about uncertainty and assumptions.
 - Prefer small, reviewable changes.
 - Reuse existing templates under `knowledgebase/templates/`.
-- If external code is needed, use `scripts/fetch-upstream.ps1` to clone it into ignored `external/zigzag-diffusion-sampling/` rather than copying it into this repo.
+- Use `knowledgebase/setup.md` for environment and submodule setup.
 - If modifying or adapting upstream code, document the upstream commit hash and license considerations.
 
 ## Commit expectations

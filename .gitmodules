@@ -1,0 +1,3 @@
+[submodule "external/zigzag-diffusion-sampling"]
+	path = external/zigzag-diffusion-sampling
+	url = https://github.com/xie-lab-ml/zigzag-diffusion-sampling.git

@@ -6,10 +6,11 @@ This folder is the shared memory for the generative modelling course project. It
 
 1. [`project-overview.md`](project-overview.md) - current project identity, source links, and open questions.
 2. [`papers/zigzag-diffusion-sampling.md`](papers/zigzag-diffusion-sampling.md) - structured reading notes for the main paper.
-3. [`ai-workflow.md`](ai-workflow.md) - rules for using AI tools responsibly in this repo.
-4. [`decision-log.md`](decision-log.md) - durable decisions and rationale.
-5. [`research-log.md`](research-log.md) - chronological research notes.
-6. [`glossary.md`](glossary.md) - technical terms and definitions.
+3. [`setup.md`](setup.md) - reproducible submodule, environment, and inference setup.
+4. [`ai-workflow.md`](ai-workflow.md) - rules for using AI tools responsibly in this repo.
+5. [`decision-log.md`](decision-log.md) - durable decisions and rationale.
+6. [`research-log.md`](research-log.md) - chronological research notes.
+7. [`glossary.md`](glossary.md) - technical terms and definitions.
 
 ## Conventions
 

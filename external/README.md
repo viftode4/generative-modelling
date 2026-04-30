@@ -1,11 +1,17 @@
 # External Code
 
-This directory is for local copies of upstream reference implementations. Its contents are ignored by Git by default.
+This directory contains external reference implementations.
 
-Use:
+Tracked submodules:
+
+- `zigzag-diffusion-sampling/` -> https://github.com/xie-lab-ml/zigzag-diffusion-sampling
+
+Initialize or update submodules with:
 
 ```powershell
+git submodule update --init --recursive
+# or
 ./scripts/fetch-upstream.ps1
 ```
 
-Then record the upstream commit hash in any experiment log that depends on it.
+Record the submodule commit hash in any experiment log that depends on it.
