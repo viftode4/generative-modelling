@@ -17,6 +17,7 @@ The project knowledgebase lives in [`knowledgebase/`](knowledgebase/README.md). 
 
 Key files:
 
+- [`docs/course/`](docs/course/README.md) - official project description and rubric PDFs.
 - [`AGENTS.md`](AGENTS.md) - repository instructions for AI coding/research assistants.
 - [`knowledgebase/project-overview.md`](knowledgebase/project-overview.md) - project scope, links, and current research questions.
 - [`knowledgebase/papers/zigzag-diffusion-sampling.md`](knowledgebase/papers/zigzag-diffusion-sampling.md) - paper reading notes and implementation anchors.
@@ -28,6 +29,10 @@ Key files:
 Add course materials as they are created, for example:
 
 - `knowledgebase/` - project memory, paper notes, decisions, research logs, and templates
+- `planning/` - work plan, task board, TA questions, and meeting notes
+- `experiments/` - experiment configs, prompt sets, and lightweight result indexes
+- `report/` - individual report outline and final report assets
+- `presentation/` - mid-term and final presentation outlines
 - `.ai/` - AI-agent context and reusable prompts
 - `notebooks/` - exploratory notebooks
 - `src/` - reusable Python modules

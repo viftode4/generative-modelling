@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "generative-modelling-zigzag"
+version = "0.1.0"
+description = "Course project workspace for Zigzag Diffusion Sampling"
+requires-python = ">=3.10,<3.11"
+readme = "README.md"
+
+[tool.setuptools.packages.find]
+where = ["src"]

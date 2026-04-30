@@ -1,0 +1,52 @@
+Project: Implement and experiment with
+state-of-the-art generative modeling
+techniques
+This outcome of the project assignment is an individual report (30% of the assessment).
+You will work in groups of 5 students on a specific topic and paper proposed by a TA. The
+goal is to implement, experiment with and/or extend different parts of the paper.
+
+Making teams: Use Brightspace to register for projects. Projects are arranged by paper
+names. Each paper has been proposed by a TA. The TA is not responsible for the
+implementation of your projects but is available to provide overarching guidance.
+
+Formative feedback: You will have 1x feedback at the mid-term presentation and 1x end-
+term presentation. These presentations are moments that you can receive feedback as a
+group and as individuals in the group. The first presentation is focused on feedback for
+project planning and the second presentation is focused on feedback for project
+implementation. We aim to inform you on improving your final individual report through
+this feedback.
+
+These presentations are not graded and attendance is not mandatory, but they count
+towards the “Motivation and Work Plan” part of the rubric of the individual report.
+
+Timeline: After week 4, you should start working on the project along with your group.
+Within weeks 1-4 focus on:
+
+   -   Select the paper
+   -   Understand the paper and explore the existing code base if applicable,
+   -   Prepare an implementation and experimentation plan with your TA, along with a
+       division of tasks where you specify who does what. Implementing a technique
+       requires multiple components including the data, training, and evaluation pipeline
+       in addition to the method itself.
+
+At the end of the course, you should submit an individual report about your project.
+
+Reproducibility project report guidelines
+
+   •   30% motivation and plan: Plan prepared and discussed with TAs, participation in
+       group activities, and attend the presentation session.
+   •   40% content: show good efforts on trying to reproduce some aspects of the paper
+   •   30% writing: critically appraise the paper and explain the experimentation design
+       (for example, what was not clear, which results were key to reproduce), state the
+       findings from your experiments.
+
+Some projects have existing code implementation. You have the choice to reference the
+existing codebase.
+
+Report format: 3 pages double-column (see template). Include the following content:
+
+   •   Introduction (e.g., motivation to implement the paper, what you didn’t like about
+       them as a group and as an individual member)
+   •   Your approach, experiment setting, implementation details, and results
+   •   Your interpretation of the results
+

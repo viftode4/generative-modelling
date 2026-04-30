@@ -39,3 +39,13 @@ Study and explain Zigzag Diffusion Sampling (Z-Sampling), a sampling method that
 - Minimal reproduction notes using upstream code.
 - Comparison table: standard sampling vs. Z-Sampling.
 - Presentation-ready explanation of why self-reflection can improve diffusion outputs.
+
+## Assessment objective
+
+The official course documents require a 3-page double-column individual report. The repo structure is organized to support the rubric:
+
+- Motivation/work plan: `planning/`, TA questions, task board, meeting notes.
+- Content: reproducible setup, experiments, troubleshooting logs, results.
+- Writing: report outline, figures/tables, critical interpretation notes.
+
+See `knowledgebase/course/requirements-summary.md` for the distilled rubric and constraints.

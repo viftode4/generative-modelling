@@ -29,3 +29,10 @@ Next actions:
 - Added Python 3.10 environment setup helpers and inference/check scripts.
 - Created a local `.venv` with Python 3.10.18 using `./scripts/setup-zigzag-env.ps1 -SkipPackageInstall`.
 - Package installation was intentionally skipped during setup verification to avoid large PyTorch/CUDA downloads until a GPU-ready environment is confirmed.
+
+## 2026-04-30 - Course PDFs added
+
+- Added official project description and project rubric PDFs from Downloads into `docs/course/`.
+- Extracted text versions into `knowledgebase/course/` for search and AI-assisted planning.
+- Summarized assessment requirements in `knowledgebase/course/requirements-summary.md`.
+- Initialized planning, experiments, report, and presentation folders based on the rubric.
