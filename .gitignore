@@ -47,3 +47,9 @@ ENV/
 
 # OMX/Codex local runtime state
 .omx/
+
+# Local upstream clones
+/external/*
+!/external/.gitignore
+!/external/README.md
+
