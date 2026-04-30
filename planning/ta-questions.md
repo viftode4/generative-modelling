@@ -1,6 +1,6 @@
-# TA / Group Questions
+# TA / Project Questions
 
-Use this file to prepare discussion points for TA feedback and group meetings.
+Use this file to prepare discussion points for project feedback.
 
 ## Reproduction scope
 
@@ -13,15 +13,15 @@ Use this file to prepare discussion points for TA feedback and group meetings.
 
 - Is using the upstream codebase acceptable as the baseline implementation?
 - How much adaptation/extension is expected for a high content score?
-- Should we implement any components from scratch for learning value?
+- Should any components be implemented from scratch for learning value?
 
 ## Evaluation
 
 - Which metrics are feasible for this course project?
 - Is human preference / visual comparison acceptable?
-- How should we discuss non-reproducibility due to compute or dependency constraints?
+- How should non-reproducibility due to compute or dependency constraints be discussed?
 
 ## Report and presentation
 
 - What should be emphasized in the 3-page individual report?
-- How should individual vs. group contributions be documented?
+- How should implementation effort and limitations be documented?

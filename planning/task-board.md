@@ -1,6 +1,6 @@
 # Task Board
 
-Use this as a lightweight task tracker. Move items between sections and add owners/dates as the group plan becomes clear.
+Use this as a lightweight task tracker. Move items between sections as work progresses.
 
 ## Backlog
 
@@ -10,8 +10,7 @@ Use this as a lightweight task tracker. Move items between sections and add owne
 - [ ] Inspect upstream `infer.py` and custom SDXL pipeline.
 - [ ] Identify baseline prompts/results from upstream README.
 - [ ] Confirm local GPU/CUDA/PyTorch feasibility.
-- [ ] Define individual contribution for final report.
-- [ ] Ask TA which reproduction scope is acceptable.
+- [ ] Ask which reproduction scope is acceptable.
 
 ## Ready
 

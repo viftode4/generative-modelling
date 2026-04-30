@@ -2,17 +2,16 @@
 
 ## Goal
 
-Produce a strong individual report and supporting group project artifacts for Group 14 on Zigzag Diffusion Sampling.
+Set up a clean, reproducible workspace for the Zigzag Diffusion Sampling course project and support the final individual report with clear evidence, experiments, and notes.
 
 ## Success criteria mapped to rubric
 
 ### Motivation and Work Plan (30%)
 
-- [ ] Paper and codebase understood well enough to explain to TA/group.
-- [ ] Plan discussed with TA.
-- [ ] Individual responsibilities documented.
+- [ ] Paper and codebase understood well enough to explain the project plan.
+- [ ] Implementation and experimentation plan documented.
 - [ ] Mid-term presentation prepared with a research-project-level plan.
-- [ ] Meeting notes and decisions recorded.
+- [ ] Key decisions recorded.
 
 ### Content (40%)
 
@@ -28,15 +27,14 @@ Produce a strong individual report and supporting group project artifacts for Gr
 - [ ] Clear motivation and method explanation.
 - [ ] Results are shown with figures/tables.
 - [ ] Analysis includes limitations, uncertainty, and rationale.
-- [ ] Individual contribution is clear.
 
 ## Initial milestones
 
 | Phase | Outcome | Repo artifacts |
 | --- | --- | --- |
 | Understand | Paper/code notes and glossary | `knowledgebase/papers/`, `knowledgebase/glossary.md`, `knowledgebase/upstream-code.md` |
-| Plan | TA-discussed implementation/experiment plan | `planning/work-plan.md`, `planning/task-board.md`, `knowledgebase/meetings/` |
-| Reproduce | Runnable baseline or documented blocker | `scripts/`, `experiments/logs`, `outputs/` ignored |
+| Plan | Implementation/experiment plan | `planning/work-plan.md`, `planning/task-board.md` |
+| Reproduce | Runnable baseline or documented blocker | `scripts/`, `knowledgebase/logs/`, ignored `outputs/` |
 | Analyze | Result interpretation and limitations | `report/tables/`, `report/figures/`, `knowledgebase/logs/` |
 | Present/write | Slides and individual report outline | `presentation/`, `report/outline.md` |
 
@@ -46,10 +44,10 @@ Produce a strong individual report and supporting group project artifacts for Gr
 2. Inspect upstream `infer.py` and pipeline implementation; map standard sampling vs. Z-Sampling call flow.
 3. Confirm available hardware/CUDA setup.
 4. Decide the smallest reproducible experiment for the report.
-5. Prepare TA discussion questions and group task division.
+5. Draft the experiment plan and report outline from the evidence collected.
+
 ## Planning files
 
 - `planning/task-board.md` - active task tracker.
-- `planning/group-roles.md` - group and individual contribution tracking.
 - `planning/timeline.md` - milestone tracker.
-- `planning/ta-questions.md` - questions for TA feedback.
+- `planning/ta-questions.md` - questions for project feedback.
