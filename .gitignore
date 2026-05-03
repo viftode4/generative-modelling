@@ -45,8 +45,10 @@ ENV/
 *.pkl
 *.pickle
 
-# OMX/Codex local runtime state
+# OMX/OMC/Codex local runtime state (keep plans, ignore session/state files)
 .omx/
+.omc/state/
+.omc/project-memory.json
 
 # Local upstream clones
 /external/*
