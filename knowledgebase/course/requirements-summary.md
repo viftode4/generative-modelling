@@ -11,9 +11,10 @@ Source documents:
 ## Assessment shape
 
 - The project output is an **individual report** worth **30% of the assessment**.
-- Work happens in a group of 5 on a TA-proposed paper/topic.
-- The goal is to implement, experiment with, and/or extend parts of the paper.
-- Existing code may be referenced when available.
+- Work happens in a **group of 5** on a TA-proposed paper/topic per the official PDF.
+  - **Our group is 7 students** (registered deviation). Whether expectations adjust for breadth vs. depth is an open question for the TA.
+- The goal is to **implement, experiment with, and/or extend** parts of the paper (any combination — extension is not required).
+- Existing code may be referenced when available — verbatim from the PDF: **"Some projects have existing code implementation. You have the choice to reference the existing codebase."**
 
 ## Feedback milestones
 
