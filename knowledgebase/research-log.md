@@ -51,3 +51,12 @@ Next actions:
 - Added a minimal model loader at `src/zigzag_project/models.py` (`load_dreamshaper_xl_turbo`) and a smoke script at `scripts/smoke_dreamshaper.py`.
 - Editable-installed the project: `uv pip install -e .` so `import zigzag_project` works without `PYTHONPATH`.
 - Open risk: dependency divergence from upstream pins. Any parity-check vs. upstream needs to account for this. Group should decide whether final results runs use a CUDA box with strict pins or accept MPS divergence.
+
+## 2026-05-14 - DreamShaper-xl-v2-turbo smoke test passes on MPS
+
+- First end-to-end run of `scripts/smoke_dreamshaper.py` on the M4 Max. Full log: `knowledgebase/logs/2026-05-14_dreamshaper-turbo_smoke.md`.
+- Load: 217.1 s (first run, includes ~6 GB Hugging Face cache fetch). Generation: 11.4 s for 6 DDIM steps at 768×768 fp16.
+- Generated image is a recognizable photoreal small yellow dog on grass — pipeline is qualitatively healthy.
+- DDIM + DDIMInverseScheduler attach cleanly to a turbo SDXL checkpoint. This was the open risk for Vlad's cell; Z-Sampling now has a viable scheduler path to build on.
+- W1 per-person gate (your model loader works) is met for Vlad. Group-level W1 items still open: metric choice, seeds per (prompt, method), implementation/evaluation lead seats.
+- Added a regression net: 7 unit tests in `tests/test_models.py` covering device resolution and `ModelHandle` invariants; pytest + ruff configured via `[project.optional-dependencies].dev` in `pyproject.toml` (`uv pip install -e .[dev]`).
