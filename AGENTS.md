@@ -23,6 +23,23 @@ Primary references:
 7. **Update project memory.** If a decision, assumption, or important finding is made, update `knowledgebase/decision-log.md`, `knowledgebase/research-log.md`, or the relevant paper note.
 8. **Verify before claiming completion.** Run the smallest meaningful checks and report exactly what passed and what remains untested.
 
+## Repository map
+
+Each top-level directory has its own `AGENTS.md` with local rules and conventions. Read the one for the area you're editing before making changes.
+
+| Directory | What lives there |
+|-----------|------------------|
+| `src/` | Importable Python package (`zigzag_project`). See `src/AGENTS.md`. |
+| `tests/` | Fast `pytest` suite — no model downloads. See `tests/AGENTS.md`. |
+| `scripts/` | Runnable CLIs and smoke tests. See `scripts/AGENTS.md`. |
+| `experiments/` | Per-experiment configs, prompt sets, run index. See `experiments/AGENTS.md`. |
+| `knowledgebase/` | Single source of truth: notes, logs, decisions, paper notes. See `knowledgebase/AGENTS.md`. |
+| `planning/` | Forward-looking scope, timeline, roles, open decisions. See `planning/AGENTS.md`. |
+| `report/` | 3-page individual report assets + outline. See `report/AGENTS.md`. |
+| `presentation/` | Midterm + end-term presentation outlines. See `presentation/AGENTS.md`. |
+| `docs/` | External documents (course PDFs, unmodified). See `docs/AGENTS.md`. |
+| `external/` | Upstream ZigZag implementation as a Git submodule. Read-only reference. |
+
 ## AI collaboration style
 
 - Be explicit about uncertainty and assumptions.
