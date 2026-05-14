@@ -60,3 +60,53 @@ Next actions:
 - DDIM + DDIMInverseScheduler attach cleanly to a turbo SDXL checkpoint. This was the open risk for Vlad's cell; Z-Sampling now has a viable scheduler path to build on.
 - W1 per-person gate (your model loader works) is met for Vlad. Group-level W1 items still open: metric choice, seeds per (prompt, method), implementation/evaluation lead seats.
 - Added a regression net: 7 unit tests in `tests/test_models.py` covering device resolution and `ModelHandle` invariants; pytest + ruff configured via `[project.optional-dependencies].dev` in `pyproject.toml` (`uv pip install -e .[dev]`).
+
+## 2026-05-14 - Repo-local SDXL Z-Sampling smoke path added
+
+- Added a repo-local Z-Sampling utility in `src/zigzag_project/zsampling.py`, adapted from upstream `utils/pipeline_stable_diffusion_xl.py::z_sampling_call` at commit `513eb51cef223e7a562b5eb9b31d5ac5fa6b70f4`.
+- Kept the upstream submodule unchanged, following the project rule to treat `external/zigzag-diffusion-sampling/` as read-only reference code.
+- Extended `scripts/smoke_dreamshaper.py` with `--sampler standard|zigzag|both`, shared deterministic initial latents, and Z-Sampling hyperparameter flags.
+- Verified fast checks: `ruff check .` passed and `pytest -q` passed with 15 tests.
+- Verified a minimal runtime probe on MPS: `scripts/smoke_dreamshaper.py --sampler zigzag --steps 2 --lambda-step 1 --size 512 --seed 42` generated `outputs/smoke/dreamshaper_zigzag_probe.png` in 3.8 s after model load.
+- Full smoke log: `knowledgebase/logs/2026-05-14_dreamshaper-zsampling_probe.md`.
+
+Next actions:
+
+- Generate a standard-vs-Z pair with `--sampler both` and report-relevant settings.
+- Run parity-oriented validation against upstream SDXL-base on CUDA before making reproduction-quality claims.
+
+## 2026-05-14 - Vlad experiment runner and prompt subset implemented
+
+- Added `planning/experiment-division.md` to capture the updated TA/group division: Vlad owns `Z-Sampling + 8`.
+- Added Vlad's balanced GenEval prompt subset at `experiments/prompts/geneval_vlad_balanced.md`, using the first 3 prompts from each GenEval tag in `https://github.com/djghosh13/geneval/blob/main/prompts/evaluation_metadata.jsonl`.
+- Added `experiments/configs/dreamshaper_turbo_geneval.md` with the concrete DreamShaper + GenEval settings for Vlad: seeds `42`, `123`, `2026`; `T=4`; `gamma_1=3.5`; `gamma_2=0`; `lambda_step=3`; `T_max=1`; `768x768`; HPSv2.1 scoring.
+- Added reusable experiment helpers in `src/zigzag_project/experiment_io.py` for prompt parsing, manifest JSONL writing, HPS row construction, and HPS summary aggregation.
+- Added scripts:
+  - `scripts/run_vlad_geneval.py` for dry-run/full generation manifest creation.
+  - `scripts/score_hpsv2_pairs.py` for optional HPSv2 scoring (`uv pip install hpsv2` required).
+  - `scripts/summarize_vlad_results.py` for Markdown result summaries and win/loss gallery pointers.
+- Verification: `ruff check .` passed and `pytest -q` passed with 21 tests.
+- Dry-run verification: `scripts/run_vlad_geneval.py --prompts experiments/prompts/geneval_vlad_balanced.md --seeds 42 --out outputs/dryrun/vlad_geneval --dry-run` wrote 18 manifest rows without loading the model.
+
+Next actions:
+
+- Run the one-prompt smoke pair at `T=4`, `gamma_1=3.5`, `lambda_step=3`.
+- Run the full balanced 18×3 generation job when ready; outputs stay under `outputs/vlad_geneval/balanced_18x3/`.
+- Install `hpsv2` only for scoring, then run `scripts/score_hpsv2_pairs.py` and `scripts/summarize_vlad_results.py`.
+
+## 2026-05-14 - Vlad balanced GenEval experiment completed and scored
+
+- Ran Vlad's balanced GenEval experiment with DreamShaper-xl-v2-turbo: 18 prompts × 3 seeds × standard/Z-Sampling = 108 generated PNG images.
+- Output directory: `outputs/vlad_geneval/balanced_18x3/` (gitignored, about 91 MB).
+- Manifest rows: 54; score rows: 54.
+- HPSv2.1 results: Z-Sampling wins 53/54 pairs (98.1% win rate), mean HPS delta +0.0358.
+- Per-tag Z win rates: color_attr 100%, colors 100%, counting 100%, position 88.9%, single_object 100%, two_object 100%.
+- Runtime totals: standard 332.4 s total / 6.16 s mean per pair; Z-Sampling 745.5 s total / 13.80 s mean per pair (~2.24× standard runtime).
+- HPSv2 install note: `uv pip install hpsv2` downgraded `pytest` to 7.2.0 and the package missed `hpsv2/src/open_clip/bpe_simple_vocab_16e6.txt.gz`; downloading the OpenAI CLIP vocab into that venv package path fixed scoring.
+- Verification after install/scoring: `ruff check .` passed and `pytest -q` passed with 21 tests / 2 warnings.
+- Full run log: `knowledgebase/logs/2026-05-14_vlad-dreamshaper-geneval-balanced.md`.
+
+Next actions:
+
+- Manually inspect the top wins/losses in `outputs/vlad_geneval/balanced_18x3/summary.md` and choose report figures.
+- Record report interpretation carefully: these are HPSv2 preference scores on a balanced GenEval subset, not official GenEval detector scores.

@@ -8,6 +8,7 @@ Project: reproducing Zigzag Diffusion Sampling (Bai et al., ICLR 2025). We compa
 |------|----------|
 | [scope.md](./scope.md) | What we are doing: Must / Should / Could / Won't |
 | [role-assignments.md](./role-assignments.md) | Model and dataset per person |
+| [experiment-division.md](./experiment-division.md) | Updated sampling-method / experiment-number ownership from TA notes |
 | [timeline.md](./timeline.md) | Week buckets and gates after the midterm |
 | [report-spec.md](./report-spec.md) | What each 3-page report needs |
 | [decisions.md](./decisions.md) | Open questions to discuss as a group |
