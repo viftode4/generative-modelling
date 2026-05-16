@@ -31,7 +31,6 @@ ENV/
 !.env.example
 
 # Course/ML generated artifacts
-/data/
 /datasets/
 /outputs/
 /results/
