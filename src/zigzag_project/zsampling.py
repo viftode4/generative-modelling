@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import torch
+from diffusers.pipelines.stable_diffusion.pipeline_output import StableDiffusionPipelineOutput
 from diffusers.pipelines.stable_diffusion_xl.pipeline_output import StableDiffusionXLPipelineOutput
 from diffusers.pipelines.stable_diffusion_xl.pipeline_stable_diffusion_xl import (
     rescale_noise_cfg,
@@ -415,3 +416,244 @@ def z_sample_sdxl(
     if not return_dict:
         return (image,)
     return StableDiffusionXLPipelineOutput(images=image)
+
+def _guided_noise_prediction_sd21(
+    *,
+    pipe: Any,
+    latents: torch.Tensor,
+    timestep: torch.Tensor,
+    prompt_embeds: torch.Tensor,
+    guidance_scale: float,
+    guidance_rescale: float,
+    timestep_cond: torch.Tensor | None,
+) -> torch.Tensor:
+    """U-Net noise prediction for SD2.1 (no add_text_embeds / add_time_ids)."""
+    latent_model_input = torch.cat([latents] * 2) if pipe.do_classifier_free_guidance else latents
+    latent_model_input = pipe.scheduler.scale_model_input(latent_model_input, timestep)
+    noise_pred = pipe.unet(
+        latent_model_input,
+        timestep,
+        encoder_hidden_states=prompt_embeds,
+        timestep_cond=timestep_cond,
+        cross_attention_kwargs=pipe.cross_attention_kwargs,
+        return_dict=False,
+    )[0]
+
+    if pipe.do_classifier_free_guidance:
+        noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
+        noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_text - noise_pred_uncond)
+        if guidance_rescale > 0.0:
+            noise_pred = rescale_noise_cfg(
+                noise_pred,
+                noise_pred_text,
+                guidance_rescale=guidance_rescale,
+            )
+    return noise_pred
+
+
+def _decode_latents_sd21(pipe: Any, latents: torch.Tensor, output_type: str | None) -> Any:
+    """Decode latents to images for SD2.1 (simpler VAE path than SDXL)."""
+    if output_type == "latent":
+        return latents
+
+    latents = latents / pipe.vae.config.scaling_factor
+    image = pipe.vae.decode(latents, return_dict=False)[0]
+    return pipe.image_processor.postprocess(image, output_type=output_type)
+
+
+@torch.no_grad()
+def z_sample_sd21(
+    handle: ModelHandle,
+    prompt: str | list[str] | None = None,
+    *,
+    config: ZSamplingConfig | None = None,
+    height: int | None = None,
+    width: int | None = None,
+    negative_prompt: str | list[str] | None = None,
+    num_images_per_prompt: int = 1,
+    eta: float = 0.0,
+    generator: torch.Generator | list[torch.Generator] | None = None,
+    latents: torch.Tensor | None = None,
+    prompt_embeds: torch.Tensor | None = None,
+    negative_prompt_embeds: torch.Tensor | None = None,
+    output_type: str | None = "pil",
+    return_dict: bool = True,
+    cross_attention_kwargs: dict[str, Any] | None = None,
+    guidance_rescale: float = 0.0,
+    clip_skip: int | None = None,
+    callback_on_step_end: (
+        Callable[[Any, int, torch.Tensor, dict[str, torch.Tensor]], dict[str, torch.Tensor]]
+        | None
+    ) = None,
+    callback_on_step_end_tensor_inputs: tuple[str, ...] = ("latents",),
+) -> StableDiffusionPipelineOutput | tuple[Any]:
+    """Run SD2.1 Z-Sampling using a regular diffusers StableDiffusionPipeline.
+
+    Adapted from ``z_sample_sdxl`` but stripped of all SDXL-specific features
+    (dual text encoders, add_text_embeds, add_time_ids).  The core zigzag loop
+    — denoise, invert, forward-denoise — is identical.
+
+    Provenance: upstream ``utils/pipeline_stable_diffusion_xl.py::z_sampling_call``
+    at commit ``513eb51``, translated to SD2.1 pipeline internals.
+    """
+    config = config or ZSamplingConfig(gamma_1=7.5)
+    validate_zsampling_config(config)
+    lambda_step = config.resolved_lambda_step()
+    pipe = handle.pipe
+    inverse_scheduler = handle.inverse_scheduler
+
+    # SD2.1 defaults to 768 if pipe.unet.config.sample_size is 96 (96*8=768).
+    default_size = pipe.unet.config.sample_size * pipe.vae_scale_factor
+    height = height or default_size
+    width = width or default_size
+
+    pipe._guidance_scale = config.gamma_1
+    pipe._guidance_rescale = guidance_rescale
+    pipe._clip_skip = clip_skip
+    pipe._cross_attention_kwargs = cross_attention_kwargs
+    pipe._interrupt = False
+
+    if prompt is not None and isinstance(prompt, str):
+        batch_size = 1
+    elif prompt is not None and isinstance(prompt, list):
+        batch_size = len(prompt)
+    else:
+        batch_size = prompt_embeds.shape[0]
+
+    device = pipe._execution_device
+    lora_scale = (
+        pipe.cross_attention_kwargs.get("scale", None)
+        if pipe.cross_attention_kwargs is not None
+        else None
+    )
+
+    # SD2.1 encode_prompt returns (prompt_embeds, negative_prompt_embeds).
+    prompt_embeds, negative_prompt_embeds = pipe.encode_prompt(
+        prompt=prompt,
+        device=device,
+        num_images_per_prompt=num_images_per_prompt,
+        do_classifier_free_guidance=pipe.do_classifier_free_guidance,
+        negative_prompt=negative_prompt,
+        prompt_embeds=prompt_embeds,
+        negative_prompt_embeds=negative_prompt_embeds,
+        lora_scale=lora_scale,
+        clip_skip=pipe.clip_skip,
+    )
+
+    timesteps, num_inference_steps = retrieve_timesteps(
+        pipe.scheduler,
+        config.infer_step,
+        device,
+        None,
+        None,
+    )
+    inverse_scheduler.set_timesteps(num_inference_steps, device=device)
+
+    latents = pipe.prepare_latents(
+        batch_size * num_images_per_prompt,
+        pipe.unet.config.in_channels,
+        height,
+        width,
+        prompt_embeds.dtype,
+        device,
+        generator,
+        latents,
+    )
+    extra_step_kwargs = pipe.prepare_extra_step_kwargs(generator, eta)
+
+    if pipe.do_classifier_free_guidance:
+        prompt_embeds = torch.cat([negative_prompt_embeds, prompt_embeds], dim=0)
+
+    prompt_embeds = prompt_embeds.to(device)
+
+    timestep_cond = None
+    if pipe.unet.config.time_cond_proj_dim is not None:
+        guidance_scale_tensor = torch.tensor(pipe.guidance_scale - 1).repeat(
+            batch_size * num_images_per_prompt
+        )
+        timestep_cond = pipe.get_guidance_scale_embedding(
+            guidance_scale_tensor,
+            embedding_dim=pipe.unet.config.time_cond_proj_dim,
+        ).to(device=device, dtype=latents.dtype)
+
+    pipe._num_timesteps = len(timesteps)
+    num_warmup_steps = max(len(timesteps) - num_inference_steps * pipe.scheduler.order, 0)
+
+    with pipe.progress_bar(total=num_inference_steps) as progress_bar:
+        for i, timestep in enumerate(timesteps):
+            noise_pred = _guided_noise_prediction_sd21(
+                pipe=pipe,
+                latents=latents,
+                timestep=timestep,
+                prompt_embeds=prompt_embeds,
+                guidance_scale=config.gamma_1,
+                guidance_rescale=guidance_rescale,
+                timestep_cond=timestep_cond,
+            )
+            next_latents = pipe.scheduler.step(
+                noise_pred,
+                timestep,
+                latents,
+                **extra_step_kwargs,
+                return_dict=False,
+            )[0]
+            if next_latents.dtype != latents.dtype and torch.backends.mps.is_available():
+                next_latents = next_latents.to(latents.dtype)
+
+            if i < lambda_step:
+                for _ in range(config.t_max):
+                    # Inversion step: weak guidance (gamma_2) backward.
+                    inverse_noise_pred = _guided_noise_prediction_sd21(
+                        pipe=pipe,
+                        latents=next_latents,
+                        timestep=timestep,
+                        prompt_embeds=prompt_embeds,
+                        guidance_scale=config.gamma_2,
+                        guidance_rescale=guidance_rescale,
+                        timestep_cond=timestep_cond,
+                    )
+                    inv_latents = inverse_scheduler.step(
+                        inverse_noise_pred,
+                        timesteps[i + 1],
+                        next_latents,
+                        return_dict=False,
+                    )[0]
+
+                    # Forward denoising step: strong guidance (gamma_1).
+                    forward_noise_pred = _guided_noise_prediction_sd21(
+                        pipe=pipe,
+                        latents=inv_latents,
+                        timestep=timestep,
+                        prompt_embeds=prompt_embeds,
+                        guidance_scale=config.gamma_1,
+                        guidance_rescale=guidance_rescale,
+                        timestep_cond=timestep_cond,
+                    )
+                    next_latents = pipe.scheduler.step(
+                        forward_noise_pred,
+                        timestep,
+                        inv_latents,
+                        **extra_step_kwargs,
+                        return_dict=False,
+                    )[0]
+
+            latents = next_latents
+            if callback_on_step_end is not None:
+                callback_kwargs = {key: locals()[key] for key in callback_on_step_end_tensor_inputs}
+                callback_outputs = callback_on_step_end(pipe, i, timestep, callback_kwargs)
+                latents = callback_outputs.pop("latents", latents)
+                prompt_embeds = callback_outputs.pop("prompt_embeds", prompt_embeds)
+
+            should_update_progress = (
+                i == len(timesteps) - 1
+                or ((i + 1) > num_warmup_steps and (i + 1) % pipe.scheduler.order == 0)
+            )
+            if should_update_progress:
+                progress_bar.update()
+
+    image = _decode_latents_sd21(pipe, latents, output_type)
+    pipe.maybe_free_model_hooks()
+    if not return_dict:
+        return (image,)
+    return StableDiffusionPipelineOutput(images=image)
+

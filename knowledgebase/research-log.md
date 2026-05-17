@@ -110,3 +110,24 @@ Next actions:
 
 - Manually inspect the top wins/losses in `outputs/vlad_geneval/balanced_18x3/summary.md` and choose report figures.
 - Record report interpretation carefully: these are HPSv2 preference scores on a balanced GenEval subset, not official GenEval detector scores.
+
+## 2026-05-16 - Eugen SD2.1 + Pick-a-Pic infrastructure implemented
+
+- Added `load_sd21()` model loader in `models.py` for `stabilityai/stable-diffusion-2-1`.
+- Implemented `z_sample_sd21()` in `zsampling.py` — a parallel Z-Sampling function adapted for SD2.1's simpler architecture (single text encoder, no `add_text_embeds`/`add_time_ids`, simpler VAE decode). Provenance: upstream commit `513eb51`, translated to `StableDiffusionPipeline` internals.
+- Made `PromptSpec.prompt_id` prefix configurable (default `"geneval"` preserved for Vlad's backward compat; Eugen uses `"pickapic"`).
+- Created balanced Pick-a-Pic prompt subset: 20 prompts across 5 categories (simple, style, spatial, multi_object, detail), 4 per category.
+- Created experiment config: `experiments/configs/sd21_standard_pickapic.md` with `gamma_1=7.5`, `infer_step=50`, `lambda_step=49`, `T_max=1`, `768×768`, seeds `42/123/2026`.
+- Created runner script: `scripts/run_eugen_pickapic.py` (mirrors `run_vlad_geneval.py`).
+- Created smoke test: `scripts/smoke_sd21.py`.
+- Added tests: `test_sd21_loader_function_exists()` and `test_z_sample_sd21_is_callable()`.
+- Verification: `ruff check .` passed; all 14 Python files parse cleanly; prompt parsing validated (20 prompts, 5 tags balanced).
+
+Next actions:
+
+- Set up local `.venv` with torch + diffusers and run `pytest -q`.
+- Run `scripts/smoke_sd21.py --sampler both` to verify SD2.1 pipeline health.
+- Run the full experiment: `scripts/run_eugen_pickapic.py` with the config in `experiments/configs/sd21_standard_pickapic.md`.
+- Score with HPSv2 and generate summary.
+- Write experiment log using `knowledgebase/templates/experiment-log-template.md`.
+

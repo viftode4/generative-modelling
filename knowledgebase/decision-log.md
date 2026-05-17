@@ -49,3 +49,28 @@ Record durable choices that future humans or AI agents should not have to redisc
 **Rationale:** This is small enough to run locally while covering all GenEval categories and matching the paper's preference-metric reporting style. Full GenEval detector evaluation remains out of scope for the first pass.
 
 **Status:** Active
+
+## 2026-05-16 - Implement z_sample_sd21 as a separate function
+
+**Decision:** Create `z_sample_sd21()` in `zsampling.py` as a parallel implementation to `z_sample_sdxl()`, rather than generalizing the SDXL function with conditionals.
+
+**Rationale:** SD2.1 uses `StableDiffusionPipeline` (single CLIP ViT-H/14 text encoder, no `add_text_embeds`/`add_time_ids`, simpler VAE decode) while SDXL uses dual text encoders with additional conditioning kwargs. A clean separation avoids error-prone conditionals and follows the project's "small and focused modules" principle from `src/AGENTS.md`. The core zigzag loop logic is identical — only the pipeline plumbing differs.
+
+**Status:** Active
+
+## 2026-05-16 - Eugen SD2.1 hyperparameters: gamma_1=7.5, 50 steps, 768px
+
+**Decision:** Use `gamma_1=7.5`, `gamma_2=0.0`, `infer_step=50`, `lambda_step=49`, `T_max=1`, `image_size=768` for the SD2.1 + Pick-a-Pic experiment.
+
+**Rationale:** SD2.1's recommended guidance scale is 7.5 (vs SDXL's 5.5). Using the model's native guidance scale isolates the Z-Sampling effect from guidance scale changes. SD2.1 is non-distilled (unlike DreamShaper-turbo) so requires the paper's default 50 DDIM steps. Native resolution is 768×768.
+
+**Status:** Active
+
+## 2026-05-16 - Eugen Pick-a-Pic prompt subset: 20 prompts, 5 categories
+
+**Decision:** Curate 20 prompts from Pick-a-Pic across 5 categories (simple, style, spatial, multi_object, detail), 4 per category, with seeds `42`, `123`, `2026` — producing 60 pairs total.
+
+**Rationale:** This is comparable to Vlad's 18×3=54 pairs while covering diverse prompt difficulty levels representative of real-world user submissions. The paper uses Pick-a-Pic as a benchmark, making this a direct reproduction of their evaluation methodology.
+
+**Status:** Active
+

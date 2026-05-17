@@ -13,10 +13,11 @@ class PromptSpec:
     source_index: int
     tag: str
     prompt: str
+    prefix: str = "geneval"
 
     @property
     def prompt_id(self) -> str:
-        return f"geneval_{self.source_index:03d}_{self.tag}"
+        return f"{self.prefix}_{self.source_index:03d}_{self.tag}"
 
 
 @dataclass(frozen=True)
@@ -45,8 +46,12 @@ class GenerationPair:
         return asdict(self)
 
 
-def load_prompt_specs(path: str | Path) -> list[PromptSpec]:
-    """Load prompt specs from the first fenced jsonl block in a Markdown file."""
+def load_prompt_specs(path: str | Path, *, prefix: str = "geneval") -> list[PromptSpec]:
+    """Load prompt specs from the first fenced jsonl block in a Markdown file.
+
+    ``prefix`` sets the ``PromptSpec.prefix`` used for ``prompt_id`` generation.
+    Each jsonl row can also include a ``"prefix"`` key to override this default.
+    """
     text = Path(path).read_text()
     in_jsonl = False
     specs: list[PromptSpec] = []
@@ -65,6 +70,7 @@ def load_prompt_specs(path: str | Path) -> list[PromptSpec]:
                 source_index=int(payload["source_index"]),
                 tag=str(payload["tag"]),
                 prompt=str(payload["prompt"]),
+                prefix=str(payload.get("prefix", prefix)),
             )
         )
     if not specs:

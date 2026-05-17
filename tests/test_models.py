@@ -49,3 +49,7 @@ def test_model_handle_is_frozen():
 
 def test_loader_function_exists():
     assert callable(models.load_dreamshaper_xl_turbo)
+
+
+def test_sd21_loader_function_exists():
+    assert callable(models.load_sd21)
