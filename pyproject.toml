@@ -13,6 +13,8 @@ readme = "README.md"
 dev = [
   "pytest>=8",
   "ruff>=0.5",
+  "jupyter>=1.1",
+  "pandas>=2.0",
 ]
 
 [tool.setuptools.packages.find]
