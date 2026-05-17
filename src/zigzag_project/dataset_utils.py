@@ -57,3 +57,21 @@ def load_drawbench_prompts(csv_path, limit = None):
     df["category"] = df["category"].astype("string").str.strip()
     df.insert(0, "prompt_id", range(len(df)))
     return limit_rows(df, limit)
+
+def load_geneval_prompts(jsonl_path, limit=None):
+    """
+    Loads GenEval prompts from a JSONL file into a pandas DataFrame.
+    """
+    path = Path(jsonl_path)
+    
+    if not path.exists():
+        raise FileNotFoundError(f"Could not find GenEval file at: {path}")
+        
+    # Read the JSONL file (lines=True is required for .jsonl files)
+    df = pd.read_json(path, lines=True)
+    
+    # If we only want to test a few prompts, limit the dataframe
+    if limit is not None:
+        df = df.head(limit)
+        
+    return df
