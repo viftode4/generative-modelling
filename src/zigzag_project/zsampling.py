@@ -9,8 +9,20 @@ from diffusers.pipelines.stable_diffusion.pipeline_output import StableDiffusion
 from diffusers.pipelines.stable_diffusion_xl.pipeline_output import StableDiffusionXLPipelineOutput
 from diffusers.pipelines.stable_diffusion_xl.pipeline_stable_diffusion_xl import (
     rescale_noise_cfg,
-    retrieve_timesteps,
 )
+
+
+def retrieve_timesteps(scheduler, num_inference_steps=None, device=None, timesteps=None, sigmas=None, **kwargs):
+    """Vendored from diffusers>=0.26; not present in the pinned diffusers==0.22.3."""
+    if timesteps is not None:
+        scheduler.set_timesteps(timesteps=timesteps, device=device, **kwargs)
+    elif sigmas is not None:
+        scheduler.set_timesteps(sigmas=sigmas, device=device, **kwargs)
+    else:
+        scheduler.set_timesteps(num_inference_steps, device=device, **kwargs)
+    timesteps = scheduler.timesteps
+    num_inference_steps = len(timesteps)
+    return timesteps, num_inference_steps
 
 from zigzag_project.models import ModelHandle
 

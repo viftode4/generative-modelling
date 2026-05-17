@@ -1,8 +1,13 @@
 # Zigzag upstream pinned requirements
 # Source: external/zigzag-diffusion-sampling/requirements.txt at commit 513eb51cef223e7a562b5eb9b31d5ac5fa6b70f4
 # Install inside a Python 3.10 environment. CUDA/GPU compatibility may require a custom PyTorch install command.
+accelerate
 diffusers==0.22.3
 einops==0.8.0
+# diffusers==0.22.3 uses cached_download (removed in >=0.25); transformers==4.41.0 requires >=0.23
+huggingface_hub>=0.23,<0.25
+# torch==2.0.1 was compiled against numpy 1.x; numpy 2.x causes RuntimeError at runtime
+numpy<2
 torch==2.0.1
 torchsde==0.2.6
 torchvision==0.15.2
