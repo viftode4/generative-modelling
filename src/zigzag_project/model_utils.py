@@ -1,15 +1,18 @@
+import gc
 from datetime import datetime
 from pathlib import Path
-import gc
+
 import torch
-from diffusers import StableDiffusionXLPipeline, DDIMScheduler
+from diffusers import DDIMScheduler, StableDiffusionXLPipeline
 
 SDXL = "sdxl"
 DREAM_SHARPER = "dreamshaper-xl-v2-turbo"
 
 MODEL_CONFIGS = {
-    # The code released with the ZigZag Diffusion Sampling paper uses SDXL: https://github.com/xie-lab-ml/Zigzag-Diffusion-Sampling/tree/main
-    # The setup for the other models is not certain, other than the parameters reported in the paper itself.
+    # The code released with the ZigZag Diffusion Sampling paper uses SDXL:
+    # https://github.com/xie-lab-ml/Zigzag-Diffusion-Sampling/tree/main
+    # The setup for the other models is not certain, other than the
+    # parameters reported in the paper itself.
     SDXL: {
         "model_id": "stabilityai/stable-diffusion-xl-base-1.0",  # From the paper's implementation
         "num_inference_steps": 50,  # From the paper's implementation
@@ -24,18 +27,24 @@ MODEL_CONFIGS = {
         "height": 1024,  # Same resolution as for SDXL since DreamShaper XL Turbo is SDXL-based
         "width": 1024,  # Same resolution as for SDXL since DreamShaper XL Turbo is SDXL-based
     }
-    # "sd21": {}, TODO: Add SD2.1. Also check load_standard_pipeline and the rest of the code to make it compatible.
-    # "hunyuan-dit": {} TODO: Add Hunyuan-DiT. Also check load_standard_pipeline and the rest of the code to make it compatible.
+    # "sd21": {}, TODO: Add SD2.1. Also check load_standard_pipeline and
+    # the rest of the code to make it compatible.
+    # "hunyuan-dit": {} TODO: Add Hunyuan-DiT. Also check
+    # load_standard_pipeline and the rest of the code to make it compatible.
 }
+
 
 def list_model_configs():
     return MODEL_CONFIGS
 
+
 def get_model_config(model_name):
     return dict(MODEL_CONFIGS[model_name])
 
+
 def get_device():
     return "cuda" if torch.cuda.is_available() else "cpu"
+
 
 def get_torch_dtype(device=None):
     """Uses float16 on CUDA and float32 on CPU."""
@@ -124,7 +133,8 @@ def free_pipeline(pipe=None):
     Deletes a loaded pipeline and clears CUDA memory.
 
     Diffusion pipelines are large and can keep several GB of GPU memory allocated.
-    Explicit cleanup helps avoid memory errors when loading multiple models sequentially in notebooks.
+    Explicit cleanup helps avoid memory errors when loading multiple models
+    sequentially in notebooks.
     """
 
     if pipe is not None:

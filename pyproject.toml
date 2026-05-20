@@ -11,7 +11,7 @@ readme = "README.md"
 
 [project.optional-dependencies]
 dev = [
-  "pytest>=8",
+  "pytest==7.2.0",
   "ruff>=0.5",
   "jupyter>=1.1",
   "pandas>=2.0",

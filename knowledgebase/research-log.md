@@ -131,3 +131,25 @@ Next actions:
 - Score with HPSv2 and generate summary.
 - Write experiment log using `knowledgebase/templates/experiment-log-template.md`.
 
+## 2026-05-20 - Local macOS dev/test environment repaired after teammate pull
+
+- Pulled `origin/main` to `afb1cda`; teammate branches
+  `origin/gourigkrishnan0204-hue-patch-1` and
+  `origin/gourigkrishnan0204-hue-patch-2` were already merged into main
+  according to `git branch -r --merged origin/main`.
+- Existing repo `.venv` had Python 3.10.20 but no `pip`; repaired it with
+  `.venv/bin/python -m ensurepip --upgrade`.
+- Installed the repo in editable dev mode with `.venv/bin/python -m pip install -e '.[dev]'`.
+- Re-aligned package versions after resolver conflicts from the already-installed
+  experiment/evaluation stack:
+  - `setuptools==81.0.0` satisfies the installed `torch 2.12.0` constraint
+    (`setuptools<82`).
+  - `pytest==7.2.0` satisfies the installed `hpsv2 1.2.0` and
+    `pytest-split 0.8.0` constraints; `pyproject.toml` now pins the dev
+    extra to that verified version.
+- Cleaned lint-only issues from the pulled code/notebooks: import ordering, star
+  imports in notebooks, and long lines. No model-running logic was intentionally changed.
+- Verification after cleanup:
+  - `.venv/bin/python -m pip check` passed with no broken requirements.
+  - `.venv/bin/python -m pytest -q` passed: 23 tests, 2 warnings.
+  - `.venv/bin/ruff check .` passed.
