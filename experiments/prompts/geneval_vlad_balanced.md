@@ -6,6 +6,10 @@ Source dataset: GenEval metadata from https://github.com/djghosh13/geneval/blob/
 
 Selection rule: first 3 prompts from each GenEval tag in the source file. This gives 18 prompts total across all 6 GenEval categories.
 
+Upstream pin: `djghosh13/geneval` at `prompts/evaluation_metadata.jsonl`. The
+`source_index` field in each row records that file's line number (0-based) so
+the prompt set is reconstructible without re-fetching the upstream file.
+
 ```jsonl
 {"source_index": 0, "tag": "single_object", "prompt": "a photo of a bench"}
 {"source_index": 1, "tag": "single_object", "prompt": "a photo of a cow"}

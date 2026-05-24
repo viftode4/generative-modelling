@@ -49,8 +49,12 @@ def load_dreamshaper_xl_turbo(
         safety_checker=None,
         requires_safety_checker=False,
     )
-    inverse_scheduler = DDIMInverseScheduler.from_config(pipe.scheduler.config)
+    # Replace the default scheduler with DDIM first so the inverse scheduler
+    # is derived from the DDIM config (prediction_type, set_alpha_to_one,
+    # steps_offset, timestep_spacing) rather than the original Euler config.
+    # Upstream registers both schedulers from the same DDIM config.
     pipe.scheduler = DDIMScheduler.from_config(pipe.scheduler.config)
+    inverse_scheduler = DDIMInverseScheduler.from_config(pipe.scheduler.config)
     pipe = pipe.to(resolved_device)
 
     return ModelHandle(
@@ -81,8 +85,10 @@ def load_sd21(
         safety_checker=None,
         requires_safety_checker=False,
     )
-    inverse_scheduler = DDIMInverseScheduler.from_config(pipe.scheduler.config)
+    # See load_dreamshaper_xl_turbo: derive the inverse scheduler from DDIM
+    # rather than the default PNDM config so forward/inverse share parameters.
     pipe.scheduler = DDIMScheduler.from_config(pipe.scheduler.config)
+    inverse_scheduler = DDIMInverseScheduler.from_config(pipe.scheduler.config)
     pipe = pipe.to(resolved_device)
 
     return ModelHandle(

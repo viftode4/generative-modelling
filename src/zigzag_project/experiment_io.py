@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from collections import defaultdict
 from collections.abc import Iterable, Mapping
 from dataclasses import asdict, dataclass
@@ -79,11 +80,32 @@ def load_prompt_specs(path: str | Path, *, prefix: str = "geneval") -> list[Prom
 
 
 def write_jsonl(path: str | Path, rows: Iterable[Mapping[str, Any]]) -> None:
+    """Atomically write all rows to ``path``.
+
+    Writes to a sibling ``.tmp`` file first and renames into place so a crash
+    mid-write does not corrupt previously committed evidence files.
+    """
     out = Path(path)
     out.parent.mkdir(parents=True, exist_ok=True)
-    with out.open("w") as handle:
+    tmp = out.with_suffix(out.suffix + ".tmp")
+    with tmp.open("w") as handle:
         for row in rows:
             handle.write(json.dumps(dict(row), sort_keys=True) + "\n")
+    os.replace(tmp, out)
+
+
+def append_jsonl(path: str | Path, row: Mapping[str, Any]) -> None:
+    """Append a single row to a jsonl file, flushing immediately.
+
+    Use this when long-running scripts want each row durable as soon as it is
+    produced; ``write_jsonl`` is for batch writes when all rows are in memory.
+    """
+    out = Path(path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    with out.open("a") as handle:
+        handle.write(json.dumps(dict(row), sort_keys=True) + "\n")
+        handle.flush()
+        os.fsync(handle.fileno())
 
 
 def read_jsonl(path: str | Path) -> list[dict[str, Any]]:

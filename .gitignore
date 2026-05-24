@@ -38,7 +38,11 @@ ENV/
 /models/
 
 # /outputs/ is heavy generated content (images, intermediate latents).
-# Walk the tree explicitly so lightweight evidence files can be re-included.
+# Convention: each run lives at outputs/<run-family>/<run-name>/ (exactly 3
+# levels). Evidence files at that depth (manifest.jsonl, scores.jsonl,
+# geneval_scores.jsonl, summary.md) are re-included below; everything else
+# (PNGs, .pt latents, ad-hoc subdirs) stays ignored.
+# Figures meant for the report belong under report/figures/, NOT outputs/.
 /outputs/*
 !/outputs/*/
 /outputs/*/*
@@ -46,10 +50,12 @@ ENV/
 /outputs/*/*/*
 !/outputs/*/*/manifest.jsonl
 !/outputs/*/*/scores.jsonl
+!/outputs/*/*/geneval_scores.jsonl
 !/outputs/*/*/summary.md
-# Throwaway local-only run dirs (smoke probes, dry-runs)
+# Throwaway local-only run dirs (smoke probes, dry-runs, A/B verifications)
 /outputs/smoke/
 /outputs/dryrun/
+/outputs/ab_postfix/
 *.ckpt
 *.pt
 *.pth
