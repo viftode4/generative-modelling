@@ -131,6 +131,103 @@ Next actions:
 - Score with HPSv2 and generate summary.
 - Write experiment log using `knowledgebase/templates/experiment-log-template.md`.
 
+## 2026-05-25 - Z-Sampling hardening pass: review, fixes, A/B, report tightening
+
+Adversarial critic + code-reviewer pass over the whole repo produced a mixed
+set of findings: false alarms (claimed nonexistent torch 2.12.0 / transformers
+5.8.1 / Python 3.10.20 — all verified to exist in the live venv) and several
+real bugs.
+
+Real fixes applied:
+
+- `pyproject.toml` now declares runtime dependencies (was dev-only). New
+  optional `[scoring]` extra pins `hpsv2==1.2.0` separately because it
+  downgrades pytest and needs the OpenCLIP BPE vocab patched in by hand.
+  Mirrored to `requirements-vlad.txt` for non-editable installs.
+- `src/zigzag_project/models.py`: the inverse scheduler is now derived from
+  the DDIM config (after the forward scheduler is replaced), not from the
+  default Euler/PNDM config. Both `load_dreamshaper_xl_turbo` and `load_sd21`
+  fixed.
+- `src/zigzag_project/zsampling.py`: `_step_index = None` is reset before
+  every `scheduler.step` and `inverse_scheduler.step` call (six sites total
+  across `z_sample_sdxl` and `z_sample_sd21`), mirroring upstream
+  `pipeline_stable_diffusion_xl.py:1455/1486/1517`. Entry-time assertion
+  that `pipe.unet.config.time_cond_proj_dim is None` so LCM-distilled
+  checkpoints cannot silently disable CFG. `_decode_latents` stashes and
+  restores `pipe.vae.dtype` so it does not mutate the pipe across calls.
+- `src/zigzag_project/experiment_io.py`: `write_jsonl` is atomic
+  (`.tmp` + `os.replace`); new `append_jsonl` flushes + fsyncs every row so
+  long runs preserve partial evidence on crash.
+- `scripts/run_vlad_geneval.py`: streams the manifest one row at a time
+  via `append_jsonl`, refuses to write into a non-empty `--out` without
+  `--force`, calls `torch.{cuda,mps}.synchronize()` around the per-pair
+  `time.time()` measurements, gained `--limit` for A/B smokes.
+- `scripts/score_hpsv2_pairs.py`: `np.asarray(...).reshape(-1).tolist()`
+  normalizes the `hpsv2.score` return shape across point releases; docstring
+  now spells out the OpenCLIP BPE vocab curl line.
+- `tests/test_vlad_scripts.py`: `sys.executable` replaces hardcoded
+  `.venv/bin/python` so the tests work on any venv layout.
+- Notebooks `01..03` had output cells stripped (removed embedded
+  `/Users/dicisnerosacev/...` and `/home/lenka-hake/...` paths from a
+  teammate's earlier execution). `notebooks/03_SD2.1_pickapick_experiment.ipynb`
+  dropped the `sys.path.append('../src')` hack and now derives
+  `lambda_step = steps - 1` instead of hardcoding 49.
+- `scripts/repro-vlad.sh` (new, executable): one-shot driver running
+  `run_vlad_geneval.py` → `score_hpsv2_pairs.py` → `summarize_vlad_results.py`.
+- `.gitignore`: added comment explaining the 3-level `outputs/<family>/<run>/`
+  evidence-re-include convention; re-included `geneval_scores.jsonl`;
+  ignored throwaway `outputs/ab_postfix/` directory.
+- `knowledgebase/setup.md`: new Apple Silicon / MPS variant section
+  pointing at `requirements-vlad.txt` and `scripts/repro-vlad.sh`.
+- `experiments/prompts/geneval_vlad_balanced.md`: explicit pin note —
+  `source_index` is the upstream `evaluation_metadata.jsonl` line number
+  so the set is reconstructible without re-fetching.
+
+A/B verification (Phase B of the fix plan): re-ran `geneval_259_colors`
+seed 42 ("a photo of a blue fire hydrant", the top Z-Sampling win) under
+the fixed code. Both standard and zigzag PNGs are *bit-identical* to the
+committed images (MAE = 0.000, max diff = 0, 100% identical pixels). The
+scheduler-config-order and `_step_index` bugs were real but had no
+perceptual impact on the 4-step turbo configuration. The committed 108
+images and the published HPSv2.1 numbers stand.
+
+GenEval detector attempt (Phase C of the fix plan): the official detector
+pipeline (`mmdet>=3` + `mmcv` + Mask2Former) does not build on Apple
+Silicon with `torch==2.12.0`. `mim install` polluted the venv (downgraded
+setuptools below the torch constraint, triggered `pkg_resources` import
+failures during the mmcv wheel build); cleanup restored a clean
+`pip check`. The runner script `scripts/run_geneval_detector.py`, the
+prompt-rule loader `src/zigzag_project/geneval_io.py`, the summary tool
+`scripts/summarize_vlad_geneval.py`, and a mocked smoke test are committed
+ready for a CUDA-side rerun. Full attempt log:
+`knowledgebase/logs/2026-05-25_geneval-detector-attempt.md`.
+
+Phase D report tightening: `report/draft.md` regenerated with HPSv2.1-vs-
+GenEval branding clarified in §4.1, per-tag 95% bootstrap CIs added
+(all strictly positive, including position [+0.0153, +0.0374]), figure
+pairs converted to two-image side-by-side, HPSv2 saturation reward-hacking
+caveat in §5, MPS non-determinism caveat in §5, position-tag explanation
+rewritten with absolute standard means (refuting the "less headroom"
+alternative — position has the second-highest standard mean), FLOPs-matched
+counterfactual made explicit (2.24× cost ≈ 8-9 step standard), new §1.1
+Group context section, new §5.5 Unclear-parts-of-the-paper section, and
+§2 implementation-details paragraph including the scheduler-order finding.
+
+Verification:
+
+- `.venv/bin/python -m ruff check .` — All checks passed.
+- `.venv/bin/python -m pytest -q` — 28 passed (was 23 before the new
+  GenEval smoke tests).
+- `.venv/bin/python -m pip check` — No broken requirements.
+
+Next actions:
+
+- Find a CUDA box (Colab / runpod / university cluster) and run
+  `scripts/run_geneval_detector.py` on the existing 108 images. Update
+  the report's §4.1.2 and §5.2 once the detector pass-rate table exists.
+- Optionally run a FLOPs-matched standard baseline (8-step standard vs
+  4-step Z, 18 prompts × 1 seed) to close the counterfactual gap in §5.4.
+
 ## 2026-05-20 - Local macOS dev/test environment repaired after teammate pull
 
 - Pulled `origin/main` to `afb1cda`; teammate branches
