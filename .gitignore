@@ -32,11 +32,24 @@ ENV/
 
 # Course/ML generated artifacts
 /datasets/
-/outputs/
 /results/
 /runs/
 /checkpoints/
 /models/
+
+# /outputs/ is heavy generated content (images, intermediate latents).
+# Walk the tree explicitly so lightweight evidence files can be re-included.
+/outputs/*
+!/outputs/*/
+/outputs/*/*
+!/outputs/*/*/
+/outputs/*/*/*
+!/outputs/*/*/manifest.jsonl
+!/outputs/*/*/scores.jsonl
+!/outputs/*/*/summary.md
+# Throwaway local-only run dirs (smoke probes, dry-runs)
+/outputs/smoke/
+/outputs/dryrun/
 *.ckpt
 *.pt
 *.pth
