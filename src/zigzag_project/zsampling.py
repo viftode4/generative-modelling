@@ -668,4 +668,182 @@ def z_sample_sd21(
     if not return_dict:
         return (image,)
     return StableDiffusionPipelineOutput(images=image)
+@torch.no_grad()
+def resampling_sdxl(
+    handle: ModelHandle,
+    prompt: str | list[str] | None = None,
+    *,
+    config: ZSamplingConfig | None = None,
+    prompt_2: str | list[str] | None = None,
+    height: int | None = None,
+    width: int | None = None,
+    negative_prompt: str | list[str] | None = None,
+    negative_prompt_2: str | list[str] | None = None,
+    num_images_per_prompt: int = 1,
+    eta: float = 0.0,
+    generator: torch.Generator | list[torch.Generator] | None = None,
+    latents: torch.Tensor | None = None,
+    prompt_embeds: torch.Tensor | None = None,
+    negative_prompt_embeds: torch.Tensor | None = None,
+    pooled_prompt_embeds: torch.Tensor | None = None,
+    negative_pooled_prompt_embeds: torch.Tensor | None = None,
+    output_type: str | None = "pil",
+    return_dict: bool = True,
+    cross_attention_kwargs: dict[str, Any] | None = None,
+    guidance_rescale: float = 0.0,
+    original_size: tuple[int, int] | None = None,
+    crops_coords_top_left: tuple[int, int] = (0, 0),
+    target_size: tuple[int, int] | None = None,
+    negative_original_size: tuple[int, int] | None = None,
+    negative_crops_coords_top_left: tuple[int, int] = (0, 0),
+    negative_target_size: tuple[int, int] | None = None,
+    clip_skip: int | None = None,
+    callback_on_step_end: (
+        Callable[[Any, int, torch.Tensor, dict[str, torch.Tensor]], dict[str, torch.Tensor]]
+        | None
+    ) = None,
+    callback_on_step_end_tensor_inputs: tuple[str, ...] = ("latents",),
+) -> StableDiffusionXLPipelineOutput | tuple[Any]:
+    """Run SDXL Resampling (lug, 2022) baseline using a regular diffusers pipeline.
+    
+    Mirrors the signature and setup of `z_sample_sdxl`, but uses random noise 
+    addition to return to the previous timestep instead of DDIM inversion.
+    """
+    config = config or ZSamplingConfig()
+    validate_zsampling_config(config)
+    lambda_step = config.resolved_lambda_step()
+    pipe = handle.pipe
+
+    height = height or pipe.default_sample_size * pipe.vae_scale_factor
+    width = width or pipe.default_sample_size * pipe.vae_scale_factor
+    original_size = original_size or (height, width)
+    target_size = target_size or (height, width)
+
+    pipe.check_inputs(
+        prompt, prompt_2, height, width, None, negative_prompt, negative_prompt_2,
+        prompt_embeds, negative_prompt_embeds, pooled_prompt_embeds,
+        negative_pooled_prompt_embeds, None, None, list(callback_on_step_end_tensor_inputs),
+    )
+
+    pipe._guidance_scale = config.gamma_1
+    pipe._guidance_rescale = guidance_rescale
+    pipe._clip_skip = clip_skip
+    pipe._cross_attention_kwargs = cross_attention_kwargs
+    pipe._denoising_end = None
+    pipe._interrupt = False
+
+    if prompt is not None and isinstance(prompt, str):
+        batch_size = 1
+    elif prompt is not None and isinstance(prompt, list):
+        batch_size = len(prompt)
+    else:
+        batch_size = prompt_embeds.shape[0]
+
+    device = pipe._execution_device
+    lora_scale = pipe.cross_attention_kwargs.get("scale", None) if pipe.cross_attention_kwargs is not None else None
+    
+    (
+        prompt_embeds, negative_prompt_embeds, pooled_prompt_embeds, negative_pooled_prompt_embeds,
+    ) = pipe.encode_prompt(
+        prompt=prompt, prompt_2=prompt_2, device=device, num_images_per_prompt=num_images_per_prompt,
+        do_classifier_free_guidance=pipe.do_classifier_free_guidance, negative_prompt=negative_prompt,
+        negative_prompt_2=negative_prompt_2, prompt_embeds=prompt_embeds, negative_prompt_embeds=negative_prompt_embeds,
+        pooled_prompt_embeds=pooled_prompt_embeds, negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
+        lora_scale=lora_scale, clip_skip=pipe.clip_skip,
+    )
+
+    timesteps, num_inference_steps = retrieve_timesteps(pipe.scheduler, config.infer_step, device, None, None)
+
+    latents = pipe.prepare_latents(
+        batch_size * num_images_per_prompt, pipe.unet.config.in_channels,
+        height, width, prompt_embeds.dtype, device, generator, latents,
+    )
+    extra_step_kwargs = pipe.prepare_extra_step_kwargs(generator, eta)
+
+    add_text_embeds = pooled_prompt_embeds
+    if pipe.text_encoder_2 is None:
+        text_encoder_projection_dim = int(pooled_prompt_embeds.shape[-1])
+    else:
+        text_encoder_projection_dim = pipe.text_encoder_2.config.projection_dim
+
+    add_time_ids = pipe._get_add_time_ids(original_size, crops_coords_top_left, target_size, dtype=prompt_embeds.dtype, text_encoder_projection_dim=text_encoder_projection_dim)
+    if negative_original_size is not None and negative_target_size is not None:
+        negative_add_time_ids = pipe._get_add_time_ids(negative_original_size, negative_crops_coords_top_left, negative_target_size, dtype=prompt_embeds.dtype, text_encoder_projection_dim=text_encoder_projection_dim)
+    else:
+        negative_add_time_ids = add_time_ids
+
+    if pipe.do_classifier_free_guidance:
+        prompt_embeds = torch.cat([negative_prompt_embeds, prompt_embeds], dim=0)
+        add_text_embeds = torch.cat([negative_pooled_prompt_embeds, add_text_embeds], dim=0)
+        add_time_ids = torch.cat([negative_add_time_ids, add_time_ids], dim=0)
+
+    prompt_embeds = prompt_embeds.to(device)
+    add_text_embeds = add_text_embeds.to(device)
+    add_time_ids = add_time_ids.to(device).repeat(batch_size * num_images_per_prompt, 1)
+
+    timestep_cond = None
+    if pipe.unet.config.time_cond_proj_dim is not None:
+        guidance_scale_tensor = torch.tensor(pipe.guidance_scale - 1).repeat(batch_size * num_images_per_prompt)
+        timestep_cond = pipe.get_guidance_scale_embedding(guidance_scale_tensor, embedding_dim=pipe.unet.config.time_cond_proj_dim).to(device=device, dtype=latents.dtype)
+
+    pipe._num_timesteps = len(timesteps)
+    num_warmup_steps = max(len(timesteps) - num_inference_steps * pipe.scheduler.order, 0)
+
+    with pipe.progress_bar(total=num_inference_steps) as progress_bar:
+        for i, timestep in enumerate(timesteps):
+            # 1. Standard Denoising Step
+            noise_pred = _guided_noise_prediction(
+                pipe=pipe, latents=latents, timestep=timestep, prompt_embeds=prompt_embeds,
+                add_text_embeds=add_text_embeds, add_time_ids=add_time_ids, guidance_scale=config.gamma_1,
+                guidance_rescale=guidance_rescale, timestep_cond=timestep_cond,
+            )
+            
+            # Using return_dict=True to access pred_original_sample for the resampling phase
+            step_output = pipe.scheduler.step(noise_pred, timestep, latents, **extra_step_kwargs, return_dict=True)
+            next_latents = step_output.prev_sample
+            pred_x0 = step_output.pred_original_sample
+
+            if next_latents.dtype != latents.dtype and torch.backends.mps.is_available():
+                next_latents = next_latents.to(latents.dtype)
+                pred_x0 = pred_x0.to(latents.dtype)
+
+            # 2. Resampling Baseline Interception (lug, 2022)
+            if i < lambda_step:
+                for _ in range(config.t_max):
+                    # Add random noise to pred_original_sample to jump back to 'timestep'
+                    noise = torch.randn_like(next_latents)
+                    t_tensor = torch.tensor([timestep], dtype=torch.long, device=device)
+                    resampled_latents = pipe.scheduler.add_noise(pred_x0, noise, t_tensor)
+
+                    # Re-denoise 
+                    forward_noise_pred = _guided_noise_prediction(
+                        pipe=pipe, latents=resampled_latents, timestep=timestep, prompt_embeds=prompt_embeds,
+                        add_text_embeds=add_text_embeds, add_time_ids=add_time_ids, guidance_scale=config.gamma_1,
+                        guidance_rescale=guidance_rescale, timestep_cond=timestep_cond,
+                    )
+                    
+                    step_output_res = pipe.scheduler.step(forward_noise_pred, timestep, resampled_latents, **extra_step_kwargs, return_dict=True)
+                    next_latents = step_output_res.prev_sample
+                    pred_x0 = step_output_res.pred_original_sample
+
+            latents = next_latents
+            
+            if callback_on_step_end is not None:
+                callback_kwargs = {key: locals()[key] for key in callback_on_step_end_tensor_inputs}
+                callback_outputs = callback_on_step_end(pipe, i, timestep, callback_kwargs)
+                latents = callback_outputs.pop("latents", latents)
+                prompt_embeds = callback_outputs.pop("prompt_embeds", prompt_embeds)
+                add_text_embeds = callback_outputs.pop("add_text_embeds", add_text_embeds)
+                add_time_ids = callback_outputs.pop("add_time_ids", add_time_ids)
+
+            should_update_progress = (i == len(timesteps) - 1 or ((i + 1) > num_warmup_steps and (i + 1) % pipe.scheduler.order == 0))
+            if should_update_progress:
+                progress_bar.update()
+
+    image = _decode_latents(pipe, latents, output_type)
+    pipe.maybe_free_model_hooks()
+    
+    if not return_dict:
+        return (image,)
+    return StableDiffusionXLPipelineOutput(images=image)
 
