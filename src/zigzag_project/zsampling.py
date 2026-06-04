@@ -873,9 +873,6 @@ def resampling_sdxl(
     # 6. Sampling loop
     with pipe.progress_bar(total=len(transitions)) as progress_bar:
         for t_last, t_cur in transitions:
-            if t_cur == -1:
-                break
-
             current_timestep = get_timestep_from_logical(timesteps, t_last)
 
             if t_cur < t_last:
