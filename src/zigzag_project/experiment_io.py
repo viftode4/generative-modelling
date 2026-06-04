@@ -43,6 +43,14 @@ class GenerationPair:
     source_commit: str | None = None
     upstream_commit: str | None = None
 
+    resampling_path: str | None = None
+    resampling_runtime_s: float | None = None
+    resampling_jump_length_requested: int | None = None
+    resampling_jump_n_sample_requested: int | None = None
+    resampling_jump_length: int | None = None
+    resampling_jump_n_sample: int | None = None
+    resampling_jump_was_clamped: bool | None = None
+
     def to_json_dict(self) -> dict[str, Any]:
         return asdict(self)
 
