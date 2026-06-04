@@ -1,0 +1,23 @@
+# Vlad's verified MPS-working pin set (Apple M4 Max, Python 3.10.20).
+# Mirrors the [project] dependencies in pyproject.toml so teammates without
+# a local editable install can match the environment exactly.
+#
+# Diverges intentionally from external/zigzag-diffusion-sampling/requirements
+# because upstream pins torch==2.0.1 (CUDA-targeted; MPS support is too weak
+# for SDXL inversion). See knowledgebase/research-log.md 2026-05-14.
+
+torch==2.12.0
+diffusers==0.37.1
+transformers==5.8.1
+accelerate>=0.27
+safetensors>=0.4
+einops>=0.7
+torchsde>=0.2.6
+tqdm>=4.66
+huggingface_hub>=0.20
+numpy<2
+Pillow>=10
+
+# Optional scorer (downgrades pytest to 7.2.0 and needs a manual OpenCLIP
+# BPE vocab download; see scripts/score_hpsv2_pairs.py docstring).
+hpsv2==1.2.0

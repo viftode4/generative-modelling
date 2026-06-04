@@ -1,5 +1,6 @@
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 
@@ -14,7 +15,7 @@ def test_run_vlad_geneval_dry_run_writes_manifest(tmp_path: Path):
 
     subprocess.run(
         [
-            ".venv/bin/python",
+            sys.executable,
             "scripts/run_vlad_geneval.py",
             "--prompts",
             str(prompts),
@@ -57,7 +58,7 @@ def test_summarize_vlad_results_writes_markdown(tmp_path: Path):
 
     subprocess.run(
         [
-            ".venv/bin/python",
+            sys.executable,
             "scripts/summarize_vlad_results.py",
             "--scores",
             str(scores),

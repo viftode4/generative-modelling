@@ -27,6 +27,24 @@ git submodule update --init --recursive
 
 The upstream README specifies Python 3.10.14, CUDA PyTorch, and pinned diffusion dependencies. This repo includes helper scripts to make setup repeatable.
 
+### Apple Silicon / MPS variant (Vlad's lane)
+
+Upstream pins (`torch==2.0.1`) do not run SDXL inversion on MPS. Use the
+verified-working pin set instead:
+
+```bash
+.venv/bin/pip install -r requirements-vlad.txt
+.venv/bin/pip install -e .[dev,scoring]
+```
+
+Then patch the OpenCLIP BPE vocab missing from `hpsv2==1.2.0` (see
+`scripts/score_hpsv2_pairs.py` docstring) before running scoring. Full
+end-to-end pipeline:
+
+```bash
+scripts/repro-vlad.sh
+```
+
 Create a local virtual environment without installing packages yet:
 
 ```powershell

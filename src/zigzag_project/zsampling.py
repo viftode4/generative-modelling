@@ -13,8 +13,18 @@ from diffusers.pipelines.stable_diffusion_xl.pipeline_stable_diffusion_xl import
 )
 from diffusers.utils.torch_utils import randn_tensor
 
+from zigzag_project.models import ModelHandle
+from zigzag_project.resampling_utils import get_resampling_schedule, get_timestep_from_logical, get_resampling_config, ResamplingConfig
 
-def retrieve_timesteps(scheduler, num_inference_steps=None, device=None, timesteps=None, sigmas=None, **kwargs):
+
+def retrieve_timesteps(
+    scheduler,
+    num_inference_steps=None,
+    device=None,
+    timesteps=None,
+    sigmas=None,
+    **kwargs,
+):
     """Vendored from diffusers>=0.26; not present in the pinned diffusers==0.22.3."""
     if timesteps is not None:
         scheduler.set_timesteps(timesteps=timesteps, device=device, **kwargs)
@@ -25,11 +35,6 @@ def retrieve_timesteps(scheduler, num_inference_steps=None, device=None, timeste
     timesteps = scheduler.timesteps
     num_inference_steps = len(timesteps)
     return timesteps, num_inference_steps
-
-from zigzag_project.models import ModelHandle
-from zigzag_project.resampling_utils import get_resampling_schedule, get_timestep_from_logical, get_resampling_config, \
-    ResamplingConfig
-
 
 @dataclass(frozen=True)
 class ZSamplingConfig:
@@ -131,11 +136,15 @@ def _decode_latents(pipe: Any, latents: torch.Tensor, output_type: str | None) -
         return latents
 
     needs_upcasting = pipe.vae.dtype == torch.float16 and pipe.vae.config.force_upcast
+    original_vae_dtype: torch.dtype | None = None
     if needs_upcasting:
         pipe.upcast_vae()
         latents = latents.to(next(iter(pipe.vae.post_quant_conv.parameters())).dtype)
     elif latents.dtype != pipe.vae.dtype and torch.backends.mps.is_available():
-        # Mirrors diffusers' SDXL MPS workaround for dtype drift during scheduler steps.
+        # Diffusers' SDXL MPS workaround: dtype drifts during scheduler steps so
+        # the VAE must match the latents to decode. Stash the original dtype and
+        # restore it after the decode so back-to-back calls do not leak.
+        original_vae_dtype = pipe.vae.dtype
         pipe.vae = pipe.vae.to(latents.dtype)
 
     has_latents_mean = (
@@ -164,6 +173,8 @@ def _decode_latents(pipe: Any, latents: torch.Tensor, output_type: str | None) -
     image = pipe.vae.decode(latents, return_dict=False)[0]
     if needs_upcasting:
         pipe.vae.to(dtype=torch.float16)
+    elif original_vae_dtype is not None:
+        pipe.vae = pipe.vae.to(original_vae_dtype)
     if pipe.watermark is not None:
         image = pipe.watermark.apply_watermark(image)
     return pipe.image_processor.postprocess(image, output_type=output_type)
@@ -218,6 +229,12 @@ def z_sample_sdxl(
     lambda_step = config.resolved_lambda_step()
     pipe = handle.pipe
     inverse_scheduler = handle.inverse_scheduler
+    if pipe.unet.config.time_cond_proj_dim is not None:
+        raise ValueError(
+            "Z-Sampling requires CFG-on; this UNet has time_cond_proj_dim set "
+            "(LCM-style guidance distillation), which disables CFG and would "
+            "silently ignore gamma_2 during inversion."
+        )
 
     height = height or pipe.default_sample_size * pipe.vae_scale_factor
     width = width or pipe.default_sample_size * pipe.vae_scale_factor
@@ -362,6 +379,10 @@ def z_sample_sdxl(
                 guidance_rescale=guidance_rescale,
                 timestep_cond=timestep_cond,
             )
+            # Reset _step_index before every scheduler.step call so repeated
+            # steps at the same timestep (zag-zig pattern) advance correctly.
+            # Mirrors upstream pipeline_stable_diffusion_xl.py:1455/1486/1517.
+            pipe.scheduler._step_index = None
             next_latents = pipe.scheduler.step(
                 noise_pred,
                 timestep,
@@ -385,6 +406,7 @@ def z_sample_sdxl(
                         guidance_rescale=guidance_rescale,
                         timestep_cond=timestep_cond,
                     )
+                    inverse_scheduler._step_index = None
                     inv_latents = inverse_scheduler.step(
                         inverse_noise_pred,
                         timesteps[i + 1],
@@ -403,6 +425,7 @@ def z_sample_sdxl(
                         guidance_rescale=guidance_rescale,
                         timestep_cond=timestep_cond,
                     )
+                    pipe.scheduler._step_index = None
                     next_latents = pipe.scheduler.step(
                         forward_noise_pred,
                         timestep,
@@ -517,6 +540,12 @@ def z_sample_sd21(
     lambda_step = config.resolved_lambda_step()
     pipe = handle.pipe
     inverse_scheduler = handle.inverse_scheduler
+    if pipe.unet.config.time_cond_proj_dim is not None:
+        raise ValueError(
+            "Z-Sampling requires CFG-on; this UNet has time_cond_proj_dim set "
+            "(LCM-style guidance distillation), which disables CFG and would "
+            "silently ignore gamma_2 during inversion."
+        )
 
     # SD2.1 defaults to 768 if pipe.unet.config.sample_size is 96 (96*8=768).
     default_size = pipe.unet.config.sample_size * pipe.vae_scale_factor
@@ -527,6 +556,7 @@ def z_sample_sd21(
     pipe._guidance_rescale = guidance_rescale
     pipe._clip_skip = clip_skip
     pipe._cross_attention_kwargs = cross_attention_kwargs
+    pipe._denoising_end = None
     pipe._interrupt = False
 
     if prompt is not None and isinstance(prompt, str):
@@ -606,6 +636,7 @@ def z_sample_sd21(
                 guidance_rescale=guidance_rescale,
                 timestep_cond=timestep_cond,
             )
+            pipe.scheduler._step_index = None
             next_latents = pipe.scheduler.step(
                 noise_pred,
                 timestep,
@@ -628,6 +659,7 @@ def z_sample_sd21(
                         guidance_rescale=guidance_rescale,
                         timestep_cond=timestep_cond,
                     )
+                    inverse_scheduler._step_index = None
                     inv_latents = inverse_scheduler.step(
                         inverse_noise_pred,
                         timesteps[i + 1],
@@ -645,6 +677,7 @@ def z_sample_sd21(
                         guidance_rescale=guidance_rescale,
                         timestep_cond=timestep_cond,
                     )
+                    pipe.scheduler._step_index = None
                     next_latents = pipe.scheduler.step(
                         forward_noise_pred,
                         timestep,
