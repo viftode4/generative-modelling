@@ -27,7 +27,8 @@ def retrieve_timesteps(scheduler, num_inference_steps=None, device=None, timeste
     return timesteps, num_inference_steps
 
 from zigzag_project.models import ModelHandle
-from zigzag_project.resampling_utils import get_resampling_schedule, get_timestep_from_logical, get_resampling_config
+from zigzag_project.resampling_utils import get_resampling_schedule, get_timestep_from_logical, get_resampling_config, \
+    ResamplingConfig
 
 
 @dataclass(frozen=True)
@@ -713,9 +714,7 @@ def resampling_sdxl(
     handle: ModelHandle,
     prompt: str | list[str] | None = None,
     *,
-    config: ZSamplingConfig | None = None,
-    jump_length: int | None = None,
-    jump_n_sample: int | None = None,
+    config: ResamplingConfig | None = None,
     prompt_2: str | list[str] | None = None,
     height: int | None = None,
     width: int | None = None,
@@ -754,8 +753,7 @@ def resampling_sdxl(
     jump_length and jump_n_sample default to the RePaint-style config values (10, 10).
     jump_length is clamped to num_inference_steps - 1 when necessary.
     """
-    config = config or ZSamplingConfig()
-    validate_zsampling_config(config)
+    config = config or ResamplingConfig()
     pipe = handle.pipe
 
     if eta > 0.0:
@@ -843,17 +841,11 @@ def resampling_sdxl(
         timestep_cond = pipe.get_guidance_scale_embedding(guidance_scale_tensor, embedding_dim=pipe.unet.config.time_cond_proj_dim).to(device=device, dtype=latents.dtype)
 
     # 5. Build the RePaint non-monotonic schedule
-    defaults = get_resampling_config()
+    effective_jump_length, effective_jump_n_sample, jump_was_clamped = config.resolved_jump_params()
 
-    requested_jump_length = jump_length if jump_length is not None else defaults["jump_length"]
-    requested_jump_n_sample = jump_n_sample if jump_n_sample is not None else defaults["jump_n_sample"]
-
-    effective_jump_length = min(requested_jump_length, num_inference_steps - 1)
-    effective_jump_n_sample = requested_jump_n_sample
-
-    if effective_jump_length != requested_jump_length:
+    if jump_was_clamped:
         logger.warning("Clamped jump_length from %d to %d because infer_step=%d.",
-            requested_jump_length, effective_jump_length, num_inference_steps)
+            config.jump_length, effective_jump_length, config.infer_step,)
 
     schedule = get_resampling_schedule(num_inference_steps, jump_length=effective_jump_length, jump_n_sample=effective_jump_n_sample)
     transitions = list(zip(schedule[:-1], schedule[1:]))

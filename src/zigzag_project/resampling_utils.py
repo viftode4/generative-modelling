@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from zigzag_project.model_utils import *
 from tqdm.auto import tqdm
 
@@ -6,6 +8,25 @@ RESAMPLING_CONFIG = {
     "jump_length": 10,
     "jump_n_sample": 10,
 }
+
+@dataclass(frozen=True)
+class ResamplingConfig:
+    gamma_1: float = 5.5
+    infer_step: int = 50
+    jump_length: int = 10
+    jump_n_sample: int = 10
+
+    def resolved_jump_params(self) -> tuple[int, int, bool]:
+        if self.infer_step < 2:
+            raise ValueError("infer_step must be at least 2 for resampling")
+        if self.jump_length < 1:
+            raise ValueError("jump_length must be at least 1")
+        if self.jump_n_sample < 1:
+            raise ValueError("jump_n_sample must be at least 1")
+
+        effective_jump_length = min(self.jump_length, self.infer_step - 1)
+        was_clamped = effective_jump_length != self.jump_length
+        return effective_jump_length, self.jump_n_sample, was_clamped
 
 def get_resampling_config():
     return dict(RESAMPLING_CONFIG)
