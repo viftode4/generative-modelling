@@ -868,7 +868,7 @@ def resampling_sdxl(
         num_inference_steps, jump_length, jump_n_sample,
     )
     transitions = list(zip(schedule[:-1], schedule[1:]))
-    pipe._num_timesteps = len(timesteps)
+    pipe._num_timesteps = len(transitions)
 
     # 6. Sampling loop
     with pipe.progress_bar(total=len(transitions)) as progress_bar:
