@@ -79,6 +79,16 @@ def main() -> None:
             res_path = image_dir / f"{prompt_id}_seed{seed}_resampling.png"
             zig_path = image_dir / f"{prompt_id}_seed{seed}_zigzag.png"
 
+            if std_path.exists() and res_path.exists() and zig_path.exists():
+                print(f"  -> Already done (seed={seed}), skipping.")
+                manifest_rows.append({
+                    "prompt_id": prompt_id, "prompt": prompt_text, "seed": seed,
+                    "standard_path": str(std_path), "resampling_path": str(res_path),
+                    "zigzag_path": str(zig_path), "standard_time_s": 0.0,
+                    "resampling_time_s": 0.0, "zigzag_time_s": 0.0
+                })
+                continue
+
             # A. Standard Sampling
             print("  -> Running Standard...")
             t0 = time.time()
