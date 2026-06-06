@@ -30,6 +30,10 @@ ENV/
 .env.*
 !.env.example
 
+# Generated images from notebook runs
+notebooks/daniel-sdxl-drawbench/sdxl_drawbench_images/
+notebooks/daniel-sdxl-drawbench/sdxl_drawbench_qualitative.png
+
 # Course/ML generated artifacts
 /datasets/
 /results/
