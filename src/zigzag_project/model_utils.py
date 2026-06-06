@@ -47,10 +47,10 @@ def get_device():
 
 
 def get_torch_dtype(device=None):
-    """Uses float16 on CUDA and float32 on CPU."""
+    """Uses float16 on CUDA/MPS and float32 on CPU."""
     if device is None:
         device = get_device()
-    return torch.float16 if device == "cuda" else torch.float32
+    return torch.float16 if device in ("cuda", "mps") else torch.float32
 
 def load_pipeline_standard(model_name, model_id=None, use_ddim=True, device=None):
     """
@@ -83,12 +83,13 @@ def load_pipeline_standard(model_name, model_id=None, use_ddim=True, device=None
 
     pipe = pipe.to(device)
 
-    if device == "cuda":
+    if device in ("cuda", "mps"):
         pipe.enable_attention_slicing()
-        try:
-            pipe.enable_xformers_memory_efficient_attention()
-        except Exception:
-            pass
+        if device == "cuda":
+            try:
+                pipe.enable_xformers_memory_efficient_attention()
+            except Exception:
+                pass
 
     return pipe
 
@@ -105,8 +106,11 @@ def generate_images_standard(pipeline, prompts, model_name, output_dir, seed=42,
 
     if device is None:
         device = torch.device(get_device())
+    elif isinstance(device, str):
+        device = torch.device(device)
 
-    generator = torch.Generator(device=device.type).manual_seed(seed)
+    gen_device = "cpu" if device.type == "mps" else device.type
+    generator = torch.Generator(device=gen_device).manual_seed(seed)
 
     result_paths = []
     for i, prompt in enumerate(prompts):
