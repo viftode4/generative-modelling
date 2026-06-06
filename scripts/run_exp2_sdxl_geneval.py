@@ -18,7 +18,7 @@ sys.path.append(os.path.abspath("src"))
 # Import team utilities
 from zigzag_project.dataset_utils import load_geneval_prompts
 from zigzag_project.model_utils import load_pipeline_standard
-# importing resampling_sdxl function
+from zigzag_project.resampling_utils import ResamplingConfig
 from zigzag_project.zsampling import ZSamplingConfig, make_initial_latents, z_sample_sdxl, resampling_sdxl
 
 def main() -> None:
@@ -101,26 +101,29 @@ def main() -> None:
             std_image.save(std_path)
             print(f"  -> Standard done ({std_time:.1f}s)")
 
-            #B. Resampling (lug, 2022)
+            #B. Resampling (Lugmayr 2022)
             print("  -> Running Resampling...")
-            config = ZSamplingConfig(
-                gamma_1=args.cfg, gamma_2=args.inv_cfg, infer_step=args.steps,
-                lambda_step=args.lambda_step, t_max=args.t_max
+            res_config = ResamplingConfig(
+                gamma_1=args.cfg, infer_step=args.steps,
             )
             t0 = time.time()
             res_image = resampling_sdxl(
-                handle, prompt=prompt_text, config=config,
+                handle, prompt=prompt_text, config=res_config,
                 height=args.size, width=args.size, latents=latents.clone()
             ).images[0]
             res_time = time.time() - t0
             res_image.save(res_path)
             print(f"  -> Resampling done ({res_time:.1f}s)")
 
-            # C. Z-Sampling 
+            # C. Z-Sampling
             print("  -> Running Z-Sampling...")
+            zsamp_config = ZSamplingConfig(
+                gamma_1=args.cfg, gamma_2=args.inv_cfg, infer_step=args.steps,
+                lambda_step=args.lambda_step, t_max=args.t_max
+            )
             t0 = time.time()
             zig_image = z_sample_sdxl(
-                handle, prompt=prompt_text, config=config,
+                handle, prompt=prompt_text, config=zsamp_config,
                 height=args.size, width=args.size, latents=latents.clone()
             ).images[0]
             zig_time = time.time() - t0
