@@ -1,0 +1,5 @@
+Metric,Standard (mean),Z-Sampling (mean),Δ (Z - Std),Z wins,Std wins
+HPS v2,0.26,0.29,+0.02,540,60
+AES,5.47,5.63,+0.15,420,180
+PickScore,0.23,0.23,+0.00,351,249
+IR,nan,nan,+nan,0,0
