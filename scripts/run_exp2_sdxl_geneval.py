@@ -34,6 +34,8 @@ def main() -> None:
     parser.add_argument("--size", type=int, default=1024)
     parser.add_argument("--device", default="cpu") 
     parser.add_argument("--test-run", action="store_true", help="Only run the first 2 prompts for testing")
+    parser.add_argument("--max-per-skill", type=int, default=None,
+                        help="Max prompts per skill tag (e.g. 5 gives 30 prompts across 6 skills)")
     args = parser.parse_args()
 
     # 1. Load Prompts
@@ -42,6 +44,13 @@ def main() -> None:
     if args.test_run:
         df_prompts = df_prompts.head(2)
         print("TEST RUN: Only running the first 2 prompts.")
+    elif args.max_per_skill is not None:
+        df_prompts = (
+            df_prompts.groupby("tag", group_keys=False)
+            .apply(lambda x: x.sample(min(len(x), args.max_per_skill), random_state=42))
+            .reset_index(drop=True)
+        )
+        print(f"SUBSET: {len(df_prompts)} prompts ({args.max_per_skill} per skill tag).")
 
     out_dir = Path(args.out)
     image_dir = out_dir / "images"
