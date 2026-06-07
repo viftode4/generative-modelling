@@ -14,7 +14,11 @@ from diffusers.pipelines.stable_diffusion_xl.pipeline_stable_diffusion_xl import
 from diffusers.utils.torch_utils import randn_tensor
 
 from zigzag_project.models import ModelHandle
-from zigzag_project.resampling_utils import get_resampling_schedule, get_timestep_from_logical, get_resampling_config, ResamplingConfig
+from zigzag_project.resampling_utils import (
+    ResamplingConfig,
+    get_resampling_schedule,
+    get_timestep_from_logical,
+)
 
 
 def retrieve_timesteps(
@@ -35,6 +39,7 @@ def retrieve_timesteps(
     timesteps = scheduler.timesteps
     num_inference_steps = len(timesteps)
     return timesteps, num_inference_steps
+
 
 @dataclass(frozen=True)
 class ZSamplingConfig:
@@ -148,12 +153,10 @@ def _decode_latents(pipe: Any, latents: torch.Tensor, output_type: str | None) -
         pipe.vae = pipe.vae.to(latents.dtype)
 
     has_latents_mean = (
-        hasattr(pipe.vae.config, "latents_mean")
-        and pipe.vae.config.latents_mean is not None
+        hasattr(pipe.vae.config, "latents_mean") and pipe.vae.config.latents_mean is not None
     )
     has_latents_std = (
-        hasattr(pipe.vae.config, "latents_std")
-        and pipe.vae.config.latents_std is not None
+        hasattr(pipe.vae.config, "latents_std") and pipe.vae.config.latents_std is not None
     )
     if has_latents_mean and has_latents_std:
         latents_mean = (
@@ -211,8 +214,7 @@ def z_sample_sdxl(
     negative_target_size: tuple[int, int] | None = None,
     clip_skip: int | None = None,
     callback_on_step_end: (
-        Callable[[Any, int, torch.Tensor, dict[str, torch.Tensor]], dict[str, torch.Tensor]]
-        | None
+        Callable[[Any, int, torch.Tensor, dict[str, torch.Tensor]], dict[str, torch.Tensor]] | None
     ) = None,
     callback_on_step_end_tensor_inputs: tuple[str, ...] = ("latents",),
 ) -> StableDiffusionXLPipelineOutput | tuple[Any]:
@@ -443,9 +445,8 @@ def z_sample_sdxl(
                 add_text_embeds = callback_outputs.pop("add_text_embeds", add_text_embeds)
                 add_time_ids = callback_outputs.pop("add_time_ids", add_time_ids)
 
-            should_update_progress = (
-                i == len(timesteps) - 1
-                or ((i + 1) > num_warmup_steps and (i + 1) % pipe.scheduler.order == 0)
+            should_update_progress = i == len(timesteps) - 1 or (
+                (i + 1) > num_warmup_steps and (i + 1) % pipe.scheduler.order == 0
             )
             if should_update_progress:
                 progress_bar.update()
@@ -455,6 +456,7 @@ def z_sample_sdxl(
     if not return_dict:
         return (image,)
     return StableDiffusionXLPipelineOutput(images=image)
+
 
 def _guided_noise_prediction_sd21(
     *,
@@ -521,8 +523,7 @@ def z_sample_sd21(
     guidance_rescale: float = 0.0,
     clip_skip: int | None = None,
     callback_on_step_end: (
-        Callable[[Any, int, torch.Tensor, dict[str, torch.Tensor]], dict[str, torch.Tensor]]
-        | None
+        Callable[[Any, int, torch.Tensor, dict[str, torch.Tensor]], dict[str, torch.Tensor]] | None
     ) = None,
     callback_on_step_end_tensor_inputs: tuple[str, ...] = ("latents",),
 ) -> StableDiffusionPipelineOutput | tuple[Any]:
@@ -693,9 +694,8 @@ def z_sample_sd21(
                 latents = callback_outputs.pop("latents", latents)
                 prompt_embeds = callback_outputs.pop("prompt_embeds", prompt_embeds)
 
-            should_update_progress = (
-                i == len(timesteps) - 1
-                or ((i + 1) > num_warmup_steps and (i + 1) % pipe.scheduler.order == 0)
+            should_update_progress = i == len(timesteps) - 1 or (
+                (i + 1) > num_warmup_steps and (i + 1) % pipe.scheduler.order == 0
             )
             if should_update_progress:
                 progress_bar.update()
@@ -704,9 +704,11 @@ def z_sample_sd21(
     pipe.maybe_free_model_hooks()
     if not return_dict:
         return (image,)
-    return StableDiffusionPipelineOutput(images=image)
+    return StableDiffusionPipelineOutput(images=image, nsfw_content_detected=None)
+
 
 logger = logging.getLogger(__name__)
+
 
 def _renoise_latents(
     scheduler: Any,
@@ -735,10 +737,13 @@ def _renoise_latents(
     alpha_to = scheduler.alphas_cumprod[t_to].to(device=latents.device, dtype=latents.dtype)
     if alpha_to > alpha_from:
         raise ValueError(
-            f"Re-noising must move to a noisier timestep (alpha_to={alpha_to:.4f} > alpha_from={alpha_from:.4f})."
+            "Re-noising must move to a noisier timestep "
+            f"(alpha_to={alpha_to:.4f} > alpha_from={alpha_from:.4f})."
         )
     alpha_ratio = torch.clamp(alpha_to / alpha_from, min=0.0, max=1.0)
-    noise = randn_tensor(latents.shape, generator=generator, device=latents.device, dtype=latents.dtype)
+    noise = randn_tensor(
+        latents.shape, generator=generator, device=latents.device, dtype=latents.dtype
+    )
     return alpha_ratio.sqrt() * latents + (1.0 - alpha_ratio).sqrt() * noise
 
 
@@ -773,8 +778,7 @@ def resampling_sdxl(
     negative_target_size: tuple[int, int] | None = None,
     clip_skip: int | None = None,
     callback_on_step_end: (
-        Callable[[Any, int, torch.Tensor, dict[str, torch.Tensor]], dict[str, torch.Tensor]]
-        | None
+        Callable[[Any, int, torch.Tensor, dict[str, torch.Tensor]], dict[str, torch.Tensor]] | None
     ) = None,
     callback_on_step_end_tensor_inputs: tuple[str, ...] = ("latents",),
 ) -> StableDiffusionXLPipelineOutput | tuple[Any]:
@@ -787,6 +791,10 @@ def resampling_sdxl(
     jump_length is clamped to num_inference_steps - 1 when necessary.
     """
     config = config or ResamplingConfig()
+    if not isinstance(config, ResamplingConfig):
+        raise TypeError(
+            f"resampling_sdxl config must be ResamplingConfig; got {type(config).__name__}"
+        )
     pipe = handle.pipe
 
     if eta > 0.0:
@@ -804,9 +812,20 @@ def resampling_sdxl(
     target_size = target_size or (height, width)
 
     pipe.check_inputs(
-        prompt, prompt_2, height, width, None, negative_prompt, negative_prompt_2,
-        prompt_embeds, negative_prompt_embeds, pooled_prompt_embeds,
-        negative_pooled_prompt_embeds, None, None, list(callback_on_step_end_tensor_inputs),
+        prompt,
+        prompt_2,
+        height,
+        width,
+        None,
+        negative_prompt,
+        negative_prompt_2,
+        prompt_embeds,
+        negative_prompt_embeds,
+        pooled_prompt_embeds,
+        negative_pooled_prompt_embeds,
+        None,
+        None,
+        list(callback_on_step_end_tensor_inputs),
     )
 
     pipe._guidance_scale = config.gamma_1
@@ -825,24 +844,47 @@ def resampling_sdxl(
 
     # 2. Encode prompt
     device = pipe._execution_device
-    lora_scale = pipe.cross_attention_kwargs.get("scale", None) if pipe.cross_attention_kwargs is not None else None
+    lora_scale = (
+        pipe.cross_attention_kwargs.get("scale", None)
+        if pipe.cross_attention_kwargs is not None
+        else None
+    )
 
     (
-        prompt_embeds, negative_prompt_embeds, pooled_prompt_embeds, negative_pooled_prompt_embeds,
+        prompt_embeds,
+        negative_prompt_embeds,
+        pooled_prompt_embeds,
+        negative_pooled_prompt_embeds,
     ) = pipe.encode_prompt(
-        prompt=prompt, prompt_2=prompt_2, device=device, num_images_per_prompt=num_images_per_prompt,
-        do_classifier_free_guidance=pipe.do_classifier_free_guidance, negative_prompt=negative_prompt,
-        negative_prompt_2=negative_prompt_2, prompt_embeds=prompt_embeds, negative_prompt_embeds=negative_prompt_embeds,
-        pooled_prompt_embeds=pooled_prompt_embeds, negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
-        lora_scale=lora_scale, clip_skip=pipe.clip_skip,
+        prompt=prompt,
+        prompt_2=prompt_2,
+        device=device,
+        num_images_per_prompt=num_images_per_prompt,
+        do_classifier_free_guidance=pipe.do_classifier_free_guidance,
+        negative_prompt=negative_prompt,
+        negative_prompt_2=negative_prompt_2,
+        prompt_embeds=prompt_embeds,
+        negative_prompt_embeds=negative_prompt_embeds,
+        pooled_prompt_embeds=pooled_prompt_embeds,
+        negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
+        lora_scale=lora_scale,
+        clip_skip=pipe.clip_skip,
     )
 
     # 3. Timesteps & initial latents
-    timesteps, num_inference_steps = retrieve_timesteps(pipe.scheduler, config.infer_step, device, None, None)
+    timesteps, num_inference_steps = retrieve_timesteps(
+        pipe.scheduler, config.infer_step, device, None, None
+    )
 
     latents = pipe.prepare_latents(
-        batch_size * num_images_per_prompt, pipe.unet.config.in_channels,
-        height, width, prompt_embeds.dtype, device, generator, latents,
+        batch_size * num_images_per_prompt,
+        pipe.unet.config.in_channels,
+        height,
+        width,
+        prompt_embeds.dtype,
+        device,
+        generator,
+        latents,
     )
     extra_step_kwargs = pipe.prepare_extra_step_kwargs(generator, eta)
 
@@ -853,9 +895,21 @@ def resampling_sdxl(
     else:
         text_encoder_projection_dim = pipe.text_encoder_2.config.projection_dim
 
-    add_time_ids = pipe._get_add_time_ids(original_size, crops_coords_top_left, target_size, dtype=prompt_embeds.dtype, text_encoder_projection_dim=text_encoder_projection_dim)
+    add_time_ids = pipe._get_add_time_ids(
+        original_size,
+        crops_coords_top_left,
+        target_size,
+        dtype=prompt_embeds.dtype,
+        text_encoder_projection_dim=text_encoder_projection_dim,
+    )
     if negative_original_size is not None and negative_target_size is not None:
-        negative_add_time_ids = pipe._get_add_time_ids(negative_original_size, negative_crops_coords_top_left, negative_target_size, dtype=prompt_embeds.dtype, text_encoder_projection_dim=text_encoder_projection_dim)
+        negative_add_time_ids = pipe._get_add_time_ids(
+            negative_original_size,
+            negative_crops_coords_top_left,
+            negative_target_size,
+            dtype=prompt_embeds.dtype,
+            text_encoder_projection_dim=text_encoder_projection_dim,
+        )
     else:
         negative_add_time_ids = add_time_ids
 
@@ -870,18 +924,30 @@ def resampling_sdxl(
 
     timestep_cond = None
     if pipe.unet.config.time_cond_proj_dim is not None:
-        guidance_scale_tensor = torch.tensor(pipe.guidance_scale - 1).repeat(batch_size * num_images_per_prompt)
-        timestep_cond = pipe.get_guidance_scale_embedding(guidance_scale_tensor, embedding_dim=pipe.unet.config.time_cond_proj_dim).to(device=device, dtype=latents.dtype)
+        guidance_scale_tensor = torch.tensor(pipe.guidance_scale - 1).repeat(
+            batch_size * num_images_per_prompt
+        )
+        timestep_cond = pipe.get_guidance_scale_embedding(
+            guidance_scale_tensor, embedding_dim=pipe.unet.config.time_cond_proj_dim
+        ).to(device=device, dtype=latents.dtype)
 
     # 5. Build the RePaint non-monotonic schedule
     effective_jump_length, effective_jump_n_sample, jump_was_clamped = config.resolved_jump_params()
 
     if jump_was_clamped:
-        logger.warning("Clamped jump_length from %d to %d because infer_step=%d.",
-            config.jump_length, effective_jump_length, config.infer_step,)
+        logger.warning(
+            "Clamped jump_length from %d to %d because infer_step=%d.",
+            config.jump_length,
+            effective_jump_length,
+            config.infer_step,
+        )
 
-    schedule = get_resampling_schedule(num_inference_steps, jump_length=effective_jump_length, jump_n_sample=effective_jump_n_sample)
-    transitions = list(zip(schedule[:-1], schedule[1:]))
+    schedule = get_resampling_schedule(
+        num_inference_steps,
+        jump_length=effective_jump_length,
+        jump_n_sample=effective_jump_n_sample,
+    )
+    transitions = list(zip(schedule[:-1], schedule[1:], strict=True))
     pipe._num_timesteps = len(transitions)
 
     # 6. Sampling loop
@@ -892,19 +958,29 @@ def resampling_sdxl(
             if t_cur < t_last:
                 # Denoising step (schedule moving towards cleaner image)
                 noise_pred = _guided_noise_prediction(
-                    pipe=pipe, latents=latents, timestep=current_timestep, prompt_embeds=prompt_embeds,
-                    add_text_embeds=add_text_embeds, add_time_ids=add_time_ids, guidance_scale=config.gamma_1,
-                    guidance_rescale=guidance_rescale, timestep_cond=timestep_cond,
+                    pipe=pipe,
+                    latents=latents,
+                    timestep=current_timestep,
+                    prompt_embeds=prompt_embeds,
+                    add_text_embeds=add_text_embeds,
+                    add_time_ids=add_time_ids,
+                    guidance_scale=config.gamma_1,
+                    guidance_rescale=guidance_rescale,
+                    timestep_cond=timestep_cond,
                 )
-                latents = pipe.scheduler.step(noise_pred, current_timestep, latents, **extra_step_kwargs, return_dict=False)[0]
+                latents = pipe.scheduler.step(
+                    noise_pred, current_timestep, latents, **extra_step_kwargs, return_dict=False
+                )[0]
                 if latents.dtype != prompt_embeds.dtype and torch.backends.mps.is_available():
                     latents = latents.to(prompt_embeds.dtype)
             else:
                 # Re-noising step: move directly between noisy states via α-ratio formula
                 target_timestep = get_timestep_from_logical(timesteps, t_cur)
                 latents = _renoise_latents(
-                    scheduler=pipe.scheduler, latents=latents,
-                    from_timestep=current_timestep, to_timestep=target_timestep,
+                    scheduler=pipe.scheduler,
+                    latents=latents,
+                    from_timestep=current_timestep,
+                    to_timestep=target_timestep,
                     generator=generator,
                 )
 
@@ -914,7 +990,9 @@ def resampling_sdxl(
                     for key in callback_on_step_end_tensor_inputs
                     if key in locals()
                 }
-                callback_outputs = callback_on_step_end(pipe, t_last, current_timestep, callback_kwargs)
+                callback_outputs = callback_on_step_end(
+                    pipe, t_last, current_timestep, callback_kwargs
+                )
                 latents = callback_outputs.pop("latents", latents)
                 prompt_embeds = callback_outputs.pop("prompt_embeds", prompt_embeds)
                 add_text_embeds = callback_outputs.pop("add_text_embeds", add_text_embeds)
@@ -928,4 +1006,3 @@ def resampling_sdxl(
     if not return_dict:
         return (image,)
     return StableDiffusionXLPipelineOutput(images=image)
-

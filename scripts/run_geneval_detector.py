@@ -7,9 +7,11 @@ official GenEval rule for that prompt. The official rule is looked up by
 ``external/geneval/prompts/evaluation_metadata.jsonl``.
 
 The detection/color/position logic mirrors
-``external/geneval/evaluation/evaluate_images.py`` but is rewritten against
-the modern mmdet 3.x ``DetDataSample`` API so it runs on the project ``.venv``
-(torch 2.12, mmdet 3.x). Behaviour matches upstream:
+``external/geneval/evaluation/evaluate_images.py``. It supports both the
+upstream-compatible mmdet 2.x tuple/list output and modern mmdet 3.x
+``DetDataSample`` output. On Vlad's Apple Silicon environment the working
+path is `mmdet==2.28.2`, `mmcv-full==1.7.2`, and `--device cpu`.
+Behaviour matches upstream:
 
 * Mask2Former object detector.
 * Threshold 0.3 for general tags, 0.9 for counting.
@@ -258,7 +260,23 @@ def _evaluate_one(
 def _extract_detections(
     result: Any, classnames: list[str], tag: str
 ) -> dict[str, list[tuple[np.ndarray, np.ndarray | None]]]:
-    """Adapt mmdet 3.x ``DetDataSample`` to the upstream per-class object list."""
+    """Adapt mmdet output to the upstream per-class object list.
+
+    GenEval's upstream script installs mmdetection 2.x, whose
+    ``inference_detector`` returns either ``bbox_results`` or
+    ``(bbox_results, segm_results)``. A previous local port targeted
+    mmdetection 3.x ``DetDataSample`` instead. Supporting both matters on
+    Apple Silicon because the locally available compiled ``mmcv-full`` wheel is
+    from the mmdet-2.x era.
+    """
+    if hasattr(result, "pred_instances"):
+        return _extract_detections_mmdet3(result, classnames, tag)
+    return _extract_detections_mmdet2(result, classnames, tag)
+
+
+def _extract_detections_mmdet3(
+    result: Any, classnames: list[str], tag: str
+) -> dict[str, list[tuple[np.ndarray, np.ndarray | None]]]:
     threshold = COUNTING_THRESHOLD if tag == "counting" else DEFAULT_THRESHOLD
     pred = result.pred_instances
     bboxes = pred.bboxes.detach().cpu().numpy()  # (N, 4)
@@ -294,6 +312,46 @@ def _extract_detections(
                     j
                     for j in remaining
                     if _iou(sub_bboxes[head], sub_bboxes[j]) < NMS_THRESHOLD
+                ]
+        detected[classname] = kept
+    return detected
+
+
+def _extract_detections_mmdet2(
+    result: Any, classnames: list[str], tag: str
+) -> dict[str, list[tuple[np.ndarray, np.ndarray | None]]]:
+    threshold = COUNTING_THRESHOLD if tag == "counting" else DEFAULT_THRESHOLD
+    bbox_results = result[0] if isinstance(result, tuple) else result
+    segm_results = result[1] if isinstance(result, tuple) and len(result) > 1 else None
+
+    detected: dict[str, list[tuple[np.ndarray, np.ndarray | None]]] = {}
+    for class_idx, classname in enumerate(classnames):
+        class_bboxes = np.asarray(bbox_results[class_idx])
+        if class_bboxes.size == 0:
+            continue
+        class_scores = class_bboxes[:, 4]
+        order = np.argsort(class_scores)[::-1]
+        order = order[class_scores[order] > threshold]
+        order = order[:MAX_OBJECTS]
+        if len(order) == 0:
+            continue
+
+        class_masks = None
+        if segm_results is not None:
+            class_masks = segm_results[class_idx]
+
+        kept: list[tuple[np.ndarray, np.ndarray | None]] = []
+        remaining = order.tolist()
+        while remaining:
+            head = remaining.pop(0)
+            head_box = class_bboxes[head]
+            head_mask = None if class_masks is None else np.asarray(class_masks[head])
+            kept.append((head_box, head_mask))
+            if NMS_THRESHOLD < 1.0:
+                remaining = [
+                    idx
+                    for idx in remaining
+                    if _iou(head_box[:4], class_bboxes[idx, :4]) < NMS_THRESHOLD
                 ]
         detected[classname] = kept
     return detected

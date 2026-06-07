@@ -27,9 +27,10 @@ def main() -> None:
     args = parser.parse_args()
 
     try:
-        import hpsv2
         import os
         import urllib.request
+
+        import hpsv2
 
         pkg_dir = os.path.dirname(hpsv2.__file__)
         vocab_path = os.path.join(pkg_dir, "src", "open_clip", "bpe_simple_vocab_16e6.txt.gz")

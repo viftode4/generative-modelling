@@ -1,4 +1,3 @@
-
 ## Run from root with:
 ## PYTHONPATH=src python -m scripts.smoke_resampling_sdxl --device cpu --size 512 --steps 50
 ## (use cuda instead of cpu if available)
@@ -10,8 +9,8 @@ import time
 from pathlib import Path
 
 from zigzag_project.model_utils import load_pipeline_standard
-from zigzag_project.zsampling import make_initial_latents, resampling_sdxl
 from zigzag_project.resampling_utils import ResamplingConfig
+from zigzag_project.zsampling import make_initial_latents, resampling_sdxl
 
 
 class ModelHandleWrapper:

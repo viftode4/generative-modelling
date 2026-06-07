@@ -60,3 +60,22 @@ python scripts/summarize_vlad_geneval.py \
 were not produced, and frame the missing-GenEval result as a *deliberate
 limitation* of the MPS environment rather than a missed deliverable. This
 is honest and rubric-positive — the rubric rewards documented limitations.
+
+## 2026-06-04 resolution — Mac CPU detector works
+
+The earlier blocker was real for the attempted `mmdet>=3` route, but it was not the only possible route. Re-diagnosis found that Vlad's `.venv` already had a compiled Apple/Darwin `mmcv-full==1.7.2` extension (`mmcv/_ext.cpython-310-darwin.so`). The missing package was `mmdet`, and upstream GenEval actually instructs users to install mmdetection `2.x`, not `3.x`.
+
+Working setup on Apple Silicon:
+
+```bash
+.venv/bin/python -m pip install 'mmdet==2.28.2'
+.venv/bin/python -m pip install -e '.[geneval]'
+.venv/bin/python scripts/run_geneval_detector.py \
+  --manifest outputs/vlad_geneval/balanced_18x3/manifest.jsonl \
+  --out outputs/vlad_geneval/balanced_18x3/geneval_scores.jsonl \
+  --device cpu
+```
+
+Code fix required: `scripts/run_geneval_detector.py` originally targeted the mmdet 3.x `DetDataSample` API (`result.pred_instances`). With mmdet 2.x, `inference_detector` returns the legacy GenEval-compatible `bbox_results` or `(bbox_results, segm_results)` tuple. Added an output adapter for the mmdet-2.x tuple format while keeping the mmdet-3.x path.
+
+Result: the full 54-pair detector pass completed on CPU in 566.4 s and wrote `outputs/vlad_geneval/balanced_18x3/geneval_scores.jsonl`.

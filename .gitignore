@@ -14,6 +14,7 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.cache/
 .coverage
 htmlcov/
 .ipynb_checkpoints/
@@ -40,6 +41,9 @@ notebooks/daniel-sdxl-drawbench/sdxl_drawbench_qualitative.png
 /runs/
 /checkpoints/
 /models/
+
+# External paper PDFs can be large; keep notes/metadata tracked instead.
+/docs/papers/*.pdf
 
 # /outputs/ is heavy generated content (images, intermediate latents).
 # Convention: each run lives at outputs/<run-family>/<run-name>/ (exactly 3
@@ -78,4 +82,3 @@ notebooks/daniel-sdxl-drawbench/sdxl_drawbench_qualitative.png
 !/external/.gitignore
 !/external/README.md
 !/external/zigzag-diffusion-sampling/
-

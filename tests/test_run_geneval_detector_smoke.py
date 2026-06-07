@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 from zigzag_project.experiment_io import read_jsonl, write_jsonl
@@ -66,6 +67,31 @@ def test_aggregate_geneval_pairs_groups_by_tag() -> None:
     by_tag = summary["by_tag"]
     assert by_tag["single_object"]["zigzag_pass"] == 2
     assert by_tag["counting"]["zigzag_pass"] == 0
+
+
+def test_extract_detections_supports_mmdet2_tuple_output() -> None:
+    from scripts.run_geneval_detector import _extract_detections
+
+    classnames = ["bench", "cow"]
+    bbox_results = [
+        np.array([[0.0, 1.0, 10.0, 11.0, 0.95], [5.0, 6.0, 7.0, 8.0, 0.1]]),
+        np.empty((0, 5)),
+    ]
+    masks = [
+        np.array(
+            [
+                [[True, False], [False, True]],
+                [[False, False], [False, False]],
+            ]
+        ),
+        np.empty((0, 2, 2), dtype=bool),
+    ]
+
+    detected = _extract_detections((bbox_results, masks), classnames, "single_object")
+
+    assert list(detected) == ["bench"]
+    assert detected["bench"][0][0].tolist() == [0.0, 1.0, 10.0, 11.0, 0.95]
+    assert detected["bench"][0][1].shape == (2, 2)
 
 
 def test_runner_score_rows_roundtrip_through_write_jsonl(tmp_path: Path) -> None:

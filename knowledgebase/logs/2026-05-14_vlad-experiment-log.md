@@ -170,3 +170,117 @@ PNGs against the committed images:
 The two bugs were real but had **no perceptual impact** on this 4-step
 turbo configuration. The committed 108-image set, the 53/54 HPSv2 win
 count, and all numbers in `summary.md` therefore stand without revision.
+
+## 2026-06-03 prompt-level and qualitative audit addendum
+
+Source artifacts: `outputs/vlad_geneval/balanced_18x3/scores.jsonl`, `outputs/vlad_geneval/balanced_18x3/images/`, `report/tables/vlad_prompt_level.md`, and `report/tables/vlad_qualitative_audit.md`.
+
+- Prompt-level aggregation confirms the aggregate HPS result is not driven by a few outliers: Z-Sampling wins all three seeds for 17/18 prompts. The only prompt with a standard-sampling win is `geneval_355_position` (`a photo of a couch below a cup`), where the standard image wins one seed by only 0.0023 HPS points.
+- Largest mean prompt gain: `geneval_259_colors` (`a photo of a blue fire hydrant`), mean delta +0.0808 across three seeds. Manual inspection of seed 42 shows standard sampling mostly renders pavement with a small blue smear, while Z-Sampling renders a recognizable hydrant-like object.
+- Strong counting example: `geneval_180_counting` (`a photo of two backpacks`), seed 2026 delta +0.0947. Manual inspection shows Z-Sampling creates two distinct backpack-like objects, while standard sampling leaves the second object vague.
+- Important caveat examples: `geneval_000_single_object` seed 2026 and `geneval_354_position` seed 123 have small positive HPS deltas but remain semantically ambiguous under manual inspection. This supports the report caveat that HPSv2.1 preference improvements are not equivalent to official GenEval detector correctness.
+- Revised report interpretation: keep the existing run as valid HPSv2.1 evidence, but frame it as prompt-level preference improvement plus qualitative examples, not as a completed GenEval reproduction. The next best validation remains a CUDA-side GenEval detector pass on the existing 108 images, followed by an optional FLOPs/time-matched standard baseline at T=8-9 if detector setup is blocked.
+
+## 2026-06-04 no-CUDA follow-up plan
+
+Vlad confirmed there is no CUDA box available, only the local Apple Silicon Mac. Therefore the official GenEval detector pass should remain documented as blocked by environment rather than treated as a required local rerun.
+
+Mac-feasible next validation, if time permits:
+
+```bash
+.venv/bin/python scripts/run_vlad_compute_matched_standard.py \
+  --source-manifest outputs/vlad_geneval/balanced_18x3/manifest.jsonl \
+  --standard-steps 9 \
+  --out outputs/vlad_geneval/compute_matched_standard9
+
+.venv/bin/python scripts/score_hpsv2_pairs.py \
+  --manifest outputs/vlad_geneval/compute_matched_standard9/manifest.jsonl \
+  --out outputs/vlad_geneval/compute_matched_standard9/scores.jsonl
+
+.venv/bin/python scripts/summarize_vlad_results.py \
+  --scores outputs/vlad_geneval/compute_matched_standard9/scores.jsonl \
+  --out outputs/vlad_geneval/compute_matched_standard9/summary.md
+```
+
+Interpretation: this compares existing 4-step Z-Sampling images against 9-step standard DDIM images generated from the same prompts, seeds, and initial latents. It remains an HPSv2.1 preference comparison, not official GenEval detector scoring.
+
+## 2026-06-04 GenEval detector results completed on Mac CPU
+
+A re-diagnosis of the GenEval detector stack found a working Apple Silicon path: use upstream-compatible `mmdet==2.28.2` with the existing compiled `mmcv-full==1.7.2` Darwin extension and force `--device cpu`. The runner had to be patched because it originally expected the mmdet 3.x `DetDataSample` API, while mmdet 2.x returns tuple/list outputs.
+
+Command run:
+
+```bash
+.venv/bin/python scripts/run_geneval_detector.py \
+  --manifest outputs/vlad_geneval/balanced_18x3/manifest.jsonl \
+  --out outputs/vlad_geneval/balanced_18x3/geneval_scores.jsonl \
+  --device cpu
+```
+
+Result file: `outputs/vlad_geneval/balanced_18x3/geneval_scores.jsonl` (54 rows). Runtime: 566.4 s on CPU.
+
+Detector summary:
+
+- Standard pass rate: 31.5% (17/54)
+- Z-Sampling pass rate: 50.0% (27/54)
+- Delta: +18.5 percentage points
+- Pair categories: both pass 17; Z-only 10; standard-only 0; neither 27
+- Per-tag detector deltas: colors +33.3pp, counting +33.3pp, two_object +33.3pp, position +11.1pp, single_object +0.0pp, color_attr +0.0pp.
+
+Interpretation update: Vlad's run is no longer HPS-only. It now has official GenEval detector evidence on the 18-prompt balanced subset, plus HPSv2.1. This still is not a full paper-scale GenEval reproduction, but it directly addresses the main metric-mismatch caveat for Vlad's generated images.
+
+## 2026-06-04 compute-matched 9-step standard baseline completed
+
+Ran the Mac-feasible compute-control baseline described in
+`experiments/configs/dreamshaper_turbo_geneval_compute_matched.md`. This
+regenerated only the standard branch with 9 DDIM steps, using the same
+DreamShaper-xl-v2-turbo checkpoint, prompts, seeds, image size, CFG scale, and
+initial latent construction as the existing Vlad run, then compared those new
+standard images against the existing 4-step Z-Sampling images.
+
+Commands:
+
+```bash
+.venv/bin/python scripts/run_vlad_compute_matched_standard.py \
+  --source-manifest outputs/vlad_geneval/balanced_18x3/manifest.jsonl \
+  --standard-steps 9 \
+  --out outputs/vlad_geneval/compute_matched_standard9
+
+.venv/bin/python scripts/score_hpsv2_pairs.py \
+  --manifest outputs/vlad_geneval/compute_matched_standard9/manifest.jsonl \
+  --out outputs/vlad_geneval/compute_matched_standard9/scores.jsonl
+
+.venv/bin/python scripts/summarize_vlad_results.py \
+  --scores outputs/vlad_geneval/compute_matched_standard9/scores.jsonl \
+  --out outputs/vlad_geneval/compute_matched_standard9/summary.md
+```
+
+Artifacts:
+
+- Manifest: `outputs/vlad_geneval/compute_matched_standard9/manifest.jsonl`
+- HPS scores: `outputs/vlad_geneval/compute_matched_standard9/scores.jsonl`
+- Summary: `outputs/vlad_geneval/compute_matched_standard9/summary.md`
+- Report table: `report/tables/vlad_compute_matched.md`
+
+Results:
+
+- 9-step standard vs existing 4-step Z-Sampling: Z wins 42/54 HPSv2.1 pairs;
+  9-step standard wins 12/54; no ties.
+- Mean HPSv2.1 scores: 9-step standard 0.2280, existing 4-step Z-Sampling
+  0.2526, mean delta (Z - standard9) +0.0245.
+- Original 4-step standard vs 4-step Z-Sampling was 53/54 Z wins and mean
+  delta +0.0358, so the stronger standard baseline narrows the margin but does
+  not erase it.
+- 9-step standard improved over 4-step standard by +0.0112 mean HPS and wins
+  33/54 direct standard9-vs-standard4 comparisons.
+- Runtime: 9-step standard averages 18.14 s/image (979.4 s total); existing
+  4-step Z-Sampling averages 13.80 s/image (745.5 s total). The chosen 9-step
+  baseline is therefore about 1.31x slower than the existing Z-Sampling images
+  on this MPS run.
+
+Interpretation update: Vlad can now say the 4-step Z-Sampling HPS gain survives
+a stronger 9-step standard baseline, but the margin is smaller. The careful
+claim is not that Z-Sampling is free; it is that the effect is not explained
+entirely by extra denoising steps on this 18-prompt GenEval subset. This
+compute-control remains HPSv2-only; no GenEval detector scoring was run on the
+9-step standard images.
