@@ -15,4 +15,4 @@ Course feedback / grading moments:
 Use:
 
 - `midterm/` for archived planning presentation material.
-- `final/` for the graded end-term presentation material.
+- `final/` for the graded end-term presentation material. Start with `final/README.md`; the main slide content is `final/endterm_deck.md`.
