@@ -5,14 +5,15 @@
 
 ## Purpose
 
-Materials for the **3-page double-column individual report** required by the course. Each student writes their own; this folder holds the shared outline, the figure/table assets, and (eventually) draft LaTeX/Markdown sources.
+Materials for the **final group report**. The 2026-06-04 course clarification says the final report is group scientific-paper-style writing with contribution ownership visible in section titles. Older individual drafts remain source material.
 
 ## Key Files
 
 | File | Description |
 |------|-------------|
 | `README.md` | Quick orientation. |
-| `outline.md` | Section-by-section structure all 7 reports follow (Intro / Method / Setting / Results / Critical Appraisal / Conclusion). |
+| `outline.md` | Current group-report structure (Abstract / Introduction / Method / Plan / Implementation / Results / Discussion / Conclusion). |
+| `group_report_content_plan.md` | Evidence map: what can be written now vs. what still needs teammate data. |
 
 ## Subdirectories
 
@@ -25,10 +26,11 @@ Materials for the **3-page double-column individual report** required by the cou
 
 ### Working In This Directory
 
-- The **page budget is hard:** 3 pages, double-column. Every figure costs space — prefer one well-chosen comparison over a gallery.
+- Keep the report concise and scientific-paper-like. Every figure costs space — prefer one well-chosen comparison over a gallery.
 - All factual claims about the paper, method, or upstream code must trace back to a source (the paper PDF, an upstream file, or a recorded experiment in `knowledgebase/logs/`).
 - Figures here must be **publication-grade**: legible at column width, captions explain prompt + seed + sampler. Source paths and seeds go in the caption or a footnote.
 - Drafts and revisions live under git. Do not commit binary PDFs of compiled reports unless explicitly requested.
+- Because the final report is group-level, do not present unverified teammate lanes as completed results. Use committed tables/logs/figures as the threshold for quantitative claims.
 
 ### Common Patterns
 
