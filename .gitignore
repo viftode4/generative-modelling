@@ -82,3 +82,6 @@ notebooks/daniel-sdxl-drawbench/sdxl_drawbench_qualitative.png
 !/external/.gitignore
 !/external/README.md
 !/external/zigzag-diffusion-sampling/
+
+# Local slide deck exports/copies; tracked presentation content stays in Markdown.
+/Midterm.pptx

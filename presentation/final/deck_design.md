@@ -1,27 +1,41 @@
 # End-term Deck Design Brief
 
+## Main narrative
+
+Use a **plan → implementation → evidence → limitations** story.
+
+The final presentation should feel like a project closure:
+
+1. What we planned at midterm.
+2. What we actually implemented.
+3. What results we can defend.
+4. What blocked the full planned scope.
+5. What the final report should honestly claim.
+
 ## Tone
 
 - Direct, technical, not flashy.
 - Scientific honesty over hype.
 - Short bullets only.
+- Avoid sounding like the whole paper was fully reproduced.
 
 ## Visual style
 
 - White or very light background.
 - One accent color for Z-Sampling, e.g. blue or purple.
 - Standard sampling = gray.
+- Resampling = orange or dashed gray.
 - Z-Sampling = accent color.
 - Use the same colors in diagrams and result tables.
 
 ## Slide layout
 
-1. **Title / motivation**: big question + three failure keywords.
-2. **Method diagram**: arrows only, no equations except `γ₁`, `γ₂`.
-3. **Implementation pipeline**: prompts/seeds → samplers → metrics.
-4. **Results table**: three rows maximum.
-5. **Challenge cards**: dependencies, hardware, metrics, runtime.
-6. **Takeaway**: one sentence + feedback ask.
+1. **Plan/motivation**: paper question + midterm plan in one line.
+2. **Method diagram**: Standard vs Resampling vs Z-Sampling, arrows only.
+3. **Plan vs actual**: small 3-row table + pipeline.
+4. **Results table**: three rows maximum + optional image pair.
+5. **Challenge cards**: scope, dependencies, metrics, runtime.
+6. **Takeaway**: one bounded conclusion + feedback ask.
 
 ## Must-use assets
 

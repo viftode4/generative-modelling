@@ -1,89 +1,105 @@
-# Group 14 End-term Presentation — Short Slide Content
+# Group 14 End-term Presentation — 7-minute Content
 
-Format: 7 minutes total, graded 20%. Keep this to 6 slides.
+Format: 7 minutes total, graded 20%. Keep this to **6 slides**.
 
----
+Core story:
 
-## Slide 1 — Why this paper?
-
-**Headline:** Can diffusion models improve prompt alignment without retraining?
-
-**Bullets:**
-
-- Diffusion images can look good but miss prompt details.
-- Failures: object count, color, spatial relations.
-- Z-Sampling changes only inference, not training.
-- Our goal: reproduce the core idea and test if it helps locally.
-
-**Visual:** paper title + 3 failure words: `count / color / position`.
-
-**Say:**
-
-- We picked this because it is realistic to implement but still scientifically interesting.
-- The question is not “can we train a better model?” but “can the sampling loop help?”
+> At midterm we planned a broad reproduction of the paper across sampling methods, models, datasets, and metrics. In the final version, we should show what actually survived implementation: a working paired pipeline, verified positive Z-Sampling results in two lanes, and clear limitations around scale, metrics, and runtime.
 
 ---
 
-## Slide 2 — Method: the zigzag step
+## Slide 1 — From paper question to our plan
 
-**Headline:** Z-Sampling adds a small denoise → invert → re-denoise loop.
+**Headline:** We tested whether inference-time “self-reflection” improves prompt alignment.
 
 **Bullets:**
 
-- Standard DDIM: denoise step-by-step.
-- Z-Sampling: denoise with strong guidance `γ₁`.
-- Then invert with weak guidance `γ₂`.
-- Re-denoise and keep the guidance-gap signal.
+- Paper claim: improve diffusion outputs without retraining.
+- Midterm plan: compare Standard, Resampling, and Z-Sampling.
+- Group split: different model/dataset/method lanes.
+- Final focus: what we implemented, what worked, what did not.
 
-**Visual:**
+**Visual:** one-line plan:
 
 ```text
-Standard:   x_t ──denoise──> x_{t-1}
-Z-Sampling: x_t ──denoise γ₁──> x_{t-1}
-                 └─invert γ₂──> x'_t ──re-denoise γ₁──> refined x_{t-1}
+Paper idea → sampling methods → model/dataset lanes → paired evaluation
 ```
 
 **Say:**
 
-- The important thing is that this is not just increasing CFG.
-- It needs a compatible DDIM inverse scheduler.
+- This connects directly to what we promised in the midterm.
+- We should not pretend we reproduced every paper table.
 
 ---
 
-## Slide 3 — What we implemented
+## Slide 2 — Methodology: three sampling ideas
 
-**Headline:** We built a shared, tested reproduction pipeline.
+**Headline:** The main change is in the sampling loop, not model training.
 
 **Bullets:**
 
-- Ported upstream Z-Sampling into `src/zigzag_project/zsampling.py`.
-- Kept standard vs Z pairs matched by prompt, seed, and initial latent.
-- Added sampler guardrails for standard / resampling / Z-Sampling.
-- Split experiments by model and dataset across the group.
+- **Standard:** denoise step by step.
+- **Resampling:** denoise, add noise back, denoise again.
+- **Z-Sampling:** denoise strongly, invert weakly, re-denoise.
+- Key mechanism: guidance gap `γ₁ − γ₂` injects prompt information.
 
-**Visual:** simple pipeline:
+**Visual:** simple comparison:
 
 ```text
-prompts + seeds → standard / Z-Sampling → images → HPSv2 / detector → tables
+Standard:   x_t → denoise → x_{t-1}
+Resampling: x_t → denoise → noise back → denoise
+Z-Sampling: x_t → denoise γ₁ → invert γ₂ → re-denoise γ₁
 ```
 
 **Say:**
 
-- Much of the work was making the method runnable in our environment.
-- We avoided editing the upstream submodule and kept our changes reproducible.
+- No need to go deep into equations.
+- Important point: all methods are inference-time changes.
+
+---
+
+## Slide 3 — What we actually built
+
+**Headline:** We turned the paper idea into controlled paired experiments.
+
+**Bullets:**
+
+- Shared repo pipeline around `diffusers`, not retraining.
+- Standard vs Z matched by prompt, seed, scheduler, and initial latent.
+- Result tables generated from reproducible manifests and scoring scripts.
+- Integration cleanup added guardrails so sampler configs are not mixed.
+
+**Visual:** implementation pipeline:
+
+```text
+prompts + seeds → sampler pair → images → HPSv2 / detector → result table
+```
+
+**Plan vs actual mini-table:**
+
+| Midterm plan | Final reality |
+|---|---|
+| Many model/dataset/method cells | Verified subset + cleaner shared code |
+| Multiple metrics | HPSv2 + GenEval detector where feasible |
+| Ablations/efficiency if time | One compute-matched runtime control |
+
+**Say:**
+
+- The useful project work is partly engineering: making comparisons fair and reproducible.
+- This also explains why implementation took longer than the plan suggested.
 
 ---
 
 ## Slide 4 — Results we can stand behind
 
-**Headline:** Verified lanes show positive but not universal gains.
+**Headline:** Z-Sampling improved our verified paired comparisons, but not at full paper scale.
 
 **Bullets:**
 
 - SD2.1 + Pick-a-Pic: Z wins 213/300 HPS pairs = 71.0%.
 - DreamShaper + GenEval: detector improves 31.5% → 50.0%.
 - Same DreamShaper run: HPS favors Z in 53/54 pairs.
-- Strongest gains: color, counting, two-object prompts.
+- Strongest Vlad gains: colors, counting, two-object prompts.
 
 **Visual:** compact table:
 
@@ -93,53 +109,69 @@ prompts + seeds → standard / Z-Sampling → images → HPSv2 / detector → ta
 | DreamShaper + GenEval | Detector | 31.5% → 50.0% |
 | DreamShaper + GenEval | HPSv2 | 53/54 Z wins, +0.0358 |
 
+**Optional image pair:**
+
+- `report/figures/vlad_geneval/geneval_259_colors_seed42_standard.png`
+- `report/figures/vlad_geneval/geneval_259_colors_seed42_zigzag.png`
+
 **Say:**
 
-- This is not full benchmark-scale reproduction.
-- But these are controlled paired comparisons, not cherry-picked single images.
+- These are controlled paired comparisons, not cherry-picked single images.
+- But they are still smaller than the paper benchmarks.
 
 ---
 
-## Slide 5 — Challenges and what went wrong
+## Slide 5 — What worked, what did not
 
-**Headline:** The hard parts were reproducibility, metrics, and cost.
+**Headline:** The main challenges were scope, compatibility, metrics, and runtime.
 
 **Bullets:**
 
-- Paper stack was CUDA/older `diffusers`; local runs used modern MPS stack.
-- GenEval detector needed `mmdet` 2.x compatibility work.
-- HPSv2 is preference-based, not the same as detector correctness.
-- Z-Sampling is slower: 13.80s/image vs 6.16s/image in Vlad’s run.
+- **Worked:** paired setup, HPS scoring, Vlad GenEval detector, compute control.
+- **Hard:** old CUDA-oriented paper stack vs local modern/MPS environment.
+- **Messy:** several implementation waves needed integration cleanup.
+- **Cost:** Z-Sampling was slower: 13.80s/image vs 6.16s/image in Vlad’s run.
 
-**Visual:** 4 warning cards:
+**Visual:** four cards:
 
 ```text
-Dependencies | Hardware | Metrics | Runtime
+Scope | Dependencies | Metrics | Runtime
 ```
 
 **Say:**
 
-- We should present these as real project work, not embarrassment.
-- The compute-control matters: 9-step standard was slower than Z, but Z still won 42/54 HPS pairs.
+- This is where we should be honest: the plan was broader than what fully landed.
+- The compute-control helps: 9-step standard was slower than Z, but Z still won 42/54 HPS pairs.
 
 ---
 
 ## Slide 6 — Final takeaway
 
-**Headline:** Z-Sampling helped in our controlled runs, but it is not magic.
+**Headline:** Our conclusion is positive, but bounded.
 
 **Bullets:**
 
-- We implemented the core method and verified it with tests and paired runs.
-- Results are positive in pushed/verified lanes.
-- Gains depend on prompt type and metric.
-- Final report should be honest: useful method, runtime cost, limited scale.
+- We implemented the core inference-time behaviour.
+- We verified meaningful gains in the lanes we can defend.
+- We did not reproduce the full paper benchmark matrix.
+- Final report should emphasize method, evidence, and limitations.
 
 **End sentence:**
 
-> Our conclusion is a controlled positive reproduction: Z-Sampling can improve prompt alignment locally, but the evidence is bounded by runtime, metrics, environment, and benchmark scale.
+> Z-Sampling can improve prompt alignment in our controlled local runs, but the evidence is bounded by runtime cost, metric choice, environment differences, and benchmark scale.
 
 **Feedback ask:**
 
-- Is this scope enough for the group report?
-- Should we prioritize more detector scoring or clearer interpretation?
+- Is this enough evidence for the final group report?
+- Should remaining effort go to more scoring or clearer interpretation?
+
+---
+
+## Source anchors for slide claims
+
+- Course timing/requirements: `knowledgebase/course/2026-06-04_presentation-report-clarification.md`.
+- Midterm plan framing: `knowledgebase/course/2026-06-07_midterm-plan-to-final-framing.md` and `planning/experiment-division.md`.
+- Paper method/settings: `knowledgebase/papers/zigzag-diffusion-sampling.md`.
+- SD2.1 Pick-a-Pic result: `report/tables/eugen_results.md`.
+- Vlad GenEval detector result: `report/tables/vlad_geneval_detector.md`.
+- Vlad compute/runtime control: `report/tables/vlad_compute_matched.md`.

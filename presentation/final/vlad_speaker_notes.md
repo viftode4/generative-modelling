@@ -1,5 +1,19 @@
 # Vlad Speaker Notes — Short Version
 
+## If Vlad explains the plan-vs-actual slide
+
+- At midterm, the plan was broad:
+  - Standard, Resampling, and Z-Sampling.
+  - Multiple models and datasets split across the group.
+  - Multiple metrics and possibly ablations.
+- In practice, the valuable part was making controlled comparisons actually work.
+- For my lane, this meant:
+  - DreamShaper-xl-v2-turbo + GenEval.
+  - Matched standard vs Z pairs.
+  - Same prompt, seed, scheduler setup, and initial latent.
+- We should say clearly:
+  - We have verified results, but not full paper-scale reproduction.
+
 ## If Vlad presents Slide 4 results
 
 - My lane: DreamShaper-xl-v2-turbo + GenEval.
@@ -35,4 +49,4 @@
 
 ## 30-second version
 
-> My lane was DreamShaper-xl-v2-turbo on GenEval. On 54 paired images, Z-Sampling improved detector pass rate from 31.5% to 50.0%, and HPS favored Z in 53 out of 54 pairs. It is not free: runtime was about 2.24 times slower than 4-step standard. But against a slower 9-step standard baseline, Z still won 42 out of 54 HPS pairs. So my conclusion is: useful local gain, especially on color/count/two-object prompts, but not a universal or free fix.
+> My lane was DreamShaper-xl-v2-turbo on GenEval. The original plan was broad, but my report-ready result is a controlled paired subset: 18 prompts, 3 seeds, same initial latent for standard and Z. Z-Sampling improved detector pass rate from 31.5% to 50.0%, and HPS favored Z in 53 out of 54 pairs. It is not free: runtime was about 2.24 times slower than 4-step standard. Against a slower 9-step standard baseline, Z still won 42 out of 54 HPS pairs. So my conclusion is: useful local gain, especially on color/count/two-object prompts, but not a universal or free fix.
