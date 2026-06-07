@@ -1,31 +1,31 @@
-# Individual Report Spec
+# Group Report Spec
 
-Each person submits one report. Format and required sections come from the course PDF.
+This file was updated after the 2026-06-04 course clarification.
 
-## Format
+## Current final-report shape
 
-- 3 pages, double-column
-- Course template (confirm at midterm if not yet shared)
+- The final report is a **group report**.
+- It should be structured like a scientific paper.
+- Section titles should mention who did what.
+- The report should still include individual contribution evidence through section ownership, experiment ownership, and result interpretation.
 
-## Required sections (from the course PDF)
+## Required content
 
-- Introduction. Motivation to implement the paper, plus what you didn't like about it as a group AND as an individual.
-- Approach + experiment setting + implementation details + results.
+- Introduction and motivation.
+- Methodology / approach.
+- Experiment setting and implementation details.
+- Results.
 - Interpretation of results.
+- Challenges and critical appraisal.
+- Contribution ownership in section titles.
 
-## Rubric weights
+## Presentation clarification
 
-| Category | Weight |
-|----------|-------:|
-| Motivation & Work Plan | 30% |
-| Content | 40% |
-| Writing | 30% |
+- Presentation is graded: 20%.
+- Group 14 presents on 2026-06-09.
+- Time: 7 minutes group presentation + 4 minutes feedback.
+- Presentation should cover methodology, results, and challenges.
 
-Need at least 5.0 on each component AND weighted >= 5.8 to pass.
+## Implication
 
-## Why 7 reports stay distinct
-
-The matrix in [role-assignments.md](./role-assignments.md) gives each person a unique (model, dataset) pair. So Results, Interpretation, and Critique are different even when the method explanation is shared.
-
-- Shared text is OK for: introduction (motivation), method explanation.
-- Per-person text is required for: implementation details, results, interpretation, critique, troubleshooting log.
+Older per-person report drafts are still useful as source material, but final writing should be consolidated into a group scientific-paper-style report.

@@ -8,7 +8,7 @@ Week buckets after the midterm. Specific dates after W0 are not fixed yet.
 |-------|------|
 | TA scope discussion | Done. TA approved any scope. |
 | Midterm presentation | Thursday 2026-05-07, 7 minutes total, 7 students |
-| End-term presentation | TBD |
+| End-term presentation | 2026-06-09, 7 minutes group presentation + 4 minutes feedback |
 | Final report submission | TBD |
 
 ## Week buckets
@@ -23,7 +23,7 @@ Week buckets after the midterm. Specific dates after W0 are not fixed yet.
 | W5 | Could-tier work runs (for those who picked one) | Results frozen. Report outline drafted. |
 | W6 | Peer review of drafts | 2-page draft |
 | W7 | End-term presentation rehearsal | 3-page draft, polish |
-| W8 | End-term presentation + final submission | Final 3-page report |
+| W8 | End-term presentation + final submission | Final group report |
 
 ## Gates
 
