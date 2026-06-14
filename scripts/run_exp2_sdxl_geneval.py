@@ -99,45 +99,55 @@ def main() -> None:
                 continue
 
             # A. Standard Sampling
-            print("  -> Running Standard...")
-            t0 = time.time()
-            std_image = pipe(
-                prompt=prompt_text, num_inference_steps=args.steps,
-                guidance_scale=args.cfg, height=args.size, width=args.size,
-                latents=latents.clone()
-            ).images[0]
-            std_time = time.time() - t0
-            std_image.save(std_path)
-            print(f"  -> Standard done ({std_time:.1f}s)")
+            std_time = 0.0
+            if not std_path.exists():
+                print("  -> Running Standard...")
+                t0 = time.time()
+                std_image = pipe(
+                    prompt=prompt_text, num_inference_steps=args.steps,
+                    guidance_scale=args.cfg, height=args.size, width=args.size,
+                    latents=latents.clone()
+                ).images[0]
+                std_time = time.time() - t0
+                std_image.save(std_path)
+                print(f"  -> Standard done ({std_time:.1f}s)")
+            else:
+                print("  -> Standard already exists, skipping.")
 
-            #B. Resampling (Lugmayr 2022)
-            print("  -> Running Resampling...")
-            res_config = ResamplingConfig(
-                gamma_1=args.cfg, infer_step=args.steps,
-            )
-            t0 = time.time()
-            res_image = resampling_sdxl(
-                handle, prompt=prompt_text, config=res_config,
-                height=args.size, width=args.size, latents=latents.clone()
-            ).images[0]
-            res_time = time.time() - t0
-            res_image.save(res_path)
-            print(f"  -> Resampling done ({res_time:.1f}s)")
+            # B. Resampling (Lugmayr 2022)
+            res_time = 0.0
+            if not res_path.exists():
+                print("  -> Running Resampling...")
+                res_config = ResamplingConfig(gamma_1=args.cfg, infer_step=args.steps)
+                t0 = time.time()
+                res_image = resampling_sdxl(
+                    handle, prompt=prompt_text, config=res_config,
+                    height=args.size, width=args.size, latents=latents.clone()
+                ).images[0]
+                res_time = time.time() - t0
+                res_image.save(res_path)
+                print(f"  -> Resampling done ({res_time:.1f}s)")
+            else:
+                print("  -> Resampling already exists, skipping.")
 
             # C. Z-Sampling
-            print("  -> Running Z-Sampling...")
-            zsamp_config = ZSamplingConfig(
-                gamma_1=args.cfg, gamma_2=args.inv_cfg, infer_step=args.steps,
-                lambda_step=args.lambda_step, t_max=args.t_max
-            )
-            t0 = time.time()
-            zig_image = z_sample_sdxl(
-                handle, prompt=prompt_text, config=zsamp_config,
-                height=args.size, width=args.size, latents=latents.clone()
-            ).images[0]
-            zig_time = time.time() - t0
-            zig_image.save(zig_path)
-            print(f"  -> Z-Sampling done ({zig_time:.1f}s)")
+            zig_time = 0.0
+            if not zig_path.exists():
+                print("  -> Running Z-Sampling...")
+                zsamp_config = ZSamplingConfig(
+                    gamma_1=args.cfg, gamma_2=args.inv_cfg, infer_step=args.steps,
+                    lambda_step=args.lambda_step, t_max=args.t_max
+                )
+                t0 = time.time()
+                zig_image = z_sample_sdxl(
+                    handle, prompt=prompt_text, config=zsamp_config,
+                    height=args.size, width=args.size, latents=latents.clone()
+                ).images[0]
+                zig_time = time.time() - t0
+                zig_image.save(zig_path)
+                print(f"  -> Z-Sampling done ({zig_time:.1f}s)")
+            else:
+                print("  -> Z-Sampling already exists, skipping.")
 
             manifest_rows.append({
                 "prompt_id": prompt_id, "prompt": prompt_text, "seed": seed,
