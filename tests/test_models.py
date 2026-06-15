@@ -53,3 +53,7 @@ def test_loader_function_exists():
 
 def test_sd21_loader_function_exists():
     assert callable(models.load_sd21)
+
+
+def test_sdxl_base_loader_function_exists():
+    assert callable(models.load_sdxl_base)

@@ -66,6 +66,43 @@ def load_dreamshaper_xl_turbo(
     )
 
 
+def load_sdxl_base(
+    device: str | None = None,
+    dtype: torch.dtype = torch.float16,
+) -> ModelHandle:
+    """Load Stable Diffusion XL base 1.0 with DDIM + DDIMInverse schedulers.
+
+    This is the model used in the Z-Sampling paper's SDXL experiments
+    (Tables 2/5, Figure 7). DDIM is required for Z-Sampling because the
+    inversion step needs a deterministic, invertible scheduler; the inverse
+    scheduler is derived from the DDIM config so forward/inverse share
+    prediction_type, set_alpha_to_one, steps_offset, and timestep_spacing.
+    """
+    hf_id = "stabilityai/stable-diffusion-xl-base-1.0"
+    resolved_device = resolve_device(device)
+
+    pipe = StableDiffusionXLPipeline.from_pretrained(
+        hf_id,
+        torch_dtype=dtype,
+        use_safetensors=True,
+        add_watermarker=False,
+    )
+    pipe.scheduler = DDIMScheduler.from_config(pipe.scheduler.config)
+    inverse_scheduler = DDIMInverseScheduler.from_config(pipe.scheduler.config)
+    pipe = pipe.to(resolved_device)
+
+    if resolved_device.type in ("cuda", "mps"):
+        pipe.enable_attention_slicing()
+
+    return ModelHandle(
+        pipe=pipe,
+        inverse_scheduler=inverse_scheduler,
+        device=resolved_device,
+        dtype=dtype,
+        hf_id=hf_id,
+    )
+
+
 def load_sd21(
     device: str | None = None,
     dtype: torch.dtype = torch.float16,
