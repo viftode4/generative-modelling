@@ -57,3 +57,11 @@ def test_sd21_loader_function_exists():
 
 def test_sdxl_base_loader_function_exists():
     assert callable(models.load_sdxl_base)
+
+
+def test_resolve_sdxl_dtype_uses_fp16_on_cuda_fp32_elsewhere():
+    # SDXL's UNet produces NaN in fp16/bf16 on Apple MPS (verified empirically:
+    # NaN at the first forward), so MPS/CPU must run fp32; CUDA keeps fast fp16.
+    assert models.resolve_sdxl_dtype(torch.device("cuda")) == torch.float16
+    assert models.resolve_sdxl_dtype(torch.device("mps")) == torch.float32
+    assert models.resolve_sdxl_dtype(torch.device("cpu")) == torch.float32

@@ -66,9 +66,20 @@ def load_dreamshaper_xl_turbo(
     )
 
 
+def resolve_sdxl_dtype(device: torch.device) -> torch.dtype:
+    """Pick a numerically-safe dtype for SDXL-base per device.
+
+    SDXL's UNet overflows to NaN on the *first* forward pass in fp16 AND bf16
+    on Apple Silicon / MPS (verified empirically on torch 2.12 — clean inputs
+    in, NaN out, both reduced-precision dtypes; fp32 is clean). CUDA runs fp16
+    correctly (as in the paper), so keep the fast path there.
+    """
+    return torch.float16 if device.type == "cuda" else torch.float32
+
+
 def load_sdxl_base(
     device: str | None = None,
-    dtype: torch.dtype = torch.float16,
+    dtype: torch.dtype | None = None,
 ) -> ModelHandle:
     """Load Stable Diffusion XL base 1.0 with DDIM + DDIMInverse schedulers.
 
@@ -77,9 +88,14 @@ def load_sdxl_base(
     inversion step needs a deterministic, invertible scheduler; the inverse
     scheduler is derived from the DDIM config so forward/inverse share
     prediction_type, set_alpha_to_one, steps_offset, and timestep_spacing.
+
+    ``dtype=None`` selects per device via ``resolve_sdxl_dtype`` (fp32 on
+    MPS/CPU to avoid the fp16 NaN, fp16 on CUDA).
     """
     hf_id = "stabilityai/stable-diffusion-xl-base-1.0"
     resolved_device = resolve_device(device)
+    if dtype is None:
+        dtype = resolve_sdxl_dtype(resolved_device)
 
     pipe = StableDiffusionXLPipeline.from_pretrained(
         hf_id,
