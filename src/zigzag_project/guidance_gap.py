@@ -105,3 +105,18 @@ def aggregate_guidance_gap(
             entry[m]["win_rate"] = (wins / total) if total else None
         out["by_gamma2"][g2] = entry
     return out
+
+
+def merge_score_rows(
+    main_rows: Iterable[Mapping[str, Any]],
+    ir_rows: Iterable[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    """Overlay ImageReward scores (keyed by image_path) onto the main score rows."""
+    ir_by_path = {r["image_path"]: float(r["ir"]) for r in ir_rows}
+    merged = []
+    for r in main_rows:
+        row = dict(r)
+        if row["image_path"] in ir_by_path:
+            row["ir"] = ir_by_path[row["image_path"]]
+        merged.append(row)
+    return merged

@@ -8,6 +8,7 @@ from zigzag_project.guidance_gap import (
     expand_variants,
     gamma_tag,
     image_filename,
+    merge_score_rows,
 )
 
 
@@ -65,3 +66,12 @@ def test_aggregate_skips_nan_for_winrate_and_mean():
     assert g0["ir"]["n"] == 0
     assert math.isnan(g0["ir"]["mean"])
     assert g0["ir"]["win_rate"] is None
+
+
+def test_merge_score_rows_joins_ir_by_image_path():
+    main = [{"image_path": "/a.png", "prompt_id": "p0", "seed": 1, "method": "standard",
+             "gamma_2": None, "hps": 0.2, "aes": 5.0, "pick": 21.0, "ir": float("nan")}]
+    ir = [{"image_path": "/a.png", "ir": 0.7}]
+    merged = merge_score_rows(main, ir)
+    assert merged[0]["ir"] == 0.7
+    assert merged[0]["hps"] == 0.2
