@@ -46,10 +46,31 @@ def make_metric_score_rows(
 # --------------------------------------------------------------------------
 # Model-backed scorers (lazy). Not unit-tested; exercised by the scoring script.
 # --------------------------------------------------------------------------
+def _shim_turtle_for_hpsv2() -> None:
+    """Work around a packaging bug in hpsv2's vendored open_clip.
+
+    ``hpsv2/src/open_clip/factory.py`` has a stray ``from turtle import forward``
+    (the imported name is never used). ``turtle`` pulls in ``tkinter``/``_tkinter``,
+    which is absent in headless / Homebrew Python builds, so the import crashes.
+    If the real ``turtle`` is importable we leave it alone; otherwise we register a
+    minimal stand-in so the unused import resolves.
+    """
+    import sys
+    import types
+
+    try:
+        import turtle  # noqa: F401
+    except Exception:
+        stub = types.ModuleType("turtle")
+        stub.forward = lambda *args, **kwargs: None
+        sys.modules["turtle"] = stub
+
+
 class HpsV2Scorer:
     """HPS v2.1. hpsv2.score returns a raw [0,1] score; paper reports it x100."""
 
     def __init__(self, hps_version: str = "v2.1") -> None:
+        _shim_turtle_for_hpsv2()
         import hpsv2  # noqa: F401  (import validates availability + triggers BPE path)
 
         self._hpsv2 = hpsv2
