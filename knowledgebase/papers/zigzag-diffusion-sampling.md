@@ -84,7 +84,17 @@ Unless otherwise specified, the paper uses:
 - `λ = T − 1`
 - `γ2 = 0`
 
-Image size is **not pinned in the extracted Section 4.1 text**. Treat our 768px Vlad run as a local experiment choice unless a more specific source is cited.
+Image size is **not pinned in the extracted Section 4.1 text**, but the upstream `infer.py` defaults `image_size=1024` for SDXL (`external/zigzag-diffusion-sampling/infer.py:16`). The SDXL Experiment #8 run uses **1024** accordingly. Vlad's earlier 768px DreamShaper run was a local choice and should be described as such.
+
+### Efficiency comparison (Experiment #8 — Figure 10, p.10)
+
+The efficiency study is a **time-matched comparison**, not a single fixed-step timing:
+
+- Standard noise-prediction ops = `T_s`; Z-Sampling ops = `T_z + 2·λ`.
+- The paper sets **`T_z = T_s / 2`** and **`λ = T_z / 2 = T_s / 4`**, so Z ops equal `T_s` (matched compute).
+- It sweeps several time budgets and plots **mean HPS v2 (Pick-a-Pic, SDXL) vs average time/image** for Standard and Z-Sampling.
+- Headline claim: *"even with 36% less computational time, Z-Sampling can surpass the best performance of standard sampling."*
+- This `λ = T_s/4` is specific to the efficiency experiment and differs from the default `λ = T − 1`.
 
 ## Main quantitative claims relevant to our project
 

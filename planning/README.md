@@ -1,27 +1,32 @@
-# Planning - Group 14
+# Planning — Group 14
 
-Project: reproducing Zigzag Diffusion Sampling (Bai et al., ICLR 2025). We compare Z-Sampling vs. standard sampling on text-to-image diffusion models. 7 students, 7 individual reports.
+Project: reproducing **Zigzag Diffusion Sampling** (Bai et al., ICLR 2025) — comparing
+Standard, Resampling, and Z-Sampling on text-to-image diffusion models.
 
-## Files in this folder
+## Current status (2026-06-09)
+
+- **Deliverable:** one **group report**, scientific-paper style, with contribution shown in section titles (per the 2026-06-04 course clarification). *No longer individual reports.*
+- **Report template:** TU Delft ACM `sigconf` — fixed sections `s1_introduction`, `s2_background`, `s3_methodology`, `s4_results`, `s5_conclusion`, `appendix`. Shared intro/background/conclusion; per-person subsections in methodology + results.
+- **Results so far:** see [`experiments/results-index/coverage.md`](../experiments/results-index/coverage.md) — the audited source of truth. Three lanes have committed numbers (Eugen, Daniel, Vlad); resampling and the baseline/ablation experiments are not yet run.
+
+## Confirmed dates
+
+| Event | Date |
+|-------|------|
+| Midterm presentation | 2026-05-07 (done) |
+| End-term presentation | 2026-06-09 — 7 min + 4 min feedback, graded 20% |
+| Final report submission | **TBD — confirm with TA** |
+
+## Files
 
 | File | Contents |
 |------|----------|
-| [scope.md](./scope.md) | What we are doing: Must / Should / Could / Won't |
-| [role-assignments.md](./role-assignments.md) | Model and dataset per person |
-| [experiment-division.md](./experiment-division.md) | Updated sampling-method / experiment-number ownership from TA notes |
-| [timeline.md](./timeline.md) | Week buckets and gates after the midterm |
-| [report-spec.md](./report-spec.md) | What each 3-page report needs |
-| [decisions.md](./decisions.md) | Open questions to discuss as a group |
+| [experiment-division.md](./experiment-division.md) | Who owns which model, dataset, and sampling method — ownership source of truth |
+| [AGENTS.md](./AGENTS.md) | Agent instructions for this directory |
 
-## Key dates
-
-- Midterm presentation: Thursday 2026-05-07. Purpose: get feedback from the professors and TAs on our plan.
-- End-term presentation: TBD
-- Final report: TBD
-
-## Source documents
+## Sources
 
 - Paper: https://openreview.net/forum?id=MKvQH1ekeY
 - Reference code: https://github.com/xie-lab-ml/zigzag-diffusion-sampling (mirrored in `external/`)
-- Course PDFs: `docs/course/project-description-brightspace.pdf`, `docs/course/project-rubric.pdf`
-- Paper notes: [../knowledgebase/papers/zigzag-diffusion-sampling.md](../knowledgebase/papers/zigzag-diffusion-sampling.md)
+- Course docs + clarifications: `knowledgebase/course/`
+- Paper notes: [`knowledgebase/papers/zigzag-diffusion-sampling.md`](../knowledgebase/papers/zigzag-diffusion-sampling.md)

@@ -1,13 +1,27 @@
-# Report Assets
+# Report
 
-This folder now supports the **final group report**. The 2026-06-04 course clarification says the report should be structured like a scientific paper and should mention who did what in the section titles.
+Materials for the **final group report** — scientific-paper style, with contribution shown
+in section titles (per the 2026-06-04 course clarification).
 
-Use:
+## Template
 
-- `outline.md` for the recommended group-report structure.
-- `group_report_content_plan.md` for what can already be written from committed repo evidence.
-- `draft.md`, `vlad_submission_draft.md`, and `vlad_overleaf_*.tex` as Vlad/source material, not necessarily the final group shape.
-- `figures/` for curated small report figures.
-- `tables/` for committed result tables.
+TU Delft ACM `sigconf`. Fixed section files: `s1_introduction`, `s2_background`,
+`s3_methodology`, `s4_results`, `s5_conclusion`, `appendix`.
 
-Keep large generated outputs in ignored `outputs/`; only curated final figures/tables belong here.
+- **Shared sections** (one author each): introduction, background, conclusion.
+- **Per-person subsections** in methodology + results, named with the owner (e.g. `4.2 DreamShaper + GenEval (Vlad)`).
+
+## Files
+
+| Path | Contents |
+|------|----------|
+| `report-plan.md` | Section-by-section plan mapped onto the ACM template + per-person ownership |
+| `tables/` | Committed result tables (the only quantitative claims allowed in the report) |
+| `figures/` | Curated, publication-grade figures (originals live in gitignored `outputs/`) |
+
+## Rules
+
+- Quantitative claims must trace to a committed table in `tables/` or `outputs/`. See [`experiments/results-index/coverage.md`](../experiments/results-index/coverage.md) for what's actually verified.
+- Do not present unrun or unverified teammate lanes as results.
+- Keep figures legible at column width; captions state prompt + seed + sampler.
+- Don't commit compiled PDFs unless asked.

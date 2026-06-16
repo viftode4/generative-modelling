@@ -12,16 +12,16 @@ Course workspace for the Group 14 generative modelling project.
 
 ## Start here
 
-- [planning/README.md](planning/README.md) - index of the planning folder
-- [planning/scope.md](planning/scope.md) - what we are doing
-- [planning/role-assignments.md](planning/role-assignments.md) - your model + dataset
-- [planning/decisions.md](planning/decisions.md) - what we still need to decide
-- [presentation/midterm/outline.md](presentation/midterm/outline.md) - midterm slides
+- [planning/README.md](planning/README.md) - project status, dates, and index
+- [planning/experiment-division.md](planning/experiment-division.md) - who owns which model, dataset, and sampling method
+- [experiments/results-index/coverage.md](experiments/results-index/coverage.md) - audited status of what results actually exist
+- [report/report-plan.md](report/report-plan.md) - group-report section plan (ACM template)
+- [presentation/final/endterm_deck.md](presentation/final/endterm_deck.md) - end-term presentation content
 
 ## Repository layout
 
-- `planning/` - scope, roles, timeline, open decisions
-- `presentation/` - midterm and endterm outlines
+- `planning/` - ownership and current status
+- `presentation/` - midterm and endterm decks
 - `knowledgebase/` - paper notes, course requirements, AI-workflow notes
 - `docs/course/` - official project description and rubric PDFs
 - `external/` - upstream reference code (Git submodule)

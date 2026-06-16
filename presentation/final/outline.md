@@ -36,16 +36,17 @@ Final presentation stance:
 - Leave ~45 seconds buffer for handoffs.
 - Every slide answers one question: **why, how, what did we build, what happened, what blocked us, what do we conclude?**
 
-## Slide plan
+## Slide plan (agreed speaker split)
 
-| # | Time | Title | Purpose | Owner |
-|---:|---:|---|---|---|
-| 1 | 0:00-1:00 | From paper question to our plan | Connect paper motivation to midterm plan | TBD |
-| 2 | 1:00-2:05 | Methodology: three sampling ideas | Explain Standard / Resampling / Z-Sampling simply | TBD |
-| 3 | 2:05-3:15 | What we actually built | Plan vs actual implementation pipeline | Implementation lead / Vlad |
-| 4 | 3:15-4:35 | Results we can stand behind | Show only verified headline numbers | Eugen + Vlad |
-| 5 | 4:35-5:55 | What worked, what did not | Scope, compatibility, metrics, runtime | Vlad / implementation lead |
-| 6 | 5:55-7:00 | Final takeaway | Honest conclusion + report direction | TBD |
+Presenters: **the Romanians.** Template suggestion: https://canva.link/rr17l2qsi7hoglv
+
+| # | Section | Owner | Content |
+|---:|---|---|---|
+| 1 | Paper + background | **Vlad** | Paper overview; quick intuition about Z-Sampling; models/datasets used — **no Hunyuan dataset** |
+| 2 | The sampling methods | **Radu** | Discuss each: regular sampling, resampling, Z-Sampling — and compare them |
+| 3 | Challenges | **Eugen** | Resampling: understanding, implementation, running |
+| 4 | Results | **Bogdan** | Eugen's results; Lenka — AYS + Z-Sampling (one table); Bogdan — z-sampling step-ablation graph |
+| 5 | Q&A | — | 4-minute feedback slot |
 
 ## Design principle
 
