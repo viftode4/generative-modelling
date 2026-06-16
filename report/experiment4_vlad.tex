@@ -12,66 +12,42 @@
 
 \subsection*{Experiment 4 --- Compute-Matched Efficiency: SDXL on Pick-a-Pic (Vlad)}
 
-Z-Sampling performs an additional inversion and re-denoising pass at each step. In its
-default configuration this roughly doubles the number of network evaluations per image,
-so a fair assessment must control for total computation rather than for the number of
-sampling steps. We reproduce the time-matched efficiency analysis of the original paper
-(Figure~10) using Stable Diffusion XL base 1.0 on the first 100 prompts of Pick-a-Pic
-with a fixed seed of 42. For each standard step budget $T_s \in \{20, 30, 40, 50\}$ we
-compare standard DDIM sampling at $T_s$ steps against a Z-Sampling configuration with
-$T_z = T_s/2$ denoising steps and $\lambda = T_s/4$ zigzag steps, which equalises the
-noise-prediction count ($T_z + 2\lambda = T_s$). Both methods run from identical initial
-latents and share the scheduler (DDIM with DDIM inversion), the guidance scales
-($\gamma_1 = 5.5$, $\gamma_2 = 0$) and the output resolution ($1024^2$), so the sampling
-trajectory is the only factor that varies. All 400 pairs are scored with HPS\,v2.1, and
-the per-image generation time is recorded on Apple silicon (MPS). The sweep ran on a laptop
-that was closed and moved during execution, which left a small number of cells with
-device-suspend wall-clock artifacts (for example, two $T_s = 50$ standard cells exceeded
-3000\,s); we discard any per-arm timing above twice its per-budget median as such an
-artifact and report the median of the remainder. Because suspending the process does not
-alter the generated image, all 400 pairs are retained for the HPS comparison and only the
-timing summary is affected; the remaining per-budget timings are tightly clustered.
+Z-Sampling adds an inversion and re-denoising pass at each step, so a fair comparison must
+fix total computation, not the number of sampling steps. We reproduce the paper's
+time-matched efficiency study (Figure~10) on Stable Diffusion XL base 1.0 over the first 100
+Pick-a-Pic prompts (seed 42). For each standard budget $T_s \in \{20, 30, 40, 50\}$ we
+compare standard DDIM at $T_s$ steps against Z-Sampling with $T_z = T_s/2$ and
+$\lambda = T_s/4$, which equalises the noise-prediction count ($T_z + 2\lambda = T_s$). Both
+arms share the initial latent, scheduler (DDIM with inversion), guidance ($\gamma_1 = 5.5$,
+$\gamma_2 = 0$) and resolution ($1024^2$). We score all 400 pairs with HPS\,v2.1 and record
+per-image time on Apple silicon (MPS); a few cells whose wall-clock was corrupted when the
+laptop was suspended mid-run (timings above twice the per-budget median) are excluded from
+the time summary, while every image is kept for scoring.
 
-The results appear in Table~\ref{tab:vlad-efficiency} and Figure~\ref{fig:vlad-efficiency}.
-At each budget the two arms take almost identical median time per image (for example,
-72.2\,s for both at $T_s = 40$), so op-count matching does translate into matched
-wall-clock on this hardware. Z-Sampling nonetheless attains a higher mean HPS\,v2.1 score
-at every budget and is preferred on 81 to 91 percent of pairs (85.2 percent across all
-400). The advantage is decisive rather than marginal: the pooled mean delta is $+0.0148$
-with a 95 percent bootstrap confidence interval of $[+0.0131, +0.0165]$, larger than the
-$+0.0110$ that the same comparison yields for Stable Diffusion 2.1 elsewhere in our study,
-and the per-budget interval excludes zero in all four cases. A separate, cross-budget
-reading recovers the Pareto result the paper emphasises: standard sampling reaches its
-best score, $0.2727$, only at $T_s = 50$ ($\sim$151\,s per image), whereas Z-Sampling
-already reaches $0.2779$ at $T_s = 30$ ($\sim$53\,s per image), matching the best standard
-quality at roughly one third of the median wall-clock. The paper states this as ``even
-with 36\% less computational time, Z-Sampling can surpass the best performance of standard
-sampling''; our reimplementation reproduces the direction of that claim. The larger saving
-we observe is not directly comparable to the paper given the smaller subset and different
-hardware, and the absolute figure is probably an upper bound: the $T_s = 50$ reference
-budget runs about twice as long as $T_s = 40$ for only a quarter more steps, suggesting
-some thermal throttling on this mobile device that inflates the time the cheaper Z point is
-measured against.
+At each budget the two arms take almost identical median time (for example, 72.2\,s at
+$T_s = 40$), confirming the match, yet Z-Sampling scores higher at every budget and is
+preferred on 81\% to 91\% of pairs (85.2\% overall; Table~\ref{tab:vlad-efficiency}). The
+pooled delta is $+0.0148$ with a 95\% bootstrap confidence interval of $[+0.0131, +0.0165]$,
+strictly positive at every budget and larger than the $+0.0110$ we measure for Stable
+Diffusion 2.1. Read across budgets, this recovers the paper's Pareto result
+(Figure~\ref{fig:vlad-efficiency}): the best standard score, $0.2727$, needs $T_s = 50$
+($\sim$151\,s), whereas Z-Sampling reaches $0.2779$ at $T_s = 30$ ($\sim$53\,s), matching the
+best standard quality at roughly one third of the time. This reproduces the direction of the
+paper's ``36\% less computational time'' claim, though the absolute saving is likely
+optimistic, as the $T_s = 50$ reference budget shows signs of thermal throttling on this
+device.
 
-Two points qualify this favourable reading. First, ``compute-matched'' equates one
-standard and one Z-Sampling noise prediction by count, but the interleaved inversion alters
-the scheduler and attention-cache access pattern, so op-count parity is only an
-approximation of true cost; our own data show the arms agreeing in the median yet differing
-slightly in the mean, and on memory-bound or compiled CUDA stacks the gap could widen.
-Second, HPS\,v2.1 is the sole arbiter, and because Z-Sampling explicitly amplifies the
-prompt-conditioned guidance signal that preference models are trained to reward, a win
-measured only on HPS may partly reflect agreement between the method's objective and the
-metric. We follow the paper's Figure~10 protocol, which itself reports HPS\,v2 alone;
-corroboration with PickScore, ImageReward, or AES would strengthen the result but lay
-outside the compute budget of this study, which ran on a single consumer device (other
-experiments in this report do evaluate SDXL under those metrics). With these caveats, the
-substantive finding is that Z-Sampling wins at equal compute rather than merely with more
-steps: re-investing the budget into $\gamma_1\!\to\!\gamma_2\!\to\!\gamma_1$ self-reflection
-cycles on the early, layout-determining timesteps yields more prompt-aligned latents than
-spending the same predictions on additional plain denoising, consistent with the paper's
-guidance-gap hypothesis (Figure~\ref{fig:vlad-qualitative}). We did not vary the seed,
-sweep $\lambda$, or include the resampling baseline in this lane; these are deliberate
-scope limits under constrained hardware rather than omissions.
+Two caveats temper this. First, op-count parity is only an approximation of true cost, since
+the interleaved inversion changes the scheduler and attention access pattern and the gap
+could widen on other stacks. Second, HPS\,v2.1 is the sole judge, and because Z-Sampling
+amplifies exactly the prompt-alignment signal preference models reward, a single-metric win
+may partly reflect that alignment; corroboration with PickScore, ImageReward, or AES lay
+beyond our compute budget, though other experiments in this report evaluate SDXL under those
+metrics. The core finding still holds: winning at \emph{equal} compute indicates that
+spending the budget on $\gamma_1\!\to\!\gamma_2\!\to\!\gamma_1$ self-reflection over the
+early, layout-setting timesteps beats additional plain denoising
+(Figure~\ref{fig:vlad-qualitative}). The single seed, fixed $\lambda$, and absent resampling
+arm are deliberate scope limits under constrained hardware.
 
 \begin{table}[t]
 \centering
