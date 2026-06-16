@@ -46,9 +46,12 @@ best score, $0.2727$, only at $T_s = 50$ ($\sim$151\,s per image), whereas Z-Sam
 already reaches $0.2779$ at $T_s = 30$ ($\sim$53\,s per image), matching the best standard
 quality at roughly one third of the median wall-clock. The paper states this as ``even
 with 36\% less computational time, Z-Sampling can surpass the best performance of standard
-sampling''; our reimplementation reproduces the direction of that claim, with a larger
-saving here that is not directly comparable given the smaller subset and different
-hardware.
+sampling''; our reimplementation reproduces the direction of that claim. The larger saving
+we observe is not directly comparable to the paper given the smaller subset and different
+hardware, and the absolute figure is probably an upper bound: the $T_s = 50$ reference
+budget runs about twice as long as $T_s = 40$ for only a quarter more steps, suggesting
+some thermal throttling on this mobile device that inflates the time the cheaper Z point is
+measured against.
 
 Two points qualify this favourable reading. First, ``compute-matched'' equates one
 standard and one Z-Sampling noise prediction by count, but the interleaved inversion alters
