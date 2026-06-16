@@ -13,9 +13,10 @@ Each budget's compute is matched (Z ops = T_s), so equal-ish bars are the expect
 on-message result: Z buys its quality gains at no extra wall-clock on this hardware.
 
 Time is summarized with the *median*, not the mean: absolute wall-clock on shared MPS
-hardware is heavy-tailed (e.g. one standard T_s=50 cell measured ~3995 s after an OS-level
-stall), and the mean of a compute-matched arm is not robust to such outliers. The scatter
-axes are likewise clipped to a high percentile so the bulk of the cells stays legible.
+hardware is heavy-tailed (at T_s=50 two standard cells exceeded 3000 s and the Z arm has a
+~708 s outlier, all OS-level stalls), and the mean of a compute-matched arm is not robust
+to such outliers. The scatter axes are likewise clipped to a high percentile so the bulk
+of the cells stays legible.
 """
 import argparse
 import json

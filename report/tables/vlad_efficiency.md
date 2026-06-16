@@ -16,10 +16,13 @@ For each standard budget `T_s`, Z-Sampling uses `T_z = T_s/2` denoising steps an
 (`T_s` vs `T_z + 2·lambda`). Both arms share the initial latent, DDIM + DDIM-inverse
 scheduler, guidance (`gamma_1=5.5`, `gamma_2=0`), `t_max=1`, and 1024×1024 resolution.
 
-Time is the **median** seconds/image per arm. Shared-MPS wall-clock is heavy-tailed
-(one standard `T_s=50` cell stalled to ~3995 s after an OS-level event), so the mean
-is not robust; the median reflects the typical per-image cost. HPS values are means,
-with 95% bootstrap CIs on the paired delta (n=10000 resamples, rng=42).
+Time is the **median** seconds/image per arm. Shared-MPS wall-clock is heavy-tailed: at
+`T_s=50` two standard cells exceeded 3000 s (3995.7 s and 3534.4 s) and inflate the
+Standard mean to 231 s against a 152 s median, and the Z arm has a comparable 708 s
+outlier. We therefore report the median. The choice is not load-bearing: at
+`T_s in {20,30,40}` the median and mean agree to within ~1 s, and the conclusions are
+unchanged under the mean. HPS values are means, with 95% bootstrap CIs on the paired
+delta (n=10000 resamples, rng=42).
 
 ## Per-budget HPS v2.1 and median runtime
 

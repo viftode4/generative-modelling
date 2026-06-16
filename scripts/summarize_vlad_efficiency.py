@@ -76,8 +76,10 @@ def _render(budgets: dict[int, dict[str, list[float]]]) -> str:
         "noise-prediction op counts match (`T_s` vs `T_z + 2*lambda`).",
         "",
         "Time is the **median** seconds/image per arm. Shared-MPS wall-clock is "
-        "heavy-tailed (one standard T_s=50 cell stalled to ~3995 s), so the mean is "
-        "not robust; the median reflects the typical per-image cost.",
+        "heavy-tailed: at T_s=50 two standard cells exceeded 3000 s (3995.7 s and "
+        "3534.4 s) and inflate the Standard mean to 231 s against a 152 s median, and "
+        "the Z arm has a comparable 708 s outlier. The median is not load-bearing: at "
+        "T_s in {20,30,40} median and mean agree to within ~1 s.",
         "",
         "| Budget T_s | T_z | lambda | Pairs | Std time (s, med) | Z time (s, med) | "
         "Std HPS | Z HPS | Z win rate | Mean delta |",
@@ -87,9 +89,9 @@ def _render(budgets: dict[int, dict[str, list[float]]]) -> str:
     for t_s in sorted(budgets):
         b = budgets[t_s]
         pairs = len(b["std_time"])
-        # Median, not mean: shared-MPS wall-clock is heavy-tailed (one standard
-        # T_s=50 cell stalled to ~3995 s), and the mean of a compute-matched arm is
-        # not robust to such OS-level outliers.
+        # Median, not mean: shared-MPS wall-clock is heavy-tailed (two standard
+        # T_s=50 cells exceeded 3000 s, and the Z arm has a ~708 s outlier), and the
+        # mean of a compute-matched arm is not robust to such OS-level stalls.
         std_time = median(b["std_time"]) if b["std_time"] else 0.0
         z_time = median(b["z_time"]) if b["z_time"] else 0.0
         std_hps = mean(b["std_hps"]) if b["std_hps"] else 0.0
