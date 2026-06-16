@@ -12,11 +12,11 @@ Outputs (PNG, 150 dpi) into <out-dir>:
 Each budget's compute is matched (Z ops = T_s), so equal-ish bars are the expected,
 on-message result: Z buys its quality gains at no extra wall-clock on this hardware.
 
-Time is summarized with the *median*, not the mean: absolute wall-clock on shared MPS
-hardware is heavy-tailed (at T_s=50 two standard cells exceeded 3000 s and the Z arm has a
-~708 s outlier, all OS-level stalls), and the mean of a compute-matched arm is not robust
-to such outliers. The scatter axes are likewise clipped to a high percentile so the bulk
-of the cells stays legible.
+Device-suspend wall-clock artifacts are removed before summarizing time: the sweep ran on
+a laptop that was closed and moved mid-run (e.g. two T_s=50 standard cells exceeded 3000 s),
+so per-arm timings above OUTLIER_FACTOR x the per-budget median are dropped as artifacts.
+The remaining cells cluster tightly, so the per-budget median reflects the real per-image
+cost. The generated images are unaffected, so quality (HPS) plots use every cell.
 """
 import argparse
 import json
@@ -31,6 +31,18 @@ import matplotlib.pyplot as plt
 
 STANDARD_COLOR = "#4C72B0"
 ZIGZAG_COLOR = "#DD8452"
+
+# A per-image timing above this multiple of the per-budget median is a device-suspend
+# artifact (laptop closed/moved mid-run), not a real sampler cost.
+OUTLIER_FACTOR = 2.0
+
+
+def drop_suspend_artifacts(times, factor=OUTLIER_FACTOR):
+    """Return timings with device-suspend artifacts (above factor x median) removed."""
+    if not times:
+        return times
+    cutoff = factor * statistics.median(times)
+    return [t for t in times if t <= cutoff]
 
 
 def load_rows(manifest: Path):
@@ -59,8 +71,8 @@ def main() -> None:
     std_med, z_med, labels = [], [], []
     for b in budgets:
         grp = by_budget[b]
-        std = [r["standard_runtime_s"] for r in grp]
-        z = [r["zigzag_runtime_s"] for r in grp]
+        std = drop_suspend_artifacts([r["standard_runtime_s"] for r in grp])
+        z = drop_suspend_artifacts([r["zigzag_runtime_s"] for r in grp])
         std_med.append(statistics.median(std))
         z_med.append(statistics.median(z))
         labels.append(f"T_s={b}\n(n={len(grp)})")
@@ -86,20 +98,24 @@ def main() -> None:
     # ---- Figure 2: per-image scatter Standard vs Z ----
     fig, ax = plt.subplots(figsize=(5.5, 5.5))
     cmap = plt.get_cmap("viridis")
+    plotted: list[tuple[float, float]] = []
     for idx, b in enumerate(budgets):
         grp = by_budget[b]
-        sx = [r["standard_runtime_s"] for r in grp]
-        zy = [r["zigzag_runtime_s"] for r in grp]
-        ax.scatter(sx, zy, s=14, alpha=0.6, color=cmap(idx / max(1, len(budgets) - 1)),
-                   label=f"T_s={b}")
-    # Clip the view to a high percentile so OS-stall outliers (e.g. a ~3995 s cell)
-    # don't blow out the axes; the y=x reference is drawn across the clipped range.
-    all_times = sorted(t for r in rows for t in (r["standard_runtime_s"], r["zigzag_runtime_s"]))
-    lo = all_times[0]
-    hi = all_times[min(len(all_times) - 1, int(len(all_times) * 0.99))]
+        sx_all = [r["standard_runtime_s"] for r in grp]
+        zy_all = [r["zigzag_runtime_s"] for r in grp]
+        s_cut = OUTLIER_FACTOR * statistics.median(sx_all)
+        z_cut = OUTLIER_FACTOR * statistics.median(zy_all)
+        # Drop a cell if either arm's wall-clock is a device-suspend artifact.
+        pts = [(s, z) for s, z in zip(sx_all, zy_all, strict=True) if s <= s_cut and z <= z_cut]
+        ax.scatter([p[0] for p in pts], [p[1] for p in pts], s=14, alpha=0.6,
+                   color=cmap(idx / max(1, len(budgets) - 1)), label=f"T_s={b}")
+        plotted.extend(pts)
+    # Artifacts are filtered above, so the axes follow the real (clustered) data.
+    vals = [v for p in plotted for v in p]
+    lo, hi = min(vals), max(vals)
     ax.plot([lo, hi], [lo, hi], "k--", lw=1, label="y = x (equal time)")
-    ax.set_xlim(lo * 0.9, hi * 1.1)
-    ax.set_ylim(lo * 0.9, hi * 1.1)
+    ax.set_xlim(lo * 0.9, hi * 1.05)
+    ax.set_ylim(lo * 0.9, hi * 1.05)
     ax.set_xlabel("Standard time / image (s)")
     ax.set_ylabel("Z-Sampling time / image (s)")
     ax.set_title("Per-image runtime: Standard vs Z (matched ops)")
@@ -128,8 +144,10 @@ def main() -> None:
         sb = sorted(set(s_by_budget) & set(by_budget))
         std_t, std_h, std_e, z_t, z_h, z_e, lbls = [], [], [], [], [], [], []
         for b in sb:
-            std_t.append(statistics.median(r["standard_runtime_s"] for r in by_budget[b]))
-            z_t.append(statistics.median(r["zigzag_runtime_s"] for r in by_budget[b]))
+            std_t.append(statistics.median(drop_suspend_artifacts(
+                [r["standard_runtime_s"] for r in by_budget[b]])))
+            z_t.append(statistics.median(drop_suspend_artifacts(
+                [r["zigzag_runtime_s"] for r in by_budget[b]])))
             mh, eh = mean_ci([s["standard_score"] for s in s_by_budget[b]])
             mz, ez = mean_ci([s["zigzag_score"] for s in s_by_budget[b]])
             std_h.append(mh)

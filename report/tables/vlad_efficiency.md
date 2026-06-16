@@ -16,13 +16,14 @@ For each standard budget `T_s`, Z-Sampling uses `T_z = T_s/2` denoising steps an
 (`T_s` vs `T_z + 2·lambda`). Both arms share the initial latent, DDIM + DDIM-inverse
 scheduler, guidance (`gamma_1=5.5`, `gamma_2=0`), `t_max=1`, and 1024×1024 resolution.
 
-Time is the **median** seconds/image per arm. Shared-MPS wall-clock is heavy-tailed: at
-`T_s=50` two standard cells exceeded 3000 s (3995.7 s and 3534.4 s) and inflate the
-Standard mean to 231 s against a 152 s median, and the Z arm has a comparable 708 s
-outlier. We therefore report the median. The choice is not load-bearing: at
-`T_s in {20,30,40}` the median and mean agree to within ~1 s, and the conclusions are
-unchanged under the mean. HPS values are means, with 95% bootstrap CIs on the paired
-delta (n=10000 resamples, rng=42).
+Time is the **median** seconds/image per arm, computed after removing device-suspend
+artifacts. The sweep ran on a laptop that was closed and moved mid-run, leaving a few cells
+with wall-clock far above the per-image cost (at `T_s=50` two standard cells exceeded
+3000 s; the Z arm has a comparable 708 s outlier). We drop any per-arm timing above 2x its
+per-budget median as such an artifact (excluded: `T_s=20` 2 std + 5 Z; `T_s=50` 5 std + 4 Z)
+and report the median of the remainder. Suspending the process does not change the generated
+image, so all 400 pairs are kept for the HPS comparison; only the timing is affected. HPS
+values are means, with 95% bootstrap CIs on the paired delta (n=10000 resamples, rng=42).
 
 ## Per-budget HPS v2.1 and median runtime
 
@@ -31,18 +32,18 @@ delta (n=10000 resamples, rng=42).
 | 20 | 10 | 5  | 100 | 36.79  | 36.85  | 0.2574 | 0.2720 | +0.0146 | [+0.0111, +0.0183] | 81.0% |
 | 30 | 15 | 7  | 100 | 54.44  | 52.66  | 0.2645 | 0.2779 | +0.0134 | [+0.0102, +0.0166] | 82.0% |
 | 40 | 20 | 10 | 100 | 72.18  | 72.19  | 0.2712 | 0.2860 | +0.0147 | [+0.0116, +0.0183] | 87.0% |
-| 50 | 25 | 12 | 100 | 152.36 | 149.61 | 0.2727 | 0.2891 | +0.0164 | [+0.0134, +0.0198] | 91.0% |
+| 50 | 25 | 12 | 100 | 151.43 | 149.02 | 0.2727 | 0.2891 | +0.0164 | [+0.0134, +0.0198] | 91.0% |
 | **overall** | | | **400** | | | **0.2665** | **0.2812** | **+0.0148** | **[+0.0131, +0.0165]** | **85.2%** |
 
 ## Efficiency headline
 
-- Best Standard HPS across budgets: **0.2727** at ~152.4 s/image (`T_s=50`).
-- Z-Sampling reaches HPS **0.2779** at ~52.7 s/image (`T_s=30`) — matching and beating
+- Best Standard HPS across budgets: **0.2727** at ~151.4 s/image (`T_s=50`).
+- Z-Sampling reaches HPS **0.2779** at ~52.7 s/image (`T_s=30`), matching and beating
   the best Standard configuration with **~65% less time/image**.
 - At every budget the compute-matched arms take essentially the same median time
-  (e.g. 72.2 s vs 72.2 s at `T_s=40`), yet the Z curve lies above Standard throughout
-  — a clean Pareto shift, reproducing the paper's claim that "even with 36% less
-  computational time, Z-Sampling can surpass the best performance of standard sampling."
+  (e.g. 72.2 s vs 72.2 s at `T_s=40`), yet the Z curve lies above Standard throughout,
+  a Pareto shift reproducing the paper's claim that "even with 36% less computational
+  time, Z-Sampling can surpass the best performance of standard sampling."
 
 ## Notes
 
