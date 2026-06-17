@@ -20,6 +20,9 @@ dependencies = [
   "huggingface_hub>=0.20",
   "numpy>=2,<3",
   "Pillow>=10",
+  "protobuf>=7",
+  "sentencepiece>=0.2",
+  "tiktoken>=0.13",
 ]
 
 [project.optional-dependencies]

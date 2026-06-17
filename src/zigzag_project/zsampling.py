@@ -6,6 +6,12 @@ from dataclasses import dataclass
 from typing import Any
 
 import torch
+from diffusers.models.embeddings import get_2d_rotary_pos_embed
+from diffusers.pipelines.hunyuandit.pipeline_hunyuandit import (
+    SUPPORTED_SHAPE,
+    get_resize_crop_region_for_grid,
+    map_to_standard_shapes,
+)
 from diffusers.pipelines.stable_diffusion.pipeline_output import StableDiffusionPipelineOutput
 from diffusers.pipelines.stable_diffusion_xl.pipeline_output import StableDiffusionXLPipelineOutput
 from diffusers.pipelines.stable_diffusion_xl.pipeline_stable_diffusion_xl import (
@@ -500,6 +506,70 @@ def _decode_latents_sd21(pipe: Any, latents: torch.Tensor, output_type: str | No
     latents = latents / pipe.vae.config.scaling_factor
     image = pipe.vae.decode(latents, return_dict=False)[0]
     return pipe.image_processor.postprocess(image, output_type=output_type)
+
+
+def _guided_noise_prediction_hunyuan(
+    *,
+    pipe: Any,
+    latents: torch.Tensor,
+    timestep: torch.Tensor,
+    prompt_embeds: torch.Tensor,
+    prompt_attention_mask: torch.Tensor,
+    prompt_embeds_2: torch.Tensor,
+    prompt_attention_mask_2: torch.Tensor,
+    add_time_ids: torch.Tensor,
+    style: torch.Tensor,
+    image_rotary_emb: torch.Tensor,
+    guidance_scale: float,
+    guidance_rescale: float,
+) -> torch.Tensor:
+    latent_model_input = torch.cat([latents] * 2) if pipe.do_classifier_free_guidance else latents
+    latent_model_input = pipe.scheduler.scale_model_input(latent_model_input, timestep)
+    timestep_expanded = torch.tensor(
+        [timestep] * latent_model_input.shape[0],
+        device=latents.device,
+    ).to(dtype=latent_model_input.dtype)
+
+    noise_pred = pipe.transformer(
+        latent_model_input,
+        timestep_expanded,
+        encoder_hidden_states=prompt_embeds,
+        text_embedding_mask=prompt_attention_mask,
+        encoder_hidden_states_t5=prompt_embeds_2,
+        text_embedding_mask_t5=prompt_attention_mask_2,
+        image_meta_size=add_time_ids,
+        style=style,
+        image_rotary_emb=image_rotary_emb,
+        return_dict=False,
+    )[0]
+    noise_pred, _ = noise_pred.chunk(2, dim=1)
+
+    if pipe.do_classifier_free_guidance:
+        noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
+        noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_text - noise_pred_uncond)
+        if guidance_rescale > 0.0:
+            noise_pred = rescale_noise_cfg(
+                noise_pred,
+                noise_pred_text,
+                guidance_rescale=guidance_rescale,
+            )
+    return noise_pred
+
+
+def _decode_latents_hunyuan(pipe: Any, latents: torch.Tensor, output_type: str | None) -> Any:
+    if output_type == "latent":
+        return latents
+    image = pipe.vae.decode(latents / pipe.vae.config.scaling_factor, return_dict=False)[0]
+    image, has_nsfw_concept = pipe.run_safety_checker(image, pipe._execution_device, latents.dtype)
+    if has_nsfw_concept is None:
+        do_denormalize = [True] * image.shape[0]
+    else:
+        do_denormalize = [not has_nsfw for has_nsfw in has_nsfw_concept]
+    return pipe.image_processor.postprocess(
+        image,
+        output_type=output_type,
+        do_denormalize=do_denormalize,
+    )
 
 
 @torch.no_grad()
@@ -1006,3 +1076,267 @@ def resampling_sdxl(
     if not return_dict:
         return (image,)
     return StableDiffusionXLPipelineOutput(images=image)
+
+
+@torch.no_grad()
+def z_sample_hunyuan_dit(
+    handle: ModelHandle,
+    prompt: str | list[str] | None = None,
+    *,
+    config: ZSamplingConfig | None = None,
+    height: int | None = None,
+    width: int | None = None,
+    negative_prompt: str | list[str] | None = None,
+    num_images_per_prompt: int = 1,
+    eta: float = 0.0,
+    generator: torch.Generator | list[torch.Generator] | None = None,
+    latents: torch.Tensor | None = None,
+    prompt_embeds: torch.Tensor | None = None,
+    prompt_embeds_2: torch.Tensor | None = None,
+    negative_prompt_embeds: torch.Tensor | None = None,
+    negative_prompt_embeds_2: torch.Tensor | None = None,
+    prompt_attention_mask: torch.Tensor | None = None,
+    prompt_attention_mask_2: torch.Tensor | None = None,
+    negative_prompt_attention_mask: torch.Tensor | None = None,
+    negative_prompt_attention_mask_2: torch.Tensor | None = None,
+    output_type: str | None = "pil",
+    return_dict: bool = True,
+    guidance_rescale: float = 0.0,
+    original_size: tuple[int, int] | None = (1024, 1024),
+    target_size: tuple[int, int] | None = None,
+    crops_coords_top_left: tuple[int, int] = (0, 0),
+    use_resolution_binning: bool = True,
+) -> StableDiffusionPipelineOutput | tuple[Any]:
+    """Run Hunyuan-DiT Z-Sampling using Diffusers' HunyuanDiTPipeline.
+
+    This is a repo-local port of the same zag/zig loop used by
+    ``z_sample_sdxl`` and ``z_sample_sd21``. The denoising plumbing follows
+    Diffusers' ``HunyuanDiTPipeline.__call__``: dual text encoders, transformer
+    noise prediction, rotary image embeddings, style ids, and image metadata.
+    Treat this path as experimental until a smoke run verifies it on CUDA.
+    """
+    config = config or ZSamplingConfig(gamma_1=5.0)
+    validate_zsampling_config(config)
+    lambda_step = config.resolved_lambda_step()
+    pipe = handle.pipe
+    inverse_scheduler = handle.inverse_scheduler
+
+    height = height or pipe.default_sample_size * pipe.vae_scale_factor
+    width = width or pipe.default_sample_size * pipe.vae_scale_factor
+    height = int((height // 16) * 16)
+    width = int((width // 16) * 16)
+    if use_resolution_binning and (height, width) not in SUPPORTED_SHAPE:
+        width, height = map_to_standard_shapes(width, height)
+        height = int(height)
+        width = int(width)
+
+    pipe.check_inputs(
+        prompt,
+        height,
+        width,
+        negative_prompt,
+        prompt_embeds,
+        negative_prompt_embeds,
+        prompt_attention_mask,
+        negative_prompt_attention_mask,
+        prompt_embeds_2,
+        negative_prompt_embeds_2,
+        prompt_attention_mask_2,
+        negative_prompt_attention_mask_2,
+        ["latents"],
+    )
+    pipe._guidance_scale = config.gamma_1
+    pipe._guidance_rescale = guidance_rescale
+    pipe._interrupt = False
+
+    if prompt is not None and isinstance(prompt, str):
+        batch_size = 1
+    elif prompt is not None and isinstance(prompt, list):
+        batch_size = len(prompt)
+    else:
+        batch_size = prompt_embeds.shape[0]
+
+    device = pipe._execution_device
+    (
+        prompt_embeds,
+        negative_prompt_embeds,
+        prompt_attention_mask,
+        negative_prompt_attention_mask,
+    ) = pipe.encode_prompt(
+        prompt=prompt,
+        device=device,
+        dtype=pipe.transformer.dtype,
+        num_images_per_prompt=num_images_per_prompt,
+        do_classifier_free_guidance=pipe.do_classifier_free_guidance,
+        negative_prompt=negative_prompt,
+        prompt_embeds=prompt_embeds,
+        negative_prompt_embeds=negative_prompt_embeds,
+        prompt_attention_mask=prompt_attention_mask,
+        negative_prompt_attention_mask=negative_prompt_attention_mask,
+        max_sequence_length=77,
+        text_encoder_index=0,
+    )
+    (
+        prompt_embeds_2,
+        negative_prompt_embeds_2,
+        prompt_attention_mask_2,
+        negative_prompt_attention_mask_2,
+    ) = pipe.encode_prompt(
+        prompt=prompt,
+        device=device,
+        dtype=pipe.transformer.dtype,
+        num_images_per_prompt=num_images_per_prompt,
+        do_classifier_free_guidance=pipe.do_classifier_free_guidance,
+        negative_prompt=negative_prompt,
+        prompt_embeds=prompt_embeds_2,
+        negative_prompt_embeds=negative_prompt_embeds_2,
+        prompt_attention_mask=prompt_attention_mask_2,
+        negative_prompt_attention_mask=negative_prompt_attention_mask_2,
+        max_sequence_length=256,
+        text_encoder_index=1,
+    )
+
+    timesteps, num_inference_steps = retrieve_timesteps(
+        pipe.scheduler,
+        config.infer_step,
+        device,
+        None,
+        None,
+    )
+    inverse_scheduler.set_timesteps(num_inference_steps, device=device)
+    latents = pipe.prepare_latents(
+        batch_size * num_images_per_prompt,
+        pipe.transformer.config.in_channels,
+        height,
+        width,
+        prompt_embeds.dtype,
+        device,
+        generator,
+        latents,
+    )
+    extra_step_kwargs = pipe.prepare_extra_step_kwargs(generator, eta)
+
+    grid_height = height // 8 // pipe.transformer.config.patch_size
+    grid_width = width // 8 // pipe.transformer.config.patch_size
+    base_size = 512 // 8 // pipe.transformer.config.patch_size
+    grid_crops_coords = get_resize_crop_region_for_grid((grid_height, grid_width), base_size)
+    image_rotary_emb = get_2d_rotary_pos_embed(
+        pipe.transformer.inner_dim // pipe.transformer.num_heads,
+        grid_crops_coords,
+        (grid_height, grid_width),
+        device=device,
+        output_type="pt",
+    )
+
+    style = torch.tensor([0], device=device)
+    target_size = target_size or (height, width)
+    add_time_ids = list(original_size + target_size + crops_coords_top_left)
+    add_time_ids = torch.tensor([add_time_ids], dtype=prompt_embeds.dtype)
+
+    if pipe.do_classifier_free_guidance:
+        prompt_embeds = torch.cat([negative_prompt_embeds, prompt_embeds])
+        prompt_attention_mask = torch.cat([negative_prompt_attention_mask, prompt_attention_mask])
+        prompt_embeds_2 = torch.cat([negative_prompt_embeds_2, prompt_embeds_2])
+        prompt_attention_mask_2 = torch.cat(
+            [negative_prompt_attention_mask_2, prompt_attention_mask_2]
+        )
+        add_time_ids = torch.cat([add_time_ids] * 2, dim=0)
+        style = torch.cat([style] * 2, dim=0)
+
+    prompt_embeds = prompt_embeds.to(device=device)
+    prompt_attention_mask = prompt_attention_mask.to(device=device)
+    prompt_embeds_2 = prompt_embeds_2.to(device=device)
+    prompt_attention_mask_2 = prompt_attention_mask_2.to(device=device)
+    add_time_ids = add_time_ids.to(dtype=prompt_embeds.dtype, device=device).repeat(
+        batch_size * num_images_per_prompt,
+        1,
+    )
+    style = style.to(device=device).repeat(batch_size * num_images_per_prompt)
+
+    num_warmup_steps = len(timesteps) - num_inference_steps * pipe.scheduler.order
+    pipe._num_timesteps = len(timesteps)
+    with pipe.progress_bar(total=num_inference_steps) as progress_bar:
+        for i, timestep in enumerate(timesteps):
+            noise_pred = _guided_noise_prediction_hunyuan(
+                pipe=pipe,
+                latents=latents,
+                timestep=timestep,
+                prompt_embeds=prompt_embeds,
+                prompt_attention_mask=prompt_attention_mask,
+                prompt_embeds_2=prompt_embeds_2,
+                prompt_attention_mask_2=prompt_attention_mask_2,
+                add_time_ids=add_time_ids,
+                style=style,
+                image_rotary_emb=image_rotary_emb,
+                guidance_scale=config.gamma_1,
+                guidance_rescale=guidance_rescale,
+            )
+            pipe.scheduler._step_index = None
+            next_latents = pipe.scheduler.step(
+                noise_pred,
+                timestep,
+                latents,
+                **extra_step_kwargs,
+                return_dict=False,
+            )[0]
+
+            if i < lambda_step:
+                for _ in range(config.t_max):
+                    inverse_noise_pred = _guided_noise_prediction_hunyuan(
+                        pipe=pipe,
+                        latents=next_latents,
+                        timestep=timestep,
+                        prompt_embeds=prompt_embeds,
+                        prompt_attention_mask=prompt_attention_mask,
+                        prompt_embeds_2=prompt_embeds_2,
+                        prompt_attention_mask_2=prompt_attention_mask_2,
+                        add_time_ids=add_time_ids,
+                        style=style,
+                        image_rotary_emb=image_rotary_emb,
+                        guidance_scale=config.gamma_2,
+                        guidance_rescale=guidance_rescale,
+                    )
+                    inverse_scheduler._step_index = None
+                    inv_latents = inverse_scheduler.step(
+                        inverse_noise_pred,
+                        timesteps[i + 1],
+                        next_latents,
+                        return_dict=False,
+                    )[0]
+
+                    forward_noise_pred = _guided_noise_prediction_hunyuan(
+                        pipe=pipe,
+                        latents=inv_latents,
+                        timestep=timestep,
+                        prompt_embeds=prompt_embeds,
+                        prompt_attention_mask=prompt_attention_mask,
+                        prompt_embeds_2=prompt_embeds_2,
+                        prompt_attention_mask_2=prompt_attention_mask_2,
+                        add_time_ids=add_time_ids,
+                        style=style,
+                        image_rotary_emb=image_rotary_emb,
+                        guidance_scale=config.gamma_1,
+                        guidance_rescale=guidance_rescale,
+                    )
+                    pipe.scheduler._step_index = None
+                    next_latents = pipe.scheduler.step(
+                        forward_noise_pred,
+                        timestep,
+                        inv_latents,
+                        **extra_step_kwargs,
+                        return_dict=False,
+                    )[0]
+
+            latents = next_latents
+            should_update_progress = (
+                i == len(timesteps) - 1
+                or ((i + 1) > num_warmup_steps and (i + 1) % pipe.scheduler.order == 0)
+            )
+            if should_update_progress:
+                progress_bar.update()
+
+    image = _decode_latents_hunyuan(pipe, latents, output_type)
+    pipe.maybe_free_model_hooks()
+    if not return_dict:
+        return (image,)
+    return StableDiffusionPipelineOutput(images=image, nsfw_content_detected=None)

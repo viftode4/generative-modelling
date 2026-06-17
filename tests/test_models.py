@@ -56,6 +56,11 @@ def test_sd21_loader_function_exists():
     assert callable(models.load_sd21)
 
 
+def test_hunyuan_dit_loader_function_exists():
+    assert callable(models.load_hunyuan_dit)
+    assert models.load_hunyan is models.load_hunyuan_dit
+
+
 def test_sdxl_loader_function_exists():
     assert callable(models.load_sdxl)
 

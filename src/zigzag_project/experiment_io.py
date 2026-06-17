@@ -197,6 +197,19 @@ def make_hps_score_rows(
                 "standard_score": standard_score,
                 "zigzag_score": zigzag_score,
                 "delta": zigzag_score - standard_score,
+                **{
+                    key: row[key]
+                    for key in (
+                        "model_id",
+                        "image_size",
+                        "steps",
+                        "gamma_1",
+                        "gamma_2",
+                        "lambda_step",
+                        "t_max",
+                    )
+                    if key in row
+                },
             }
         )
     return score_rows

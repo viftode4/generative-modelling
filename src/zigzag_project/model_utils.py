@@ -29,8 +29,8 @@ MODEL_CONFIGS = {
     }
     # "sd21": {}, TODO: Add SD2.1. Also check load_standard_pipeline and
     # the rest of the code to make it compatible.
-    # "hunyuan-dit": {} TODO: Add Hunyuan-DiT. Also check
-    # load_standard_pipeline and the rest of the code to make it compatible.
+    # Hunyuan-DiT has a canonical loader in models.py. This older SDXL-only
+    # helper still needs a separate update before it can generate Hunyuan runs.
 }
 
 
