@@ -5,6 +5,7 @@ from zigzag_project.zsampling import (
     ZSamplingConfig,
     make_initial_latents,
     validate_zsampling_config,
+    z_sample_hunyuan_dit,
     z_sample_sd21,
 )
 
@@ -65,3 +66,7 @@ def test_make_initial_latents_rejects_non_divisible_dimensions():
 
 def test_z_sample_sd21_is_callable():
     assert callable(z_sample_sd21)
+
+
+def test_z_sample_hunyuan_dit_is_callable():
+    assert callable(z_sample_hunyuan_dit)

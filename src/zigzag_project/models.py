@@ -7,6 +7,7 @@ import torch
 from diffusers import (
     DDIMInverseScheduler,
     DDIMScheduler,
+    HunyuanDiTPipeline,
     StableDiffusionPipeline,
     StableDiffusionXLPipeline,
 )
@@ -66,6 +67,33 @@ def load_dreamshaper_xl_turbo(
     )
 
 
+def load_sdxl_base(
+    device: str | None = None,
+    dtype: torch.dtype = torch.float16,
+) -> ModelHandle:
+    """Load Stable Diffusion XL base with DDIM + DDIMInverse schedulers."""
+    hf_id = "stabilityai/stable-diffusion-xl-base-1.0"
+    resolved_device = resolve_device(device)
+
+    pipe = StableDiffusionXLPipeline.from_pretrained(
+        hf_id,
+        torch_dtype=dtype,
+        safety_checker=None,
+        requires_safety_checker=False,
+    )
+    pipe.scheduler = DDIMScheduler.from_config(pipe.scheduler.config)
+    inverse_scheduler = DDIMInverseScheduler.from_config(pipe.scheduler.config)
+    pipe = pipe.to(resolved_device)
+
+    return ModelHandle(
+        pipe=pipe,
+        inverse_scheduler=inverse_scheduler,
+        device=resolved_device,
+        dtype=dtype,
+        hf_id=hf_id,
+    )
+
+
 def load_sd21(
     device: str | None = None,
     dtype: torch.dtype = torch.float16,
@@ -87,6 +115,41 @@ def load_sd21(
     )
     # See load_dreamshaper_xl_turbo: derive the inverse scheduler from DDIM
     # rather than the default PNDM config so forward/inverse share parameters.
+    pipe.scheduler = DDIMScheduler.from_config(pipe.scheduler.config)
+    inverse_scheduler = DDIMInverseScheduler.from_config(pipe.scheduler.config)
+    pipe = pipe.to(resolved_device)
+
+    return ModelHandle(
+        pipe=pipe,
+        inverse_scheduler=inverse_scheduler,
+        device=resolved_device,
+        dtype=dtype,
+        hf_id=hf_id,
+    )
+
+
+def load_hunyuan_dit(
+    device: str | None = None,
+    dtype: torch.dtype = torch.float16,
+) -> ModelHandle:
+    """Load Hunyuan-DiT with DDIM + DDIMInverse schedulers.
+
+    Hunyuan-DiT uses a different Diffusers pipeline from SD/SDXL, so this
+    loader only establishes the standard generation pipeline and scheduler
+    pair. Z-Sampling still needs a Hunyuan-specific sampling function before
+    this handle can be used for zigzag generation.
+    """
+
+    hf_id = "Tencent-Hunyuan/HunyuanDiT-v1.2-Diffusers"
+    resolved_device = resolve_device(device)
+
+    pipe = HunyuanDiTPipeline.from_pretrained(
+        hf_id,
+        torch_dtype=dtype,
+    )
+    # Keep the scheduler setup parallel to SDXL/SD2.1. This gives standard
+    # DDIM sampling plus a matching inverse scheduler for a future Z-Sampling
+    # port, but the Hunyuan pipeline plumbing still needs separate validation.
     pipe.scheduler = DDIMScheduler.from_config(pipe.scheduler.config)
     inverse_scheduler = DDIMInverseScheduler.from_config(pipe.scheduler.config)
     pipe = pipe.to(resolved_device)

@@ -74,3 +74,11 @@ Record durable choices that future humans or AI agents should not have to redisc
 
 **Status:** Active
 
+## 2026-06-07 - SDXL Pick-a-Pic lambda sweep uses 51 DDIM steps
+
+**Decision:** For the SDXL Pick-a-Pic lambda-step ablation, default to `infer_step=51` when sweeping `lambda_step` values `0`, `3`, `7`, `15`, `25`, `35`, and `50`.
+
+**Rationale:** The repo-local Z-Sampling loop in `src/zigzag_project/zsampling.py` validates `0 <= lambda_step < infer_step` because every refined step needs a following timestep for the DDIM inversion call. Using 51 DDIM steps makes the requested `lambda_step=50` valid while preserving the intended interpretation that 50 early denoising steps receive zigzag refinement. This is an implementation-boundary decision based on the local port, with provenance to the upstream SDXL Z-Sampling adaptation recorded in `src/zigzag_project/zsampling.py`.
+
+**Status:** Active
+
