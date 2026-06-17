@@ -1,7 +1,4 @@
-"""Score a guidance-gap manifest with the three main-env metrics (HPS v2, AES,
-PickScore). ImageReward is scored separately (transformers-v4 env) and merged in
-the summarize step. Writes one row per image with hps/aes/pick filled and ir=NaN.
-"""
+"""Score guidance-gap manifest with HPS v2, AES, PickScore. ImageReward scored separately."""
 from __future__ import annotations
 
 import argparse
@@ -22,8 +19,6 @@ def main() -> None:
     args = p.parse_args()
 
     device = str(resolve_device(args.device))
-    # HPS uses its own device internally; AES/Pick are small — cpu is safe and avoids
-    # MPS dtype quirks. Override with --device mps to try the GPU.
     score_device = args.device or "cpu"
     scorers = build_main_scorers(device=score_device)
 

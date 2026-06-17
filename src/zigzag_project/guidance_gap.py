@@ -1,8 +1,4 @@
-"""Pure helpers for the SDXL guidance-gap ablation (Experiment #6).
-
-Reproduces the variable in the paper's Figure 7: fix gamma_1, sweep gamma_2,
-and study the guidance gap delta_gamma = gamma_1 - gamma_2.
-"""
+"""Helpers for the SDXL guidance-gap ablation (Experiment #6)."""
 from __future__ import annotations
 
 import math
@@ -14,12 +10,9 @@ from typing import Any
 
 @dataclass(frozen=True)
 class Variant:
-    """One generation variant for a (prompt, seed): the standard baseline or a
-    Z-Sampling run at a specific inversion guidance gamma_2."""
-
     method: str           # "standard" | "zigzag"
     gamma_2: float | None  # None for the standard baseline
-    label: str            # "standard" | "g2_<tag>"
+    label: str
 
 
 def gamma_tag(value: float) -> str:
@@ -28,8 +21,7 @@ def gamma_tag(value: float) -> str:
 
 
 def expand_variants(*, gamma_1: float, gamma2_sweep: Sequence[float]) -> list[Variant]:
-    """Standard baseline first, then one Z-Sampling variant per unique gamma_2
-    (ascending). gamma_1 is accepted for symmetry / future validation."""
+    """Standard baseline first, then one Z-Sampling variant per unique gamma_2 (ascending)."""
     variants = [Variant(method="standard", gamma_2=None, label="standard")]
     for g2 in sorted({float(g) for g in gamma2_sweep}):
         variants.append(Variant(method="zigzag", gamma_2=g2, label=f"g2_{gamma_tag(g2)}"))
@@ -59,17 +51,7 @@ def aggregate_guidance_gap(
     metrics: Sequence[str] = ("hps", "aes", "pick", "ir"),
     gamma_1: float | None = None,
 ) -> dict[str, Any]:
-    """Aggregate per-image metric rows by gamma_2.
-
-    Each row must have: prompt_id, seed, method ("standard"|"zigzag"),
-    gamma_2 (None for standard), and one numeric field per metric.
-
-    Returns means/std per metric for the standard baseline and, per gamma_2,
-    means/std plus a win-rate computed against the *matched* standard image
-    (same prompt_id + seed). When ``gamma_1`` is given, each gamma_2 entry also
-    carries the guidance gap ``gap = gamma_1 - gamma_2``. NaN metric values are
-    skipped.
-    """
+    """Aggregate score rows by gamma_2. Returns means/std and win-rates vs matched standard baseline."""
     rows = list(score_rows)
     std_by_key = {
         (r["prompt_id"], r["seed"]): r for r in rows if r["method"] == "standard"

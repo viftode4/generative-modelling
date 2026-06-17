@@ -17,7 +17,6 @@ def test_make_metric_score_rows_scores_each_image_per_metric():
     rows = make_metric_score_rows(manifest, scorers)
     assert len(rows) == 2
     assert rows[0]["hps"] == 0.3 and rows[0]["pick"] == 22.0 and rows[0]["aes"] == 6.1
-    # passthrough identity fields preserved for later aggregation/merge
     assert rows[1]["method"] == "zigzag" and rows[1]["gamma_2"] == 0.0
     assert rows[1]["image_path"] == "/img/p0_g0.png"
 

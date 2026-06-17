@@ -36,11 +36,7 @@ def load_dreamshaper_xl_turbo(
     device: str | None = None,
     dtype: torch.dtype = torch.float16,
 ) -> ModelHandle:
-    """Load DreamShaper-xl-v2-turbo with DDIM + DDIMInverse schedulers.
-
-    DDIM is required for Z-Sampling because the inversion step needs a
-    deterministic, invertible scheduler. Upstream uses the same pair for SDXL.
-    """
+    """Load DreamShaper-xl-v2-turbo with DDIM + DDIMInverse schedulers."""
     hf_id = "Lykon/dreamshaper-xl-v2-turbo"
     resolved_device = resolve_device(device)
 
@@ -50,10 +46,6 @@ def load_dreamshaper_xl_turbo(
         safety_checker=None,
         requires_safety_checker=False,
     )
-    # Replace the default scheduler with DDIM first so the inverse scheduler
-    # is derived from the DDIM config (prediction_type, set_alpha_to_one,
-    # steps_offset, timestep_spacing) rather than the original Euler config.
-    # Upstream registers both schedulers from the same DDIM config.
     pipe.scheduler = DDIMScheduler.from_config(pipe.scheduler.config)
     inverse_scheduler = DDIMInverseScheduler.from_config(pipe.scheduler.config)
     pipe = pipe.to(resolved_device)
@@ -71,18 +63,7 @@ def load_sdxl(
     device: str | None = None,
     dtype: torch.dtype = torch.float16,
 ) -> ModelHandle:
-    """Load Stable Diffusion XL base 1.0 with DDIM + DDIMInverse schedulers.
-
-    This is the backbone the Z-Sampling paper uses for SDXL (50 steps, gamma_1=5.5)
-    and the model the upstream ``infer.py`` hardcodes. DDIM is required for
-    Z-Sampling because the inversion step needs a deterministic, invertible
-    scheduler. We pair a DDIM forward scheduler with a DDIMInverse scheduler
-    derived from the same config, exactly as ``load_dreamshaper_xl_turbo`` does,
-    so the inverse step uses matching parameters rather than the default config.
-
-    Used by Experiment 8's efficiency runner. See ``load_sdxl_base`` for the
-    per-device-dtype variant (fp32 on MPS/CPU) that the later SDXL experiments use.
-    """
+    """Load SDXL base 1.0 with DDIM + DDIMInverse schedulers."""
     hf_id = "stabilityai/stable-diffusion-xl-base-1.0"
     resolved_device = resolve_device(device)
 
@@ -107,13 +88,7 @@ def load_sdxl(
 
 
 def resolve_sdxl_dtype(device: torch.device) -> torch.dtype:
-    """Pick a numerically-safe dtype for SDXL-base per device.
-
-    SDXL's UNet overflows to NaN on the *first* forward pass in fp16 AND bf16
-    on Apple Silicon / MPS (verified empirically on torch 2.12 — clean inputs
-    in, NaN out, both reduced-precision dtypes; fp32 is clean). CUDA runs fp16
-    correctly (as in the paper), so keep the fast path there.
-    """
+    """fp16 on CUDA, fp32 on MPS/CPU (fp16/bf16 produces NaN on Apple Silicon)."""
     return torch.float16 if device.type == "cuda" else torch.float32
 
 
@@ -121,17 +96,7 @@ def load_sdxl_base(
     device: str | None = None,
     dtype: torch.dtype | None = None,
 ) -> ModelHandle:
-    """Load Stable Diffusion XL base 1.0 with DDIM + DDIMInverse schedulers.
-
-    This is the model used in the Z-Sampling paper's SDXL experiments
-    (Tables 2/5, Figure 7). DDIM is required for Z-Sampling because the
-    inversion step needs a deterministic, invertible scheduler; the inverse
-    scheduler is derived from the DDIM config so forward/inverse share
-    prediction_type, set_alpha_to_one, steps_offset, and timestep_spacing.
-
-    ``dtype=None`` selects per device via ``resolve_sdxl_dtype`` (fp32 on
-    MPS/CPU to avoid the fp16 NaN, fp16 on CUDA).
-    """
+    """Load SDXL base 1.0 with DDIM + DDIMInverse schedulers. dtype=None picks fp32 on MPS/CPU."""
     hf_id = "stabilityai/stable-diffusion-xl-base-1.0"
     resolved_device = resolve_device(device)
     if dtype is None:
@@ -163,12 +128,7 @@ def load_sd21(
     device: str | None = None,
     dtype: torch.dtype = torch.float16,
 ) -> ModelHandle:
-    """Load Stable Diffusion 2.1 with DDIM + DDIMInverse schedulers.
-
-    SD2.1 uses a single CLIP ViT-H/14 text encoder and produces 768×768
-    images natively.  DDIM is required for Z-Sampling because the inversion
-    step needs a deterministic, invertible scheduler.
-    """
+    """Load Stable Diffusion 2.1 with DDIM + DDIMInverse schedulers."""
     hf_id = "sd2-community/stable-diffusion-2-1"
     resolved_device = resolve_device(device)
 
@@ -178,8 +138,6 @@ def load_sd21(
         safety_checker=None,
         requires_safety_checker=False,
     )
-    # See load_dreamshaper_xl_turbo: derive the inverse scheduler from DDIM
-    # rather than the default PNDM config so forward/inverse share parameters.
     pipe.scheduler = DDIMScheduler.from_config(pipe.scheduler.config)
     inverse_scheduler = DDIMInverseScheduler.from_config(pipe.scheduler.config)
     pipe = pipe.to(resolved_device)
@@ -197,14 +155,7 @@ def load_hunyuan_dit(
     device: str | None = None,
     dtype: torch.dtype = torch.float16,
 ) -> ModelHandle:
-    """Load Hunyuan-DiT with DDIM + DDIMInverse schedulers.
-
-    Hunyuan-DiT uses a different Diffusers pipeline from SD/SDXL, so this
-    loader only establishes the standard generation pipeline and scheduler
-    pair. Z-Sampling still needs a Hunyuan-specific sampling function before
-    this handle can be used for zigzag generation.
-    """
-
+    """Load Hunyuan-DiT with DDIM + DDIMInverse schedulers."""
     hf_id = "Tencent-Hunyuan/HunyuanDiT-v1.2-Diffusers"
     resolved_device = resolve_device(device)
 
@@ -212,9 +163,6 @@ def load_hunyuan_dit(
         hf_id,
         torch_dtype=dtype,
     )
-    # Keep the scheduler setup parallel to SDXL/SD2.1. This gives standard
-    # DDIM sampling plus a matching inverse scheduler for a future Z-Sampling
-    # port, but the Hunyuan pipeline plumbing still needs separate validation.
     pipe.scheduler = DDIMScheduler.from_config(pipe.scheduler.config)
     inverse_scheduler = DDIMInverseScheduler.from_config(pipe.scheduler.config)
     pipe = pipe.to(resolved_device)
