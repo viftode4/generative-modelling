@@ -1,7 +1,13 @@
-# Pick-a-Pic Official Full Dataset
+# Pick-a-Pic Prompt Set (first 100)
 
-Purpose: The first 100 prompts from the Pick-a-Pic dataset provided in `data/prompts/pick-a-pic.csv`.
-This directly matches the 100-prompt subset used in the original Z-Sampling paper.
+Purpose: the first 100 prompts from `data/prompts/pick-a-pic.csv`, matching the paper's
+**count** (Appendix A.1: "we use only the first 100 prompts as the test set").
+
+Provenance caveat: the original `pickapic_v1`/`v2` HuggingFace datasets are no longer
+accessible, so `data/prompts/pick-a-pic.csv` comes from the author's 200-prompt
+`yuvalkirstain/PickaPic-selected-prompts` set (see `notebooks/01_prompt_datasets.ipynb`).
+These are from the **same dataset family** (Kirstain et al., 2023), but we **cannot guarantee
+they are the exact prompts** used in the Z-Sampling paper — only the dataset and the 100 count match.
 
 ```jsonl
 {"source_index": 0, "tag": "official", "prompt": "painting of ancient egyptian harbour with boats and warehouses and palaces in background"}

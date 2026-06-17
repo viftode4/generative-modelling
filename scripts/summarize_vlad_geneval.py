@@ -165,15 +165,18 @@ def render_agreement(
         else:
             inconclusive += 1
     total = len(geneval_rows)
+    directional = total - inconclusive
     lines = [
         "## Metric agreement (HPSv2 vs GenEval detector, per pair)",
         "",
-        f"Pairs scored by both metrics: {total - inconclusive}/{total}",
+        f"Pairs with both metrics available: {total}/{total}",
+        "Detector-directional pairs (one sampler passes and the other fails): "
+        f"{directional}/{total}",
         f"Both metrics favor Z: {both_z_wins}",
         f"Both metrics favor standard: {both_std_wins}",
         f"HPS favors Z but detector favors standard: {z_loses_hps_wins_geneval}",
         f"HPS favors standard but detector favors Z: {z_wins_hps_loses_geneval}",
-        f"Inconclusive on detector (both pass or both fail): {inconclusive}",
+        f"Detector-tied pairs (both pass or both fail): {inconclusive}",
         "",
     ]
     return "\n".join(lines)

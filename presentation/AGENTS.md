@@ -18,14 +18,14 @@ Slide content and outlines for the **midterm** (already presented 2026-05-07) an
 | Directory | Purpose |
 |-----------|---------|
 | `midterm/` | Midterm slides + outline (Thu 2026-05-07). Now archival — the artifact of record. |
-| `final/` | End-term presentation. Date TBD; track in `planning/timeline.md` and `planning/decisions.md`. |
+| `final/` | End-term presentation (2026-06-09, 7 min + 4 min feedback, graded 20%). See `final/endterm_deck.md`. |
 
 ## For AI Agents
 
 ### Working In This Directory
 
 - Outlines are markdown, not slide files. The actual slide deck (PowerPoint, Keynote, Google Slides) is built separately by whoever owns presentation slot — keep its source out of git unless the group decides otherwise.
-- **Slot ownership** is tracked in `planning/role-assignments.md` and the per-event outline. Do not silently reshuffle slot owners.
+- **Slot ownership** is tracked in `planning/experiment-division.md` and the per-event outline. Do not silently reshuffle slot owners.
 - Midterm material is **archival** — do not retroactively rewrite it. New material goes in `final/`. If the midterm doc needs corrections, add a "Post-mortem" section at the bottom.
 
 ### Common Patterns
@@ -36,8 +36,8 @@ Slide content and outlines for the **midterm** (already presented 2026-05-07) an
 ## Dependencies
 
 ### Internal
-- `planning/role-assignments.md` — who presents which slot.
-- `planning/timeline.md` — event dates.
+- `planning/experiment-division.md` — ownership of model/dataset/method lanes.
+- `planning/README.md` — event dates and project status.
 - `knowledgebase/` — source material for slide claims.
 
 <!-- MANUAL: -->

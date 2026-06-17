@@ -27,7 +27,23 @@ def main() -> None:
     args = parser.parse_args()
 
     try:
+        import os
+        import urllib.request
+
         import hpsv2
+
+        pkg_dir = os.path.dirname(hpsv2.__file__)
+        vocab_path = os.path.join(pkg_dir, "src", "open_clip", "bpe_simple_vocab_16e6.txt.gz")
+        if not os.path.exists(vocab_path):
+            print(f"hpsv2 OpenCLIP vocabulary file missing. Downloading to {vocab_path}...")
+            os.makedirs(os.path.dirname(vocab_path), exist_ok=True)
+            url = "https://github.com/openai/CLIP/raw/main/clip/bpe_simple_vocab_16e6.txt.gz"
+            try:
+                urllib.request.urlretrieve(url, vocab_path)
+                print("Download successful.")
+            except Exception as e:
+                print(f"Warning: Failed to automatically download vocab file: {e}")
+                print("Make sure to download it manually as described in the module docstring.")
     except ImportError as exc:
         raise SystemExit(
             "Missing optional dependency hpsv2. See module docstring for install."

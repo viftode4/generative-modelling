@@ -14,12 +14,13 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.cache/
 .coverage
 htmlcov/
 .ipynb_checkpoints/
 
 # Environments
-.venv/
+.venv*/
 venv/
 env/
 ENV/
@@ -30,12 +31,19 @@ ENV/
 .env.*
 !.env.example
 
+# Generated images from notebook runs
+notebooks/daniel-sdxl-drawbench/sdxl_drawbench_images/
+notebooks/daniel-sdxl-drawbench/sdxl_drawbench_qualitative.png
+
 # Course/ML generated artifacts
 /datasets/
 /results/
 /runs/
 /checkpoints/
 /models/
+
+# External paper PDFs can be large; keep notes/metadata tracked instead.
+/docs/papers/*.pdf
 
 # /outputs/ is heavy generated content (images, intermediate latents).
 # Convention: each run lives at outputs/<run-family>/<run-name>/ (exactly 3
@@ -75,3 +83,5 @@ ENV/
 !/external/README.md
 !/external/zigzag-diffusion-sampling/
 
+# Local slide deck exports/copies; tracked presentation content stays in Markdown.
+/Midterm.pptx

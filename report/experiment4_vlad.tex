@@ -1,0 +1,111 @@
+% =====================================================================
+% Experiment 4 (Vlad) — Compute-Matched Efficiency, SDXL x Pick-a-Pic
+% Paste-ready for the group report (ACM sigconf). Numbers trace to
+% report/tables/vlad_efficiency.md and outputs/vlad_exp8_sdxl_pickapic/.
+% Figures: copy these PNGs into the Overleaf figures/ directory:
+%   report/figures/vlad_exp8_sdxl_pickapic/exp8_hps_vs_time.png   -> figures/exp8_hps_vs_time.png
+%   report/figures/vlad_exp8_sdxl_pickapic/exp8_qual_standard.png -> figures/exp8_qual_standard.png
+%   report/figures/vlad_exp8_sdxl_pickapic/exp8_qual_zigzag.png   -> figures/exp8_qual_zigzag.png
+% Use the same heading macro as the other experiments (shown as \subsection*).
+% If the 8-column table overflows the single column, change {table} -> {table*}.
+% =====================================================================
+
+\subsection*{Experiment 4 --- Compute-Matched Efficiency: SDXL on Pick-a-Pic (Vlad)}
+
+Z-Sampling adds an inversion and re-denoising pass at each step, so a fair comparison must
+fix total computation, not the number of sampling steps. We reproduce the paper's
+time-matched efficiency study (Figure~10) on Stable Diffusion XL base 1.0 over the first 100
+Pick-a-Pic prompts (seed 42). For each standard budget $T_s \in \{20, 30, 40, 50\}$ we
+compare standard DDIM at $T_s$ steps against Z-Sampling with $T_z = T_s/2$ and
+$\lambda = T_s/4$, which equalises the noise-prediction count ($T_z + 2\lambda = T_s$). Both
+arms share the initial latent, scheduler (DDIM with inversion), guidance ($\gamma_1 = 5.5$,
+$\gamma_2 = 0$) and resolution ($1024^2$). We score all 400 pairs with HPS\,v2.1 and record
+per-image time on Apple silicon (MPS); a few cells whose wall-clock was corrupted when the
+laptop was suspended mid-run (timings above twice the per-budget median) are excluded from
+the time summary, while every image is kept for scoring.
+
+At each budget the two arms take almost identical median time (for example, 72.2\,s at
+$T_s = 40$), confirming the match, yet Z-Sampling scores higher at every budget and is
+preferred on 81\% to 91\% of pairs (85.2\% overall; Table~\ref{tab:vlad-efficiency}). The
+pooled delta is $+0.0148$ with a 95\% bootstrap confidence interval of $[+0.0131, +0.0165]$,
+strictly positive at every budget and larger than the $+0.0110$ we measure for Stable
+Diffusion 2.1. Read across budgets, this recovers the paper's Pareto result
+(Figure~\ref{fig:vlad-efficiency}): the best standard score, $0.2727$, needs $T_s = 50$
+($\sim$151\,s), whereas Z-Sampling reaches $0.2779$ at $T_s = 30$ ($\sim$53\,s), matching the
+best standard quality at roughly one third of the time. This reproduces the direction of the
+paper's ``36\% less computational time'' claim, though the absolute saving is likely
+optimistic, as the $T_s = 50$ reference budget shows signs of thermal throttling on this
+device.
+
+Two caveats temper this. First, op-count parity is only an approximation of true cost, since
+the interleaved inversion changes the scheduler and attention access pattern and the gap
+could widen on other stacks. Second, HPS\,v2.1 is the sole judge, and because Z-Sampling
+amplifies exactly the prompt-alignment signal preference models reward, a single-metric win
+may partly reflect that alignment; corroboration with PickScore, ImageReward, or AES lay
+beyond our compute budget, though other experiments in this report evaluate SDXL under those
+metrics. The core finding still holds: winning at \emph{equal} compute indicates that
+spending the budget on $\gamma_1\!\to\!\gamma_2\!\to\!\gamma_1$ self-reflection over the
+early, layout-setting timesteps beats additional plain denoising
+(Figure~\ref{fig:vlad-qualitative}). The single seed, fixed $\lambda$, and absent resampling
+arm are deliberate scope limits under constrained hardware.
+
+\begin{table}[t]
+\centering
+\caption{Compute-matched efficiency comparison on Stable Diffusion XL with Pick-a-Pic
+(100 prompts per budget, seed 42). Z-Sampling uses $T_z = T_s/2$ and $\lambda = T_s/4$ so
+that the two methods perform an equal number of noise predictions. Time is the median
+seconds per image on MPS, HPS is the mean HPS\,v2.1 score, and the last column reports the
+fraction of pairs on which Z-Sampling scores higher.}
+\label{tab:vlad-efficiency}
+\small
+\begin{tabular}{rrrrrrrr}
+\toprule
+$T_s$ & $T_z$ & $\lambda$ & Std s/img & Z s/img & Std HPS & Z HPS & Z win \\
+\midrule
+20 & 10 & 5  & 36.8  & 36.9  & 0.2574 & 0.2720 & 81\% \\
+30 & 15 & 7  & 54.4  & 52.7  & 0.2645 & 0.2779 & 82\% \\
+40 & 20 & 10 & 72.2  & 72.2  & 0.2712 & 0.2860 & 87\% \\
+50 & 25 & 12 & 151.4 & 149.0 & 0.2727 & 0.2891 & 91\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/exp8_hps_vs_time.png}
+\caption{Mean HPS\,v2.1 against median generation time per image (reproduction of
+Figure~10 of the original paper), SDXL on Pick-a-Pic. At every compute-matched budget the
+Z-Sampling curve lies above standard sampling, and at $T_s = 30$ it exceeds the best
+standard point. The error bars are per-arm 95\% confidence intervals and reflect score
+spread across prompts (dominated by prompt difficulty, hence the overlap); statistical
+significance is established on the paired per-prompt delta of
+Table~\ref{tab:vlad-efficiency}, whose bootstrap interval excludes zero at every budget.}
+\label{fig:vlad-efficiency}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\begin{minipage}{0.49\columnwidth}\centering
+\includegraphics[width=\linewidth]{figures/exp8_qual_standard.png}\\
+{\small Standard, $T_s{=}40$}
+\end{minipage}\hfill
+\begin{minipage}{0.49\columnwidth}\centering
+\includegraphics[width=\linewidth]{figures/exp8_qual_zigzag.png}\\
+{\small Z-Sampling, $T_z{=}20$, $\lambda{=}10$}
+\end{minipage}
+\caption{A representative compute-matched pair (prompt: ``An elephant in a room full of
+glassware'', seed 42, budget $T_s = 40$; HPS delta $+0.014$, at the per-budget mean). At
+equal compute Z-Sampling (right) renders more coherent detail and composition than standard
+sampling (left). This is a typical case selected near the mean delta, not the largest gain.}
+\label{fig:vlad-qualitative}
+\end{figure}
+
+% =====================================================================
+% Appendix B — Vlad's work-division row (uncomment and paste into Table 5)
+% =====================================================================
+% Vlad & Implemented the compute-matched efficiency runner and the aggregation pipeline
+% (\texttt{run\_vlad\_exp8\_efficiency.py}, \texttt{summarize\_vlad\_efficiency.py}).
+% Conducted Experiment~4 (standard sampling versus compute-matched Z-Sampling on Stable
+% Diffusion XL with Pick-a-Pic, evaluated with HPS\,v2.1 and runtime; reproduction of
+% Figure~10). Presented the opening section (paper motivation, models, and datasets) at
+% the end-term presentation. Wrote the Experiment~4 section of the report. \\

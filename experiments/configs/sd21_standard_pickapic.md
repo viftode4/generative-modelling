@@ -3,7 +3,7 @@
 ## Identity
 
 - **Owner:** Eugen
-- **Cell:** SD2.1 × Pick-a-Pic (from `planning/role-assignments.md`)
+- **Cell:** SD2.1 × Pick-a-Pic (from `planning/experiment-division.md`)
 - **Experiment:** Standard Sampling vs. Z-Sampling (Experiment 1)
 
 ## Model

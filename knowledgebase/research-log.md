@@ -338,3 +338,126 @@ Next action:
   `knowledgebase/logs/2026-06-03_bogdan-hunyuan-pickapic-subset.md`.
 - Verification: `.venv\Scripts\python.exe -m ruff check .` passed and
   `.venv\Scripts\python.exe -m pytest -q` passed with 31 tests / 2 warnings.
+
+## 2026-06-03 - Official ZigZag PDF downloaded and paper notes validated
+
+- Downloaded the official OpenReview PDF for *Zigzag Diffusion Sampling: Diffusion Models Can Self-Improve via Self-Reflection* from https://openreview.net/pdf?id=MKvQH1ekeY.
+- Saved the unmodified PDF as `docs/papers/zigzag-diffusion-sampling.pdf` and added `docs/papers/README.md` for provenance.
+- Validated `knowledgebase/papers/zigzag-diffusion-sampling.md` against the downloaded PDF. The old note was directionally correct but too incomplete for report-critical claims.
+- Updated the note with paper-backed algorithm details, experiment settings, main benchmark distinctions, limitations, and a parity/caveat checklist for Vlad's DreamShaper + GenEval run.
+- Important finding for report wording: the paper's main GenEval table is SDXL, not DreamShaper; Vlad's DreamShaper + GenEval setup should be framed as the group-assigned cross-cell stress test, not a direct reproduction of the paper's Table 2.
+
+## 2026-06-03 - Group Drive planning and resampling notes incorporated
+
+- Added `knowledgebase/meetings/2026-05-04_ta-meeting-and-drive-notes.md` from user-provided group Drive notes.
+- Updated `planning/experiment-division.md` to clarify the sampling-method ownership, TA guidance, and the interpretation of the shared standard-sampling baseline.
+- Important interpretation: standard-sampling owners provide baseline infrastructure, but method comparisons still need matched standard baselines for the same model/prompt/seed/settings unless explicitly studying cross-model differences.
+- Added the Drive note conclusion that Lenka's non-monotonic RePaint-style schedule is the paper-aligned Resampling implementation, while the earlier Gouri same-timestep perturbation/refinement loop should not be presented as RePaint-equivalent.
+
+## 2026-06-03 - Z-Sampling math/behavior validation pass
+
+- Re-read the paper note, upstream `external/zigzag-diffusion-sampling/utils/pipeline_stable_diffusion_xl.py::z_sampling_call`, and project-local `src/zigzag_project/zsampling.py`.
+- Added model-free behavior tests in `tests/test_zsampling.py` that execute the real `z_sample_sdxl` loop with a fake SDXL pipeline. The tests verify:
+  - for `T=4`, `lambda_step=T-1`, and `t_max=1`, the forward scheduler sees timesteps `[3, 3, 2, 2, 1, 1, 0]` and the inverse scheduler sees `[2, 1, 0]`, matching the upstream denoise -> inverse to next timestep -> re-denoise pattern;
+  - denoise/re-denoise calls use `gamma_1`, while inverse calls use `gamma_2`, proving the classifier-free guidance gap behavior in the loop;
+  - `t_max>1` repeats inverse/re-denoise rounds at each refined timestep.
+- Audited Vlad's saved run artifacts under `outputs/vlad_geneval/balanced_18x3/`: 54 manifest rows, 54 score rows, 18 prompts, 3 seeds, balanced 9 rows per GenEval tag, no missing images, all images 768x768, no identical standard/Z image pairs, score deltas internally consistent, recomputed Z win rate 53/54 and mean delta +0.035773, runtime ratio 2.242x.
+- Fixed report wording found during validation:
+  - the algorithm description now states that the inverse/re-denoise pair happens after the first denoise;
+  - the scheduler-config note now says the inverse scheduler is cloned from the DDIM forward scheduler rather than the original checkpoint scheduler config;
+  - the `geneval_355_position` explanation now preserves the prompt relation "couch below cup" instead of reversing it.
+- Reconciled the stale `numpy<2` project dependency with the validated environment by changing it to `numpy>=2,<3` and reinstalling the project editable with `.[dev,scoring]`.
+- Verification after changes:
+  - `.venv/bin/python -m pip install -e '.[dev,scoring]'` completed and refreshed dependency metadata.
+  - `.venv/bin/ruff check .` passed.
+  - `.venv/bin/python -m pytest -q` passed: 30 tests, 2 warnings.
+  - `.venv/bin/python -m pytest tests/test_zsampling.py -q` passed: 11 tests, 2 warnings.
+  - `.venv/bin/python -m pip check` passed with no broken requirements.
+  - `git diff --check` passed.
+- Remaining validation gap: this proves local loop behavior against upstream structure and validates saved HPS artifacts, but it still does not produce official GenEval detector pass rates or a FLOPs/time-matched standard baseline.
+
+Additional fix from the same validation pass: adding the SD2.1 fake-pipeline behavior test exposed that `z_sample_sd21()` returned `StableDiffusionPipelineOutput(images=image)` without the required `nsfw_content_detected` field under the current `diffusers==0.37.1` API. Fixed `src/zigzag_project/zsampling.py` to return `StableDiffusionPipelineOutput(images=image, nsfw_content_detected=None)`. Full verification after the fix: `.venv/bin/python -m pytest -q` passed with 31 tests and 2 warnings; `.venv/bin/ruff check .` passed; `.venv/bin/python -m pip check` passed; `git diff --check` passed.
+
+## 2026-06-03 - Vlad prompt-level and qualitative result strengthening
+
+- Added `report/tables/vlad_prompt_level.md`, aggregating `outputs/vlad_geneval/balanced_18x3/scores.jsonl` by prompt across three seeds.
+- Added `report/tables/vlad_qualitative_audit.md`, a manual visual audit of selected top-win and edge-case pairs from `outputs/vlad_geneval/balanced_18x3/images/`.
+- Main prompt-level finding: Z-Sampling wins all three seeds for 17/18 prompts; the only mixed prompt is `geneval_355_position` (`a photo of a couch below a cup`), where standard wins one seed by 0.0023 HPS points.
+- Manual audit conclusion: the largest HPS wins are visually meaningful (`geneval_259_colors_seed42`, `geneval_180_counting_seed2026`), but small positive HPS deltas can be mostly perceptual sharpening on semantically ambiguous images (`geneval_000_single_object_seed2026`, `geneval_354_position_seed123`). This strengthens the report's metric-mismatch caveat.
+- Updated `report/draft.md` and `report/tables/vlad_results.md` to use the safer claim: Vlad's run is a validated DreamShaper-turbo HPSv2.1 preference experiment, not an official GenEval detector reproduction.
+
+## 2026-06-04 - No-CUDA constraint: Mac-only validation path
+
+- User confirmed there is no CUDA machine available for Vlad's lane; only the Apple Silicon Mac/MPS environment is available.
+- Consequence: the official GenEval detector remains a documented environment limitation rather than an actionable local next step. The detector runner stays useful for future CUDA access, but it should not be presented as something Vlad can complete locally.
+- Added `scripts/run_vlad_compute_matched_standard.py`, a Mac-feasible helper that generates a higher-step standard DDIM baseline from the same prompt/seed/initial latent and writes a comparison manifest compatible with `scripts/score_hpsv2_pairs.py`.
+- Added `experiments/configs/dreamshaper_turbo_geneval_compute_matched.md`. Main recommended comparison: existing 4-step Z-Sampling vs 9-step standard DDIM, because the measured MPS runtime ratio is 2.24x and `4 * 2.24 ≈ 9`.
+- Updated report wording: CUDA detector is not queued for Vlad; the practical local next experiment is the 9-step compute-matched HPSv2 comparison.
+
+## 2026-06-04 - GenEval detector made to work on Apple Silicon CPU
+
+- Re-diagnosed the GenEval detector instead of accepting the prior CUDA-only conclusion.
+- Found current `.venv` had `mmcv-full==1.7.2` with a compiled Darwin extension (`mmcv/_ext.cpython-310-darwin.so`) but lacked `mmdet`.
+- Installed `mmdet==2.28.2`, matching upstream GenEval's `mmdetection` 2.x instruction in `external/geneval/README.md`.
+- Reproduced the real runner failure: `AttributeError: 'tuple' object has no attribute 'pred_instances'`. Cause: project runner expected mmdet 3.x `DetDataSample`, while working/upstream mmdet 2.x returns `(bbox_results, segm_results)`.
+- Patched `scripts/run_geneval_detector.py` to support both mmdet 2.x tuple/list outputs and mmdet 3.x `DetDataSample` outputs. Added `tests/test_run_geneval_detector_smoke.py::test_extract_detections_supports_mmdet2_tuple_output`.
+- Ran full detector on CPU: 54 rows, 566.4 s, output `outputs/vlad_geneval/balanced_18x3/geneval_scores.jsonl`.
+- Result: standard detector pass rate 31.5% (17/54), Z-Sampling pass rate 50.0% (27/54), delta +18.5pp, with 10 Z-only pairs and 0 standard-only pairs.
+- Updated `report/draft.md`, `report/tables/vlad_results.md`, and added `report/tables/vlad_geneval_detector.md` so Vlad's report now includes detector-grounded results.
+
+## 2026-06-04 - Vlad compute-matched standard9 baseline completed
+
+- Completed the Mac/MPS compute-control baseline for Vlad's DreamShaper-turbo
+  GenEval lane using `scripts/run_vlad_compute_matched_standard.py`.
+- Generated 54 new 9-step standard DDIM images in
+  `outputs/vlad_geneval/compute_matched_standard9/`, seeded and initialized to
+  match the original prompt/seed rows from
+  `outputs/vlad_geneval/balanced_18x3/manifest.jsonl`.
+- Scored HPSv2.1 with `scripts/score_hpsv2_pairs.py` and summarized with
+  `scripts/summarize_vlad_results.py`.
+- Result: existing 4-step Z-Sampling still beats 9-step standard under HPSv2.1
+  on 42/54 pairs with mean delta +0.0245. The original 4-step-standard margin
+  was 53/54 and +0.0358, so the stronger standard baseline narrows but does not
+  erase the effect.
+- Runtime result: 9-step standard averages 18.14 s/image versus 13.80 s/image
+  for the existing 4-step Z-Sampling run, making the 9-step baseline about
+  1.31x slower than Z on this MPS setup.
+- Updated `report/draft.md`, `report/tables/vlad_results.md`, and added
+  `report/tables/vlad_compute_matched.md` so the report no longer says the
+  compute-matched baseline is missing.
+
+## 2026-06-07 - Sampler implementations centralized
+
+- Refactored sampler code into `src/zigzag_project/samplers/`:
+  - `standard.py` for plain pipeline calls;
+  - `zigzag.py` for SDXL and SD2.1 Z-Sampling;
+  - `resampling.py` for the RePaint-style resampling baseline;
+  - `registry.py` for sampler names, config classes, and config mismatch validation.
+- Kept `src/zigzag_project/zsampling.py` as a backward-compatible import shim so existing notebooks/scripts and Vlad's validated result provenance keep resolving.
+- Added `tests/test_samplers_package.py` to lock the central import surface and reject the specific integration error where `ZSamplingConfig` is passed to the resampling sampler.
+- Updated current-facing report/source notes to reference `src/zigzag_project/samplers/zigzag.py` as the implementation path.
+- Verification after the refactor:
+  - `.venv/bin/ruff check .` passed.
+  - `.venv/bin/python -m pytest -q` passed: 37 tests, 2 warnings.
+  - `.venv/bin/python -m pip check` passed.
+  - `git diff --check` passed.
+
+## 2026-06-07 - Sampler centralization scope reduced for teammate compatibility
+
+- Restored `src/zigzag_project/zsampling.py` as the real Z-Sampling implementation path so existing teammate scripts and notebooks do not need import changes.
+- Kept the new `zigzag_project.samplers` package as a small facade/registry and resampling guardrail surface, not as a replacement for established imports.
+- Reverted current runnable scripts to import Z-Sampling from `zigzag_project.zsampling`.
+- Kept tests that lock the optional facade and catch the config mismatch that caused the resampling integration risk.
+- Verification after reducing the sampler refactor scope:
+  - `.venv/bin/ruff check .` passed.
+  - `.venv/bin/python -m pytest -q` passed: 37 tests, 2 warnings.
+  - `.venv/bin/python -m pip check` passed.
+  - `git diff --check` passed.
+
+## 2026-06-07 - Rebased Vlad work onto merged group main
+
+- Fast-forwarded local `main` from `7c5d058` to `origin/main` at `ee0a260` after stashing Vlad's local work.
+- Resolved the only content conflict in `src/zigzag_project/zsampling.py` by preserving the merged SDXL resampling implementation and retaining the SD2.1 return fix: `StableDiffusionPipelineOutput(images=image, nsfw_content_detected=None)`.
+- Found and fixed a real integration issue in `scripts/run_exp2_sdxl_geneval.py`: the script created `ZSamplingConfig` and passed it into `resampling_sdxl()`, but the merged resampling implementation expects `ResamplingConfig` with `resolved_jump_params()`.
+- Added a direct type guard in canonical `resampling_sdxl()` so `ZSamplingConfig` misuse fails before model/pipeline access.
+- Reduced `zigzag_project.samplers.resampling` to a facade over the merged canonical implementation rather than a duplicate resampling implementation.

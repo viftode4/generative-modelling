@@ -1,0 +1,5 @@
+Metric,Std (paper),Std (ours),Z-Samp (paper),Z-Samp (ours)
+HPS v2,28.81,26.44,30.5,28.63
+AES,5.56,5.47,5.68,5.63
+PickScore,22.31,0.23,22.46,0.23
+IR,60.75,nan,79.97,nan

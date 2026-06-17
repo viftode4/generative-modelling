@@ -62,7 +62,11 @@ def main() -> None:
             standard_runtime_s = None
             zigzag_runtime_s = None
 
-            if handle is not None:
+            if standard_path.exists() and zigzag_path.exists():
+                print(f"  -> Already done (seed={seed}), skipping.")
+                standard_runtime_s = 0.0
+                zigzag_runtime_s = 0.0
+            elif handle is not None:
                 latents = make_initial_latents(
                     seed=seed,
                     height=args.size,

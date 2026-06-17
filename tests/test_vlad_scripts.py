@@ -69,6 +69,58 @@ def test_run_bogdan_hunyuan_pickapic_dry_run_writes_manifest(tmp_path: Path):
     assert rows[0]["dry_run"] is True
 
 
+def test_run_vlad_compute_matched_standard_dry_run_writes_manifest(tmp_path: Path):
+    source_manifest = tmp_path / "source_manifest.jsonl"
+    source_manifest.write_text(
+        json.dumps(
+            {
+                "prompt_id": "geneval_000_single_object",
+                "source_index": 0,
+                "tag": "single_object",
+                "prompt": "a photo of a bench",
+                "seed": 42,
+                "standard_path": "outputs/original_standard.png",
+                "zigzag_path": "outputs/original_zigzag.png",
+                "model_id": "Lykon/dreamshaper-xl-v2-turbo",
+                "image_size": 768,
+                "steps": 4,
+                "gamma_1": 3.5,
+                "gamma_2": 0.0,
+                "lambda_step": 3,
+                "t_max": 1,
+                "zigzag_runtime_s": 13.8,
+            }
+        )
+        + "\n"
+    )
+    out_dir = tmp_path / "compute_matched"
+
+    subprocess.run(
+        [
+            sys.executable,
+            "scripts/run_vlad_compute_matched_standard.py",
+            "--source-manifest",
+            str(source_manifest),
+            "--out",
+            str(out_dir),
+            "--standard-steps",
+            "9",
+            "--dry-run",
+        ],
+        check=True,
+    )
+
+    rows = [json.loads(line) for line in (out_dir / "manifest.jsonl").read_text().splitlines()]
+    assert len(rows) == 1
+    assert rows[0]["comparison"] == "compute_matched_standard_vs_existing_zigzag"
+    assert rows[0]["standard_steps"] == 9
+    assert rows[0]["zigzag_steps"] == 4
+    assert rows[0]["standard_path"].endswith("geneval_000_single_object_seed42_standard9.png")
+    assert rows[0]["zigzag_path"] == "outputs/original_zigzag.png"
+    assert rows[0]["source_standard_path"] == "outputs/original_standard.png"
+    assert rows[0]["dry_run"] is True
+
+
 def test_run_sdxl_pickapic_lambda_sweep_dry_run_writes_manifest(tmp_path: Path):
     prompts = tmp_path / "prompts.md"
     prompts.write_text(

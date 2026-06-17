@@ -24,8 +24,11 @@ def load_pickapic_prompts(csv_path, limit=100):
     """
     Loads stored Pick-a-Pic prompts from a CSV file.
 
-    Takes only the first 100 prompts by default, since only 100 were used in
-    the ZigZag Sampling paper.
+    Takes only the first 100 prompts by default, matching the paper's test-set
+    COUNT (Appendix A.1: "we use only the first 100 prompts as the test set").
+    NOTE: the CSV is the author's PickaPic-selected-prompts substitute (the
+    original v1/v2 datasets are no longer accessible), so the exact prompts are
+    not guaranteed to match the paper. See experiments/prompts/pickapic_full.md.
     """
 
     csv_path = Path(csv_path)
