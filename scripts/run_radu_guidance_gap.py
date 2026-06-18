@@ -1,10 +1,5 @@
-"""Experiment #6 — SDXL Guidance Gap Ablation generation (Pick-a-Pic).
-
-For each (prompt, seed): one standard baseline + one Z-Sampling image per gamma_2
-in the sweep, all sharing the same initial latent so the guidance-gap comparison
-is fair. Resumable; writes a per-image manifest consumed by the scoring scripts.
-
-Reproduces the variable swept in the paper's Figure 7 (gamma_1 fixed, gamma_2 varied).
+"""Experiment #6 — SDXL guidance-gap generation. Sweeps gamma_2 for standard vs Z-Sampling.
+Writes images + manifest to --out. Resumable.
 """
 from __future__ import annotations
 
@@ -66,7 +61,6 @@ def main() -> None:
         ["git", "-C", "external/zigzag-diffusion-sampling", "rev-parse", "--short", "HEAD"]
     )
 
-    # Resume: index existing manifest rows by image_path.
     existing = (
         {r["image_path"]: r for r in read_jsonl(manifest_path)}
         if manifest_path.exists()
@@ -130,11 +124,11 @@ def main() -> None:
                     "device": str(device) if device else args.device,
                     "source_commit": source_commit, "upstream_commit": upstream_commit,
                 }
-                if str(img_path) not in rows:  # append only newly-seen rows for durability
+                if str(img_path) not in rows:
                     append_jsonl(manifest_path, row)
                 rows[str(img_path)] = row
 
-    write_jsonl(manifest_path, list(rows.values()))  # atomic, deduped final write
+    write_jsonl(manifest_path, list(rows.values()))
     print(f"\nwrote {len(rows)} manifest rows -> {manifest_path}")
 
 

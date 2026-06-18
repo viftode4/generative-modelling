@@ -1,12 +1,7 @@
-"""Reusable image-quality / preference scorers for Experiment #6.
+"""Image-quality scorers for Experiment #6: HPS v2, AES, PickScore.
 
-Four metrics: HPS v2, AES (LAION aesthetic predictor), PickScore, ImageReward.
-ImageReward is NOT here — it needs transformers v4 and runs in an isolated
-environment (see scripts/score_guidance_gap_imagereward.py). This module covers
-the three metrics that run in the main transformers-v5 venv.
-
-Heavy libraries are imported lazily inside the scorer __init__ so this module
-imports with no models, no network, and stays unit-testable.
+ImageReward runs in an isolated env (see score_guidance_gap_imagereward.py).
+Heavy libs imported lazily so this module stays unit-testable.
 """
 from __future__ import annotations
 
@@ -23,12 +18,7 @@ def make_metric_score_rows(
     *,
     all_metrics: Sequence[str] = ALL_METRICS,
 ) -> list[dict[str, Any]]:
-    """Score each manifest image with each provided scorer.
-
-    ``scorers[name](image_path, prompt) -> float``. Metrics in ``all_metrics``
-    with no scorer are written as NaN (e.g. IR when scored separately).
-    Identity/provenance fields are passed through for later merge/aggregation.
-    """
+    """Score each manifest image. Missing metrics default to NaN."""
     passthrough = (
         "prompt_id", "source_index", "tag", "prompt", "seed",
         "method", "gamma_2", "gamma_1", "image_path",
@@ -43,18 +33,8 @@ def make_metric_score_rows(
     return out
 
 
-# --------------------------------------------------------------------------
-# Model-backed scorers (lazy). Not unit-tested; exercised by the scoring script.
-# --------------------------------------------------------------------------
 def _shim_turtle_for_hpsv2() -> None:
-    """Work around a packaging bug in hpsv2's vendored open_clip.
-
-    ``hpsv2/src/open_clip/factory.py`` has a stray ``from turtle import forward``
-    (the imported name is never used). ``turtle`` pulls in ``tkinter``/``_tkinter``,
-    which is absent in headless / Homebrew Python builds, so the import crashes.
-    If the real ``turtle`` is importable we leave it alone; otherwise we register a
-    minimal stand-in so the unused import resolves.
-    """
+    """Shim the stray turtle import in hpsv2's vendored open_clip (absent on headless Python)."""
     import sys
     import types
 
@@ -67,7 +47,7 @@ def _shim_turtle_for_hpsv2() -> None:
 
 
 class HpsV2Scorer:
-    """HPS v2.1. hpsv2.score returns a raw [0,1] score; paper reports it x100."""
+    """HPS v2.1 scorer. Raw score in [0,1]; paper reports x100."""
 
     def __init__(self, hps_version: str = "v2.1") -> None:
         _shim_turtle_for_hpsv2()
@@ -84,7 +64,7 @@ class HpsV2Scorer:
 
 
 class AesScorer:
-    """LAION aesthetic predictor: OpenAI CLIP ViT-L/14 embedding -> MLP head."""
+    """LAION aesthetic predictor (CLIP ViT-L/14 → MLP)."""
 
     def __init__(self, device: str = "cpu") -> None:
         import clip
@@ -103,12 +83,11 @@ class AesScorer:
         url = ("https://github.com/christophschuhmann/improved-aesthetic-predictor/"
                "raw/main/sac+logos+ava1-l14-linearMSE.pth")
         state = torch.hub.load_state_dict_from_url(url, map_location=device)
-        # The published MLP stores weights under "layers.*"; remap to Sequential keys.
         remapped = {k.replace("layers.", ""): v for k, v in state.items()}
         mlp.load_state_dict(remapped)
         self.mlp = mlp.to(device).eval()
 
-    def __call__(self, image_path: str, prompt: str) -> float:  # prompt unused (no-reference)
+    def __call__(self, image_path: str, prompt: str) -> float:
         from PIL import Image
 
         torch = self._torch
@@ -121,7 +100,7 @@ class AesScorer:
 
 
 class PickScorer:
-    """PickScore_v1: raw CLIP logit (logit_scale * cos). Range ~21-23."""
+    """PickScore_v1."""
 
     def __init__(self, device: str = "cpu") -> None:
         import torch
@@ -134,7 +113,6 @@ class PickScorer:
 
     @staticmethod
     def _pooled(out: Any) -> Any:
-        # transformers v5 returns BaseModelOutputWithPooling instead of a tensor.
         return out if hasattr(out, "shape") else out.pooler_output
 
     def __call__(self, image_path: str, prompt: str) -> float:
@@ -154,7 +132,6 @@ class PickScorer:
 
 
 def build_main_scorers(device: str = "cpu") -> dict[str, Callable[[str, str], float]]:
-    """Instantiate the three main-env scorers (HPS, AES, PickScore)."""
     return {
         "hps": HpsV2Scorer(),
         "aes": AesScorer(device=device),
