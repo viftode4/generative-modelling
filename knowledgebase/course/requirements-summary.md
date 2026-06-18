@@ -69,7 +69,7 @@ This repo should make it easy to show:
 
 - Motivation and plan: `planning/`, `knowledgebase/decision-log.md`, `knowledgebase/meetings/`.
 - Content: `experiments/`, `scripts/`, `src/`, `notebooks/`, submodule commit pinning.
-- Writing: `report/outline.md`, result tables/figures, interpretation notes, presentation drafts, and contribution-marked group-report sections.
+- Writing: `report/report-plan.md`, result tables/figures, interpretation notes, presentation drafts, and contribution-marked group-report sections.
 - Reproducibility: exact commands, seeds, environment, hardware, output locations, and upstream commit hashes.
 
 ## 2026-06-04 clarification update

@@ -11,9 +11,8 @@ Materials for the **final group report**. The 2026-06-04 course clarification sa
 
 | File | Description |
 |------|-------------|
-| `README.md` | Quick orientation. |
-| `outline.md` | Current group-report structure (Abstract / Introduction / Method / Plan / Implementation / Results / Discussion / Conclusion). |
-| `group_report_content_plan.md` | Evidence map: what can be written now vs. what still needs teammate data. |
+| `README.md` | Quick orientation + template/section conventions. |
+| `report-plan.md` | Section map onto the ACM `sigconf` template, per-person ownership, and the verified results to write. |
 
 ## Subdirectories
 
@@ -40,7 +39,8 @@ Materials for the **final group report**. The 2026-06-04 course clarification sa
 ## Dependencies
 
 ### Internal
-- `planning/report-spec.md` — the rubric the report must satisfy.
+- `knowledgebase/course/` — the rubric and clarifications the report must satisfy.
+- `experiments/results-index/coverage.md` — audited status of which results actually exist.
 - `knowledgebase/logs/` — source-of-truth for any numbers/observations cited.
 - `experiments/` — for the prompt sets referenced.
 

@@ -251,6 +251,94 @@ Next actions:
   - `.venv/bin/python -m pytest -q` passed: 23 tests, 2 warnings.
   - `.venv/bin/ruff check .` passed.
 
+## 2026-06-03 - Bogdan Hunyuan-DiT loader scaffold added
+
+- Added `load_hunyuan_dit()` in `src/zigzag_project/models.py` for
+  `Tencent-Hunyuan/HunyuanDiT-v1.2-Diffusers`, using Diffusers'
+  `HunyuanDiTPipeline` with DDIM + DDIMInverse schedulers and returning the
+  shared `ModelHandle`.
+- Added `load_hunyan` as a spelling-tolerant alias for Bogdan's local use.
+- This is a loader scaffold only: Hunyuan-DiT still needs a Hunyuan-specific
+  standard smoke script and a separate Z-Sampling port before it can run the
+  full standard-vs-Z experiment.
+- Verification in the current Windows sandbox:
+  - `.venv\Scripts\python.exe -m py_compile src\zigzag_project\models.py`
+    passed.
+  - `.venv\Scripts\python.exe -m py_compile tests\test_models.py` passed.
+  - `pytest` was not available in this Windows venv, so the test suite was not
+    rerun.
+
+## 2026-06-03 - Bogdan Hunyuan-DiT + Pick-a-Pic comparison scaffold
+
+- Switched Bogdan's practical lane from the earlier planning matrix
+  `Hunyuan-DiT + GenEval` toward `Hunyuan-DiT + Pick-a-Pic`, because the paper
+  reports Hunyuan-DiT on Pick-a-Pic / DrawBench while GenEval tables are SDXL
+  only.
+- Added experimental `z_sample_hunyuan_dit()` in
+  `src/zigzag_project/zsampling.py`, following Diffusers'
+  `HunyuanDiTPipeline.__call__` plumbing: dual text encoders, transformer noise
+  prediction, Hunyuan rotary image embeddings, style ids, and image metadata.
+- Added `scripts/run_bogdan_hunyuan_pickapic.py`, a dry-run/full-run paired
+  standard-vs-Z runner for `experiments/prompts/pickapic_full.md`.
+- Added `experiments/configs/hunyuan_dit_pickapic.md` with the concrete command
+  set: `gamma_1=5.0`, `gamma_2=0`, `infer_step=50`, `lambda_step=49`,
+  `T_max=1`, `image_size=1024`, seeds `42/123/2026`.
+- Added lightweight callable/dry-run tests for the new Hunyuan path.
+- Verification in the current Windows environment:
+  - `py_compile` passed for `src/zigzag_project/zsampling.py`,
+    `scripts/run_bogdan_hunyuan_pickapic.py`, `tests/test_zsampling.py`, and
+    `tests/test_vlad_scripts.py`.
+  - Dry-run passed outside the sandbox:
+    `.venv\Scripts\python.exe scripts\run_bogdan_hunyuan_pickapic.py --prompts experiments\prompts\pickapic_full.md --seeds 42 --limit 1 --out outputs\dryrun\bogdan_hunyuan_pickapic --dry-run --force`.
+  - Import check passed outside the sandbox for `z_sample_hunyuan_dit` and
+    `load_hunyuan_dit`.
+- Open risk: no real Hunyuan image generation has been run yet. The next step is
+  a 1-prompt, 1-seed, 2-step smoke run on a CUDA box before trusting full
+  50-step results.
+
+## 2026-06-03 - Bogdan Hunyuan-DiT smoke blocked on CPU-only hardware
+
+- Attempted the 1-prompt, 1-seed, 2-step Hunyuan-DiT Pick-a-Pic smoke run from
+  `experiments/configs/hunyuan_dit_pickapic.md`.
+- The Hunyuan-DiT snapshot downloaded successfully from Hugging Face.
+- Pipeline loading required extra tokenizer packages; installed
+  `sentencepiece`, `tiktoken`, and `protobuf`, and added them to
+  `pyproject.toml`.
+- Hardware check showed `cuda False` and `mps False`. The smoke then ran on CPU
+  for more than 15 minutes without producing images, reached roughly 18 GB RAM,
+  and was manually stopped.
+- Added a CPU guard to `scripts/run_bogdan_hunyuan_pickapic.py`: real Hunyuan
+  generation now refuses CPU by default unless `--allow-cpu` is passed.
+- No image pair and no HPSv2 scores were produced. Full log:
+  `knowledgebase/logs/2026-06-03_bogdan-hunyuan-pickapic-smoke-attempt.md`.
+
+Next action:
+
+- Move the Hunyuan smoke/full run to a CUDA machine, then score the generated
+  manifest with `scripts/score_hpsv2_pairs.py`.
+
+## 2026-06-03 - Bogdan Hunyuan-DiT Pick-a-Pic 18x3 subset completed
+
+- Replaced CPU-only PyTorch with CUDA-enabled `torch==2.12.0+cu130` and
+  installed `torchvision==0.27.0+cu130`; verified CUDA sees the NVIDIA GeForce
+  RTX 4090.
+- Restored `numpy==1.26.4` after the CUDA wheel install pulled `numpy>=2`;
+  `uv pip check` then passed.
+- Ran a 1-prompt smoke successfully, then ran a report-sized Hunyuan-DiT
+  Pick-a-Pic subset: first 18 prompts x seeds `42/123/2026`, standard vs.
+  Z-Sampling, 50 DDIM steps, `gamma_1=5.0`, `gamma_2=0`, `lambda_step=49`,
+  `T_max=1`, `image_size=1024`.
+- Output directory: `outputs/bogdan_hunyuan_pickapic/subset_18x3/`.
+- HPSv2.1 results over 54 pairs: Z-Sampling wins 23, standard wins 31, ties 0;
+  Z win rate 42.6%; mean HPS delta `Z - standard` = -0.0042. Standard mean
+  HPS 0.3195, Z mean HPS 0.3153.
+- Runtime: standard total 1169.8 s / 21.66 s mean; Z-Sampling total 3438.8 s /
+  63.68 s mean; runtime ratio 2.94x.
+- Added report table `report/tables/bogdan_hunyuan_pickapic_results.md` and log
+  `knowledgebase/logs/2026-06-03_bogdan-hunyuan-pickapic-subset.md`.
+- Verification: `.venv\Scripts\python.exe -m ruff check .` passed and
+  `.venv\Scripts\python.exe -m pytest -q` passed with 31 tests / 2 warnings.
+
 ## 2026-06-03 - Official ZigZag PDF downloaded and paper notes validated
 
 - Downloaded the official OpenReview PDF for *Zigzag Diffusion Sampling: Diffusion Models Can Self-Improve via Self-Reflection* from https://openreview.net/pdf?id=MKvQH1ekeY.
