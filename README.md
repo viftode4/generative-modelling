@@ -6,7 +6,7 @@ This repository contains our reproduction and evaluation of the paper:
 Bai et al., ICLR 2025
 https://openreview.net/forum?id=MKvQH1ekeY
 
-The project was completed as part of the TU Delft Generative Modelling course.
+The project was completed as part of the TU Delft Generative Modelling course by **Group 14**.
 
 ## Goal
 
