@@ -1,0 +1,68 @@
+\FloatBarrier
+\subsection*{Experiment 6 --- Guidance Gap Ablation: SDXL on Pick-a-Pic (Radu)}
+
+Z-Sampling's inversion pass uses a separate guidance scale $\gamma_2$, forming
+a \emph{guidance gap} $\delta = \gamma_1 - \gamma_2$. The paper fixes
+$\gamma_1 = 5.5$, $\gamma_2 = 0$, but offers no sensitivity analysis of this
+choice. We sweep ten values $\gamma_2 \in \{-20, -10, 0, 1, 2, 3, 4, 5.5, 7.5, 10\}$
+while keeping $\gamma_1 = 5.5$ fixed across 25 Pick-a-Pic prompts (seed~42,
+SDXL base~1.0, 50 DDIM steps) and evaluate all images with HPS\,v2, AES,
+PickScore, and ImageReward to characterise how output quality depends on this
+single hyperparameter.
+
+The ablation reveals a clear regime structure across all four metrics
+(Figure~\ref{fig:radu-gap-curve}). A positive gap ($\gamma_2 \in [0,\,4]$)
+consistently outperforms the standard baseline (HPS $30.52$, PickScore $22.84$):
+HPS\,v2 win rate reaches 83\% at $\gamma_2\!=\!0$ and PickScore peaks at
+$\gamma_2\!=\!3$ ($\delta\!=\!2.5$, PickScore $22.88$, win rate $46\%$).
+Different metrics favour slightly different gaps --- HPS peaks near $\gamma_2\!=\!0$
+while AES climbs monotonically to $6.22$ at $\gamma_2\!=\!5.5$ (gap $= 0$) ---
+suggesting that the diversity probe trades prompt-alignment gain (HPS, PickScore)
+against aesthetic smoothness (AES). The paper's default $\gamma_2\!=\!0$
+represents a reasonable balanced choice within this safe regime, and a small
+positive $\gamma_2 \approx 3$ may improve human-preference scores further,
+though the margin remains within confidence bounds.
+
+When the gap inverts ($\gamma_2 > \gamma_1\!=\!5.5$), quality collapses
+catastrophically and rapidly: at $\gamma_2\!=\!7.5$ ImageReward already falls
+to $0.14$, and at $\gamma_2\!=\!10$ mean HPS plummets from $31.4$ to $17.9$
+while ImageReward reaches $-1.27$ (Figure~\ref{fig:radu-qualitative}). The
+collapse is \emph{asymmetric}: large negative gaps ($\gamma_2\!=\!-20$,
+$\delta\!=\!25.5$) degrade all metrics only modestly, because an over-strong
+inversion produces over-smoothed latents rather than adversarially misdirected
+ones. This asymmetry clarifies the role of $\gamma_2$: during inversion it acts
+as a diversity probe, introducing controlled latent perturbation so that
+re-denoising can recover a higher-quality layout. Once $\gamma_2$ exceeds
+$\gamma_1$, however, the inversion gradient flips sign and actively steers the
+latent \emph{away} from the conditioning signal, corrupting the structural
+information that the subsequent denoising pass relies on.
+
+\begin{figure}[b]
+\centering
+\includegraphics[width=\columnwidth]{figures/Experiment6/gap_curve.png}
+\caption{Guidance gap ablation on SDXL with Pick-a-Pic (25 prompts, seed~42,
+$\gamma_1\!=\!5.5$). Each panel shows one metric vs.\ $\gamma_2$; the dashed
+line is the standard-sampling baseline. Performance is robust across the wide
+positive-gap range ($\gamma_2 \in [-10,\,4]$) but collapses when the gap
+inverts ($\gamma_2 > \gamma_1\!=\!5.5$, red dotted line). Error bars are 95\%
+bootstrap confidence intervals.}
+\label{fig:radu-gap-curve}
+\end{figure}
+
+\begin{figure}[b]
+\centering
+\begin{minipage}{0.49\columnwidth}\centering
+\includegraphics[width=\linewidth]{figures/Experiment6/qual_good.png}\\
+{\small $\gamma_2\!=\!3$, gap $= 2.5$}
+\end{minipage}\hfill
+\begin{minipage}{0.49\columnwidth}\centering
+\includegraphics[width=\linewidth]{figures/Experiment6/qual_bad.png}\\
+{\small $\gamma_2\!=\!10$, gap $= -4.5$}
+\end{minipage}
+\caption{Same prompt at opposing ends of the gap sweep (``painting of ancient
+Egyptian harbour with boats and warehouses and palaces in background'',
+seed~42). A positive gap (left) yields coherent structure and prompt alignment;
+inverting the gap (right) produces an incoherent, blurred scene as adversarial
+inversion guidance pushes the latent away from the conditioning signal.}
+\label{fig:radu-qualitative}
+\end{figure}
