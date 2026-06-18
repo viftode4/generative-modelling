@@ -14,6 +14,7 @@ from diffusers.pipelines.stable_diffusion_xl.pipeline_stable_diffusion_xl import
 from diffusers.utils.torch_utils import randn_tensor
 
 from zigzag_project.models import ModelHandle
+from zigzag_project.experiment_3_utils import get_named_timesteps
 from zigzag_project.resampling_utils import (
     ResamplingConfig,
     get_resampling_schedule,
@@ -29,9 +30,14 @@ def retrieve_timesteps(
     sigmas=None,
     **kwargs,
 ):
-    """Vendored from diffusers>=0.26; not present in the pinned diffusers==0.22.3."""
     if timesteps is not None:
-        scheduler.set_timesteps(timesteps=timesteps, device=device, **kwargs)
+        try:
+            scheduler.set_timesteps(timesteps=timesteps, device=device, **kwargs)
+        except (TypeError, ValueError):
+            scheduler.set_timesteps(len(timesteps), device=device, **kwargs)
+            scheduler.timesteps = torch.tensor(timesteps, device=device, dtype=torch.long)
+            if hasattr(scheduler, "num_inference_steps"):
+                scheduler.num_inference_steps = len(timesteps)
     elif sigmas is not None:
         scheduler.set_timesteps(sigmas=sigmas, device=device, **kwargs)
     else:
@@ -58,22 +64,38 @@ class ZSamplingConfig:
     infer_step: int = 50
     lambda_step: int | None = None
     t_max: int = 1
+    timesteps = None
+    schedule_name = None
+
+    def resolved_timesteps(self):
+        named_timesteps = get_named_timesteps(self.schedule_name)
+        if self.timesteps is not None and named_timesteps is not None:
+            raise ValueError("Pass either timesteps or schedule_name, not both")
+        if self.timesteps is not None:
+            return list(self.timesteps)
+        return named_timesteps
+
+    def resolved_infer_step(self):
+        timesteps = self.resolved_timesteps()
+        return len(timesteps) if timesteps is not None else self.infer_step
 
     def resolved_lambda_step(self) -> int:
         validate_zsampling_config(self)
+        infer_step = self.resolved_infer_step()
         if self.lambda_step is None:
-            return self.infer_step - 1
+            return infer_step - 1
         return self.lambda_step
 
 
 def validate_zsampling_config(config: ZSamplingConfig) -> None:
     """Raise ``ValueError`` when Z-Sampling loop bounds would be invalid."""
-    if config.infer_step < 2:
-        raise ValueError("infer_step must be at least 2 so inversion can use the next timestep")
+    active_infer_step = config.resolved_infer_step()
+    if active_infer_step < 2:
+        raise ValueError("infer_step/custom timesteps must contain at least 2 steps so inversion can use the next timestep")
     if config.t_max < 0:
         raise ValueError("t_max must be non-negative")
-    if config.lambda_step is not None and not 0 <= config.lambda_step < config.infer_step:
-        raise ValueError("lambda_step must satisfy 0 <= lambda_step < infer_step")
+    if config.lambda_step is not None and not 0 <= config.lambda_step < active_infer_step:
+        raise ValueError("lambda_step must satisfy 0 <= lambda_step < active inference step count")
 
 
 def make_initial_latents(
@@ -182,6 +204,16 @@ def _decode_latents(pipe: Any, latents: torch.Tensor, output_type: str | None) -
         image = pipe.watermark.apply_watermark(image)
     return pipe.image_processor.postprocess(image, output_type=output_type)
 
+def ddim_inverse_step_2(scheduler, model_output, current_timestep, previous_timestep, sample):
+    """Invert one DDIM step for custom timestep schedules."""
+    t = int(current_timestep.item()) if hasattr(current_timestep, "item") else int(current_timestep)
+    tp = int(previous_timestep.item()) if hasattr(previous_timestep, "item") else int(previous_timestep)
+    a = scheduler.alphas_cumprod[t].to(device=sample.device, dtype=sample.dtype)
+    ap = scheduler.alphas_cumprod[tp].to(device=sample.device, dtype=sample.dtype)
+
+    x = (a / ap).sqrt() * sample
+    y = (1.0 / a - 1.0).sqrt() - (1.0 / ap - 1.0).sqrt()
+    return x + a.sqrt() * y * model_output
 
 @torch.no_grad()
 def z_sample_sdxl(
@@ -301,14 +333,16 @@ def z_sample_sdxl(
         clip_skip=pipe.clip_skip,
     )
 
+    custom_timesteps = config.resolved_timesteps()
     timesteps, num_inference_steps = retrieve_timesteps(
         pipe.scheduler,
         config.infer_step,
         device,
-        None,
+        custom_timesteps,
         None,
     )
-    inverse_scheduler.set_timesteps(num_inference_steps, device=device)
+    if custom_timesteps is None:
+        inverse_scheduler.set_timesteps(num_inference_steps, device=device)
 
     latents = pipe.prepare_latents(
         batch_size * num_images_per_prompt,
@@ -408,13 +442,22 @@ def z_sample_sdxl(
                         guidance_rescale=guidance_rescale,
                         timestep_cond=timestep_cond,
                     )
-                    inverse_scheduler._step_index = None
-                    inv_latents = inverse_scheduler.step(
-                        inverse_noise_pred,
-                        timesteps[i + 1],
-                        next_latents,
-                        return_dict=False,
-                    )[0]
+                    if custom_timesteps is None:
+                        inverse_scheduler._step_index = None
+                        inv_latents = inverse_scheduler.step(
+                            inverse_noise_pred,
+                            timesteps[i + 1],
+                            next_latents,
+                            return_dict=False,
+                        )[0]
+                    else:
+                        inv_latents = ddim_inverse_step_2(
+                            pipe.scheduler,
+                            inverse_noise_pred,
+                            timestep,
+                            timesteps[i + 1],
+                            next_latents,
+                        )
 
                     forward_noise_pred = _guided_noise_prediction(
                         pipe=pipe,
@@ -587,14 +630,16 @@ def z_sample_sd21(
         clip_skip=pipe.clip_skip,
     )
 
+    custom_timesteps = config.resolved_timesteps()
     timesteps, num_inference_steps = retrieve_timesteps(
         pipe.scheduler,
         config.infer_step,
         device,
-        None,
+        custom_timesteps,
         None,
     )
-    inverse_scheduler.set_timesteps(num_inference_steps, device=device)
+    if custom_timesteps is None:
+        inverse_scheduler.set_timesteps(num_inference_steps, device=device)
 
     latents = pipe.prepare_latents(
         batch_size * num_images_per_prompt,
@@ -660,13 +705,22 @@ def z_sample_sd21(
                         guidance_rescale=guidance_rescale,
                         timestep_cond=timestep_cond,
                     )
-                    inverse_scheduler._step_index = None
-                    inv_latents = inverse_scheduler.step(
-                        inverse_noise_pred,
-                        timesteps[i + 1],
-                        next_latents,
-                        return_dict=False,
-                    )[0]
+                    if custom_timesteps is None:
+                        inverse_scheduler._step_index = None
+                        inv_latents = inverse_scheduler.step(
+                            inverse_noise_pred,
+                            timesteps[i + 1],
+                            next_latents,
+                            return_dict=False,
+                        )[0]
+                    else:
+                        inv_latents = ddim_inverse_step_2(
+                            pipe.scheduler,
+                            inverse_noise_pred,
+                            timestep,
+                            timesteps[i + 1],
+                            next_latents,
+                        )
 
                     # Forward denoising step: strong guidance (gamma_1).
                     forward_noise_pred = _guided_noise_prediction_sd21(

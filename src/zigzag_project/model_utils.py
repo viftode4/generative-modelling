@@ -4,6 +4,7 @@ from pathlib import Path
 
 import torch
 from diffusers import DDIMScheduler, StableDiffusionXLPipeline
+from zigzag_project.experiment_3_utils import get_named_timesteps
 
 SDXL = "sdxl"
 DREAM_SHARPER = "dreamshaper-xl-v2-turbo"
@@ -27,24 +28,17 @@ MODEL_CONFIGS = {
         "height": 1024,  # Same resolution as for SDXL since DreamShaper XL Turbo is SDXL-based
         "width": 1024,  # Same resolution as for SDXL since DreamShaper XL Turbo is SDXL-based
     }
-    # "sd21": {}, TODO: Add SD2.1. Also check load_standard_pipeline and
-    # the rest of the code to make it compatible.
-    # "hunyuan-dit": {} TODO: Add Hunyuan-DiT. Also check
-    # load_standard_pipeline and the rest of the code to make it compatible.
 }
 
 
 def list_model_configs():
     return MODEL_CONFIGS
 
-
 def get_model_config(model_name):
     return dict(MODEL_CONFIGS[model_name])
 
-
 def get_device():
     return "cuda" if torch.cuda.is_available() else "cpu"
-
 
 def get_torch_dtype(device=None):
     """Uses float16 on CUDA/MPS and float32 on CPU."""
@@ -93,8 +87,18 @@ def load_pipeline_standard(model_name, model_id=None, use_ddim=True, device=None
 
     return pipe
 
-
-def generate_images_standard(pipeline, prompts, model_name, output_dir, seed=42, device=None):
+def generate_images_standard(
+    pipeline,
+    prompts,
+    model_name,
+    output_dir,
+    seed=42,
+    device=None,
+    inference_steps=None,
+    guidance_scale=None,
+    timesteps=None,
+    schedule_name=None
+):
     """
     Generates images with the chosen model using standard sampling.
     Saves images and returns their file paths.
@@ -112,16 +116,36 @@ def generate_images_standard(pipeline, prompts, model_name, output_dir, seed=42,
     gen_device = "cpu" if device.type == "mps" else device.type
     generator = torch.Generator(device=gen_device).manual_seed(seed)
 
+    named_timesteps = get_named_timesteps(schedule_name)
+    if timesteps is not None and named_timesteps is not None:
+        raise ValueError("Pass either timesteps or schedule_name, not both")
+
+    active_timesteps = list(timesteps) if timesteps is not None else named_timesteps
+    active_inference_steps = (
+        inference_steps
+        if inference_steps is not None
+        else (len(active_timesteps) if active_timesteps is not None else config["num_inference_steps"]))
+    active_guidance_scale = (guidance_scale if guidance_scale is not None else config["guidance_scale"])
+
+    if active_timesteps is not None:
+        raise ValueError("Custom timesteps are not supported by generate_images_standard with DDIMScheduler.")
+
     result_paths = []
     for i, prompt in enumerate(prompts):
-        result = pipeline(
-            prompt,
-            num_inference_steps=config["num_inference_steps"],
-            guidance_scale=config["guidance_scale"],
-            height=config["height"],
-            width=config["width"],
-            generator=generator,
-        )
+        kwargs = {
+            "prompt": prompt,
+            "guidance_scale": active_guidance_scale,
+            "height": config["height"],
+            "width": config["width"],
+            "generator": generator,
+        }
+
+        if active_timesteps is not None:
+            kwargs["timesteps"] = active_timesteps
+        else:
+            kwargs["num_inference_steps"] = active_inference_steps
+
+        result = pipeline(**kwargs)
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         image = result.images[0]
@@ -130,7 +154,6 @@ def generate_images_standard(pipeline, prompts, model_name, output_dir, seed=42,
         result_paths.append(path)
 
     return result_paths
-
 
 def free_pipeline(pipe=None):
     """
