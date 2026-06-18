@@ -13,14 +13,13 @@ import shutil
 import urllib.request
 import hpsv2
 import clip
-import ImageReward as RM
 from transformers import AutoModel, AutoProcessor
 from PIL import Image
 from tqdm.auto import tqdm
+
+from zigzag_project.ays import AYS_SCHEDULE
 from zigzag_project.models import load_dreamshaper_xl_turbo
 from zigzag_project.zsampling import ZSamplingConfig, z_sample_sdxl
-
-AYS_SCHEDULE: list[int] = [999, 845, 730, 587, 443, 310, 193, 116, 53, 13]
 
 EXPERIMENT_3_METHODS = {
     "standard_10step": {"use_ays": False, "use_zsampling": False},
@@ -73,16 +72,8 @@ class Experiment3TableConfig:
     def scores_path(self):
         return self.run_path / "scores.jsonl"
     @property
-    def metadata_path(self) -> Path:
+    def metadata_path(self):
         return self.run_path / "metadata.json"
-
-def get_named_timesteps(schedule_name = None):
-    if schedule_name is None:
-        return None
-    name = schedule_name.lower().replace("-", "_")
-    if name in {"ays", "ays_sdxl", "ays_sdxl_10", "stable_diffusion_xl_ays"}:
-        return list(AYS_SCHEDULE)
-    raise ValueError(f"Unknown schedule_name: {schedule_name}")
 
 def apend_jsonl(path, r):
     path = Path(path)
@@ -157,7 +148,7 @@ def load_prompt_file(path, dataset, n):
     d.insert(0, "dataset", dataset)
     return d
 
-def load_experiment_3_prompts(root, pickapic_limit = 100, drawbench_limit = None):
+def load_expriment_3_prompts(root, pickapic_limit = 100, drawbench_limit = None):
     rp = Path(root)
     pickapic = load_prompt_file(rp / "data" / "prompts" / "pick-a-pic.csv", "pickapic", pickapic_limit)
     drawbench = load_prompt_file(rp / "data" / "prompts" / "draw-bench.csv", "drawbench", drawbench_limit)
@@ -174,7 +165,7 @@ def run_generation_3(config):
 
     config.image_path.mkdir(parents=True, exist_ok=True)
     write_metadata(config)
-    ps = load_experiment_3_prompts(config.project_root, config.pickapic_limit, config.drawbench_limit)
+    ps = load_expriment_3_prompts(config.project_root, config.pickapic_limit, config.drawbench_limit)
 
     completed = {
         (r["dataset"], int(r["prompt_id"]), int(r["seed"]), r["method"])
@@ -210,16 +201,10 @@ def run_generation_3(config):
                         infer_step=config.num_inference_steps,
                         lambda_step=config.num_inference_steps - 1 if config.use_zsampling else 0,
                         t_max=1,
-                        schedule_name="ays_sdxl_10" if config.use_ays else None,
+                        schedule_name="ays_sdxl_10" if config.use_ays else None
                     )
-                    image = z_sample_sdxl(
-                        handle,
-                        prompt=r.prompt,
-                        config=zc,
-                        height=config.height,
-                        width=config.width,
-                        generator=generator,
-                    ).images[0]
+                    image = z_sample_sdxl(handle, prompt=r.prompt, config=zc, height=config.height, width=config.width,
+                                          generator=generator ).images[0]
 
                 image.save(out_path)
                 x = {
@@ -252,9 +237,8 @@ def run_generation_3(config):
 
     return config.manifest_path
 
-
 class Experiment3Scores:
-    """HPS v2, AES, PickScore, and ImageReward."""
+    """HPS v2, AES, PickScore, and ImageReward"""
 
     def __init__(self, device = None):
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
@@ -267,7 +251,7 @@ class Experiment3Scores:
         if self._hpsv2 is None:
             path = pathlib.Path(hpsv2.__file__).parent / "src" / "open_clip" / "bpe_simple_vocab_16e6.txt.gz"
             if not path.exists():
-                path.parent.mkdir(parents=True, exist_ok=True)
+                path.parent.mkdir(parents=True,  exist_ok=True)
                 try:
                     src = pathlib.Path(clip.__file__).parent / "bpe_simple_vocab_16e6.txt.gz"
                     shutil.copy(src, path)
@@ -313,7 +297,7 @@ class Experiment3Scores:
             e = e / e.norm(dim=-1, keepdim=True)
             return float(mlp(e).item())
 
-    def pickscore(self, image_path: str, prompt: str) -> float:
+    def pickscore(self, image_path, prompt):
         if self._pick is None:
             processor = AutoProcessor.from_pretrained("laion/CLIP-ViT-H-14-laion2B-s32B-b79K")
             m = AutoModel.from_pretrained("yuvalkirstain/PickScore_v1").to(self.device).eval()
@@ -329,14 +313,7 @@ class Experiment3Scores:
             return x
     
         with torch.no_grad():
-            inputs = processor(
-                text=[prompt],
-                padding=True,
-                truncation=True,
-                max_length=77,
-                return_tensors="pt"
-            ).to(self.device)
-    
+            inputs = processor(text=[prompt], padding=True, truncation=True, max_length=77, return_tensors="pt").to(self.device)
             image_inputs = processor(images=Image.open(image_path).convert("RGB"), return_tensors="pt").to(self.device)
             text_e = as_e(m.get_text_features(**inputs))
             image_e = as_e(m.get_image_features(**image_inputs))
@@ -347,6 +324,7 @@ class Experiment3Scores:
 
     def ir(self, image_path, prompt):
         if self._ir is None:
+            import ImageReward as RM
             self._ir = RM.load("ImageReward-v1.0", device=self.device)
         s = self._ir.score(prompt, image_path)
         return float(s) * 100.0

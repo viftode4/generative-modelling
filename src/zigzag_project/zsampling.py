@@ -20,7 +20,7 @@ from diffusers.pipelines.stable_diffusion_xl.pipeline_stable_diffusion_xl import
 from diffusers.utils.torch_utils import randn_tensor
 
 from zigzag_project.models import ModelHandle
-from zigzag_project.experiment_3_utils import get_named_timesteps
+from zigzag_project.ays import get_named_timesteps
 from zigzag_project.resampling_utils import (
     ResamplingConfig,
     get_resampling_schedule,
@@ -70,8 +70,8 @@ class ZSamplingConfig:
     infer_step: int = 50
     lambda_step: int | None = None
     t_max: int = 1
-    timesteps = None
-    schedule_name = None
+    timesteps: list[int] | tuple[int, ...] | None = None
+    schedule_name: str | None = None
 
     def resolved_timesteps(self):
         named_timesteps = get_named_timesteps(self.schedule_name)

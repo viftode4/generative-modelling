@@ -4,7 +4,7 @@ from pathlib import Path
 
 import torch
 from diffusers import DDIMScheduler, StableDiffusionXLPipeline
-from zigzag_project.experiment_3_utils import get_named_timesteps
+from zigzag_project.ays import get_named_timesteps
 
 SDXL = "sdxl"
 DREAM_SHARPER = "dreamshaper-xl-v2-turbo"
