@@ -160,12 +160,6 @@ Official implementation:
 
 https://github.com/xie-lab-ml/zigzag-diffusion-sampling
 
-The repository includes the official implementation as a Git submodule:
-
-```text
-external/zigzag-diffusion-sampling
-```
-
 The following files were implemented using the official repository as a reference:
 
 ```text
