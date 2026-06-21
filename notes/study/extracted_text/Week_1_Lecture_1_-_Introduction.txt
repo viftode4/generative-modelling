@@ -1,0 +1,475 @@
+Introduction and Course Overview
+
+
+
+Chirag Raman
+Assistant Professor
+Department of Intelligent Systems, TUDelft
+
+Generative Modeling DSAIT4030, 21/04/2026
+Welcome!
+Responsible
+               Lecturer, TA      Lecturer, TA    Lecturer, TA   Lecturer, TA      Lecturer, TA
+ instructor
+
+
+
+
+Chirag Raman   Ojas Shirekar   Sayak Mukherjee   Zonghuan Li    Anuj Singh      Amelia Villegas
+
+ c.a.raman     o.k.shirekar     s.mukherjee-3      z.li-25       a.r.singh     a.o.villegasmorcillo
+ @tudelft.nl   @tudelft.nl        @tudelft.nl    @tudelft.nl    @tudelft.nl         @tudelft.nl
+
+                                                                                                  2
+Welcome!
+        TA                    TA                    TA                    TA                 TA
+
+
+
+
+ Mayank Thakur         Mirella Günther      Kees van Hemmen       Lara Santos Bastos    Arthur Mercier
+
+    m.thakur             m.gunther-1           k.h.hemmen          l.santosbastos        a.mercier
+@student.tudelft.nl   @student.tudelft.nl   @student.tudelft.nl   @student.tudelft.nl    @tudelft.nl
+
+                                                                                                         3
+5
+Outline
+Goal: What is Generative AI? Guiding intuitions?
+
+By the end of this lecture, you will be able to
+• Outline a brief history of modern AI and trace the development of several
+  techniques that are relevant currently
+• Identify the goals of AI, Machine Learning, and Deep Generative Modeling
+• Discuss Frequentist and Bayesian interpretations of probability
+• Contrast discriminative and generative modeling approaches
+• Identify the core ideas underpinning different families of generative
+  modeling techniques
+
+                                                                              6
+Modern History of AI
+
+
+
+                       7
+1936   Alan Turing
+1950   The Turing Machine and
+       The Turing Test
+
+
+
+
+       McCarthy et al.
+1956
+       Coin the term
+       “Artificial Intelligence”
+
+
+                                   8
+1966    ELIZA Chatbot
+        Passes the Turing test
+
+
+
+
+1974-   1st AI Winter
+1980    General funding cutbacks
+
+
+
+                                   9
+        Rise of Expert
+        Systems
+1980s
+        Representing human
+        decisions in if-then form
+        “AI Renaissance”
+
+
+
+        2nd AI Winter
+1987-
+        Limitations of if-then
+1993    reasoning
+        CNNs (LeCun, 1989)
+
+
+                                    10
+         Deep Blue
+1997     Defeats chess champion
+         RNNs (Hochreiter)
+
+
+
+
+ Early   Robots
+2000s    Kismet, AiBO, Roomba,
+         Stanley
+
+
+
+                                  11
+       Siri, IBM Watson
+2011   Apple integrates virtual
+       assistant into iPhone
+       Watson wins Jeopardy
+
+
+
+
+       AlexNet DCNN
+2012   Wins ImageNet challenge
+       for visual recognition
+
+
+
+                                  13
+        RL, VAE, GAN,
+2012-   Diffusion
+2015    Rapid development of
+        deep learning techniques
+
+
+
+
+        AlphaGo, Uber
+2016    AI beats top Go champion
+        Uber pilots self-driving car
+        program in Pittsburgh
+
+
+                                       14
+       Transformers
+2017   “Attention is all you need”,
+       inspiring subsequent
+       research into LLMs
+
+
+
+       GPT, AlphaFold
+       OpenAI releases GPT-3
+2020   with 175B parameters
+       DeepMind’s AlphaFold2
+       wins the CASP competition
+       for protein structure
+       prediction
+                                      15
+        Dall-E, ChatGPT
+2021-   OpenAI releases Dall-E
+2022    for generating images
+        from text, and ChatGPT, a
+        chat interface for GPT-3.5
+
+
+
+        GenAI explosion
+Now     Widespread development
+        of multimodal generative
+        models across disciplines
+
+
+                                     16
+Deep Generative Modeling:
+      An Overview
+
+
+                            18
+AI, ML, DL, Generative Models
+ Artificial Intelligence
+ machines that mimic human
+ intelligence and cognitive   Machine Learning
+ functions like problem-      algorithms that
+ solving and reasoning        parse data and    Deep Learning
+                              learn from it     automates feature extraction, uses large data,
+                                                “scalable” ML
+
+
+                                                  Deep Generative Modeling
+                                                approaches that explicitly or implicitly model
+                                                the distribution of inputs and outputs
+
+                                                Generative Modeling
+Quantifying Uncertainty
+
+
+
+
+                          Photo courtesy @teenybiscuit
+                                                         20
+Probability
+
+• Limit of infinite number of trials, like a flip of a coin (Frequentist)
+• Quantification of uncertainty (Bayesian)
+
+
+
+
+           P(Concave Down) = 60%               P(Concave Up) = 40%
+
+                           P(Heads) = P(Tails) = 50%
+                                                               Example courtesy Chris Bishop
+                                                                                               21
+Statistical Generative Models
+Given data samples X (images, floor plans, etc.), learn the probability distribution =!
+
+
+                                                       But if we have !! , we
+                                                       can sample from !!
+                       !! ( X =             )=1        to generate new
+                                                       likely data samples,
+                                                       e.g.
+          X
+  Generative because they can generate new samples by modeling the
+                         data distribution !!
+                                                                                          22
+Revisiting the chihuahua vs muffin problem
+
+ X=                        Y = “muffin” ?   ⟹ P( Y=“muffin” | X =                             ) = 0.78
+
+
+
+                                                              Discriminative Model
+
+                                                              discriminates between which
+                                                              class Y a given image X belongs
+                                                              to, by finding the conditional
+                                                              distribution ="|!
+
+
+       Decision Boundary                                                      Results from Chihuahua vs. Muffin at
+                                               https://www.topbots.com/downloads/code/vision/chihuahua_vs_muffin/ 23
+Discriminative vs Generative Models
+
+  Discriminative Models             Generative Models
+
+  Directly model the conditional    Model the joint distribution
+  distribution over the variables   over the variables from the data
+  from the data (here !"|! )        (here !!" )
+                                       P( Y=“muffin”, X =      )
+     P( Y=“muffin” | X =      )
+
+
+                                     P( Y=“chihuahua”, X =         )
+
+                                                                       24
+Conditional Generation?
+
+• Class conditional generation
+  P( X =      | C = “cat” )
+
+• Text conditional generation
+  P( X =      | T =“small bird with a red head” )
+
+• Image-Text conditional generation
+
+  P( X =      | I=            , T =“this bird with a red head and grey wings” )
+
+                                                                                  25
+Types of Generative Models
+
+
+
+                             27
+Types of Generative Models
+Autoregressive Models
+
+Factorize the joint
+distribution of a sample                 Density (evaluate $(&)) : Exact, fast
+using the chain rule                     Sampling (& ~ $(&))     : Slow
+                '                        Training        : MLE
+                                         Latents                 : None
+! "!:# = !("! ) & ! "( ")(
+               $%&
+
+                                                                            Legend
+
+Each conditional distribution is increasingly complex                       !
+                                                                            "
+                                                                                       : observed data
+                                                                                       : latent code
+(owing to dependence on increasing number of                                !′
+                                                                            $!
+                                                                                       : sample from the model
+                                                                                       : %-th dimension of !
+variables), making computation intractable                                  &
+                                                                            0/1
+                                                                                       : Real-valued output
+                                                                                       : Binary output
+
+
+                              Reproduced from Fig. 20.1, Probabilistic Machine Learning: Advanced Topics – Kevin Murphy   28
+Types of Generative Models
+Variational
+AutoEncoders
+
+Latent variable models,                    Density (evaluate $(&)) : Lower bound, fast
+                                           Sampling (& ~ $(&))     : Fast
+defining a joint distribution
+                                           Training        : MLE – lower bound
+of the form                                Latents                 : ℝ!
+
+  Q$ R, S = Q$ S Q$ R|S
+                                                                              Legend
+The posterior Q$ S|R is intractable, so VAEs                                  !          : observed data
+additionally define                                                           "
+                                                                              !′
+                                                                                         : latent code
+                                                                                         : sample from the model
+                                                                              $!         : %-th dimension of !
+                                                                              &          : Real-valued output
+T% S R = T S U% R      ≈ Q$ S|R                                               0/1        : Binary output
+
+
+                                Reproduced from Fig. 20.1, Probabilistic Machine Learning: Advanced Topics – Kevin Murphy   29
+Types of Generative Models
+Flow-Based Models
+
+Create complex
+distributions Q R from            Density (evaluate $(&)) : Exact, slow/fast
+simple base distributions         Sampling (& ~ $(&))     : Slow
+                                  Training        : MLE
+Q S by defining an
+                                  Latents                 : ℝ"
+invertible transform
+W: ℝ& → ℝ& from the data
+to latent space: S = W R and R = W '((S)                   Legend
+                                                                             !          : observed data
+For computing density, we use change of variables:                           "          : latent code
+                                                                             !′         : sample from the model
+                                [W(R)                                        $!         : %-th dimension of !
+              Q R = Q S det                                                  &          : Real-valued output
+                                 [R                                          0/1        : Binary output
+
+
+                               Reproduced from Fig. 20.1, Probabilistic Machine Learning: Advanced Topics – Kevin Murphy   30
+Types of Generative Models
+Diffusion Models
+
+Define a Markov chain of
+noisy variables                         Density (evaluate $(&)) : Lower bound
+                                        Sampling (& ~ $(&))     : Slow
+  T R) R)'(
+                                        Training        : MLE – Lower bound
+  = \ 1 − _) R)'(, _) `                 Latents                 : ℝ"
+
+This turns data R₀ into
+noise R * ~ \ 0, `                                                         Legend
+                                                                           !          : observed data
+                                                                           "          : latent code
+Then learn a model to reverse this process                                 !′         : sample from the model
+                                                                           $!         : %-th dimension of !
+   Q$ R)'( R) = \ c$ R) , d , e$ R) , d                                    &          : Real-valued output
+                                                                           0/1        : Binary output
+
+
+                             Reproduced from Fig. 20.1, Probabilistic Machine Learning: Advanced Topics – Kevin Murphy   31
+Types of Generative Models
+Generative Adversarial
+Networks
+
+Implicit probabilistic                      Density (evaluate $(&)) : N/A
+                                            Sampling (& ~ $(&))     : Fast
+models that do not provide
+                                            Training        : Min-max
+a parametric specification                  Latents                 : ℝ!
+of the distribution of f (like
+prescribed models do)
+                                                                               Legend
+A discriminator g h distinguishes between real                                 !          : observed data
+and synthetic data provided by a generator i h in                              "
+                                                                               !′
+                                                                                          : latent code
+                                                                                          : sample from the model
+the implicit form Q R S = j R − i S where j h                                  $!
+                                                                               &
+                                                                                          : %-th dimension of !
+                                                                                          : Real-valued output
+is the Dirac delta function                                                    0/1        : Binary output
+
+
+                                 Reproduced from Fig. 20.1, Probabilistic Machine Learning: Advanced Topics – Kevin Murphy   32
+Types of Generative Models
+Energy Based Models
+
+Define the data density
+using a Gibbs distribution:              Density (evaluate $(&)) : Approximate, Slow
+                                         Sampling (& ~ $(&))     : Slow
+                                         Training        : MLE – approximate
+          exp −l$ R                      Latents                 : Optional
+   Q$ R =
+              m$
+
+where                                                                       Legend
+
+l$ (R) : energy function                                                    !
+                                                                            "
+                                                                                       : observed data
+                                                                                       : latent code
+m$ = ∫ exp −l$ R [R : partition function                                    !′
+                                                                            $!
+                                                                                       : sample from the model
+                                                                                       : %-th dimension of !
+                                                                            &          : Real-valued output
+                                                                            0/1        : Binary output
+
+
+                              Reproduced from Fig. 20.1, Probabilistic Machine Learning: Advanced Topics – Kevin Murphy   33
+What this course is not specifically about
+
+Training a language model from scratch
+
+• Stanford CS336: Language Modeling from Scratch
+  https://stanford-cs336.github.io/spring2025/
+• Build a Large Language Model (From Scratch) - Sebastian Raschka
+  https://github.com/rasbt/LLMs-from-scratch
+
+Image/Video synthesis
+
+• CMU 16-726: Learning-Based Image Synthesis
+  https://learning-image-synthesis.github.io/sp25/lectures/
+                                                                    34
+Course Logistics
+
+
+
+                   35
+Syllabus Highlights
+• Course Website: https://genmod-3dbbb2.pages.ewi.tudelft.nl/
+
+• Assessment
+  • Digital Exam (60%)
+  • Project Group Report (40%)
+
+• Announcements on Brightspace, Discussions on Brightspace and
+  Answers-EWI
+
+• Reach out to any one of us with questions.
+  Course email: DSAIT4030-EWI@tudelft.nl
+                                                                 36
+Project
+Goals:
+• Hands-on experience with a generative modeling technique
+• Deeper understanding of the process going from math to code
+• Real-world understanding of engineering challenges
+
+Process:
+• Work in groups of 5/6 (split tasks ranging from data processing and
+  loading, model implementation, and evaluation)
+• Discuss plan with assigned TA
+• Share findings in two presentations (mid-term and final)
+                                                                        37
+Lectures
+• Ask questions!
+  • Interrupting the lecturer is encouraged
+  • Others might also have the same questions
+  • Asking questions through BS Discussions and Answers-EWI is also great
+
+• When the instructor asks questions
+  • Please answer and engage!
+  • Think things through even if you don’t answer
+
+• Interact and engage! We are all here to learn together and discover
+  cool ideas
+
+                                                                            38
+

@@ -1,0 +1,197 @@
+[
+  {
+    "slug": "w1-intro",
+    "week": "Week 1 · Lecture 1",
+    "shortTitle": "Intro",
+    "title": "Lecture 1 — Introduction to Generative Modelling",
+    "focus": "Course map, modelling goals, and where each model family fits.",
+    "relatedFriendChapter": "intro",
+    "notes": "\n## What this lecture is for\nThis lecture is the map of the whole course. Do not memorize every model name here; use it to understand the exam vocabulary and the recurring trade-off: **can the model evaluate density, sample well, and learn tractably?**\n\nA generative model represents a distribution over data. It can be unconditional, such as images from a dataset, or conditional, such as images given a class label, text prompt, molecular property, or protein constraint.\n\n## Discriminative vs generative\nA discriminative model predicts labels from observations. A generative model tries to describe how observations are distributed, sometimes jointly with labels.\n\n$$P(Y|X)\\quad\\text{versus}\\quad P(X,Y)=P(Y|X)P(X)$$\n\nIf a model knows the joint distribution, it can answer more questions: sample new data, fill missing values, evaluate likelihoods, or reason about latent causes. That flexibility is why generative modelling is harder.\n\n## Model families in the course\n- **Autoregressive models** factorize a joint density into conditionals. They give exact likelihood, but sampling is sequential.\n- **Latent variable models** introduce hidden variables $z$ to explain structure in $x$.\n- **VAEs** optimize a lower bound because exact posterior inference is intractable.\n- **Normalising Flows** use invertible maps for exact likelihood and exact sampling.\n- **Energy-Based Models** define unnormalized densities through an energy function.\n- **Score-based and Diffusion Models** learn how to move noisy samples back toward the data distribution.\n- **Evaluation and applications** ask whether a model is useful, not only whether it has a nice objective.\n\n## The density-sampling-inference triangle\nA recurring exam theme is that every model family pays for at least one operation:\n\n- likelihood can be exact, approximate, or unavailable;\n- sampling can be one-pass, iterative, or MCMC-based;\n- inference can be analytic, amortized, or intractable.\n\nWhen comparing models, always say which of these operations is easy and which is expensive.\n\n## Minimal exam story\nIf asked to explain the course in one minute: generative modelling starts from maximum likelihood, adds latent variables when data needs hidden structure, uses ELBO/EM/VI when marginal likelihood is hard, then studies alternative parameterizations of distributions: invertible maps, energy functions, scores, diffusion processes, continuous flows, and causal or scientific constraints.\n",
+    "questions": [
+      "What can a generative model do that a purely discriminative classifier cannot?",
+      "Compare autoregressive models, VAEs, flows, EBMs, and diffusion models by likelihood and sampling.",
+      "Why is conditional generation still generative modelling?",
+      "What trade-off should you mention when comparing model families?"
+    ]
+  },
+  {
+    "slug": "w1-mle-lvm",
+    "week": "Week 1 · Lecture 2",
+    "shortTitle": "MLE + LVM",
+    "title": "Lecture 2 — Maximum Likelihood and Latent Variable Models",
+    "focus": "MLE as KL minimization; latent variables and marginal likelihood.",
+    "relatedFriendChapter": "mle-lvm",
+    "notes": "\n## Maximum likelihood as the basic training principle\nThe lecture turns the vague goal “fit the data distribution” into the concrete objective of maximizing likelihood on observed samples.\n\nFor empirical data distribution $p_{data}$, minimizing forward KL is equivalent to maximizing expected log-likelihood because the data entropy term does not depend on the model.\n\n$$KL(p_{data}\\Vert p_\\theta)=\\mathbb{E}_{p_{data}}[\\log p_{data}(x)-\\log p_\\theta(x)]$$\n\nSo the trainable part is:\n\n$$\\max_\\theta\\;\\sum_{i=1}^{N}\\log p_\\theta(x_i)$$\n\n## Why latent variables appear\nLatent variables $z$ explain hidden structure: clusters, causes, style, nuisance variation, or lower-dimensional representations. The model specifies a joint distribution and obtains the visible density by marginalization.\n\n$$p_\\theta(x)=\\int p_\\theta(x,z)\\,dz$$\n\nThis is expressive, but it creates the core difficulty: the integral or sum over $z$ is often expensive, and the posterior $p_\\theta(z|x)$ may not be available in closed form.\n\n## Complete-data vs observed-data likelihood\nIf we observed both $x$ and $z$, fitting would often be easier. In real latent variable models we only observe $x$. The observed-data log-likelihood contains a log of a sum/integral:\n\n$$\\log p_\\theta(x)=\\log\\int p_\\theta(x,z)\\,dz$$\n\nThat log-outside-integral structure is the reason EM, variational inference, and VAEs appear later.\n\n## Mixture model intuition\nA Gaussian mixture model is the simplest mental model. A hidden categorical variable selects a component; then the observation is sampled from that component. Learning alternates between estimating which component explains each point and updating component parameters.\n\n## Exam-useful phrasing\nWhen asked why latent variable models are hard, do not just say “because z is hidden.” Say: learning requires the marginal likelihood $p_\\theta(x)$, and computing it needs summing or integrating over latent configurations; posterior inference $p_\\theta(z|x)$ is also needed for parameter updates.\n",
+    "questions": [
+      "Show the algebra that connects forward KL minimization to MLE.",
+      "Why does $p_\theta(x)=\\int p_\theta(x,z)dz$ make training difficult?",
+      "What is easier in complete-data likelihood than observed-data likelihood?",
+      "Use a Gaussian mixture to explain the role of a latent variable."
+    ]
+  },
+  {
+    "slug": "w2-mle-lvm",
+    "week": "Week 2 · Lecture 1",
+    "shortTitle": "MLE + LVM repeat",
+    "title": "Lecture 3 — MLE and Latent Variable Models Reinforcement",
+    "focus": "The same MLE/LVM slide deck appears twice; use this pass for derivation practice.",
+    "relatedFriendChapter": "mle-lvm",
+    "notes": "\n## What is different here\nThe same slide deck appears twice in the course material. Treat this lecture as a second pass over MLE and latent variable models, not as unrelated new content.\n\nThe useful study move is to re-derive the main equations closed-book and connect them to EM and VAEs.\n\n## Derivation to be able to reproduce\nStart from the empirical objective:\n\n$$\\hat{\\theta}=\\arg\\max_\\theta \\frac{1}{N}\\sum_{i=1}^{N}\\log p_\\theta(x_i)$$\n\nThen state why this is equivalent to minimizing $KL(p_{data}\\Vert p_\\theta)$. The exam answer should mention that $\\mathbb{E}_{p_{data}}[\\log p_{data}(x)]$ is constant with respect to $\\theta$.\n\n## Latent variable bottleneck\nFor latent variable models, each datapoint likelihood requires marginalizing the hidden variable:\n\n$$p_\\theta(x_i)=\\sum_z p_\\theta(x_i,z)\\quad\\text{or}\\quad p_\\theta(x_i)=\\int p_\\theta(x_i,z)\\,dz$$\n\nThis step is tractable for some simple mixtures, but not for general deep latent variable models.\n\n## Bridge to later lectures\n- EM handles some latent variable models by alternating expected sufficient statistics and parameter updates.\n- Variational inference introduces an approximate posterior $q(z)$ and optimizes a lower bound.\n- VAEs amortize that approximate inference with an encoder network.\n\n## What to practise\nWrite a one-page answer that explains MLE, latent variables, marginal likelihood, posterior inference, and why approximation is needed. If you can write that cleanly, the rest of the course has a foundation.\n",
+    "questions": [
+      "What exact term is constant when converting KL minimization to MLE?",
+      "Write both the discrete and continuous latent marginal likelihood.",
+      "Why is this repeated deck a bridge to EM and VAEs?",
+      "What would be observed in complete-data likelihood but hidden in observed-data likelihood?"
+    ]
+  },
+  {
+    "slug": "w2-em-ppca",
+    "week": "Week 2 · Lecture 2",
+    "shortTitle": "EM + PPCA",
+    "title": "Lecture 4 — EM Details and Probabilistic PCA",
+    "focus": "ELBO logic, E/M alternation, and PPCA as a continuous latent variable model.",
+    "relatedFriendChapter": "em-ppca",
+    "notes": "\n## Why EM exists\nEM is for latent variable models where direct maximum likelihood is hard but expectations under the posterior are tractable or approximable. It turns one difficult optimization into alternating easier steps.\n\n## The lower-bound view\nIntroduce any distribution $q(z)$ over latents. Jensen gives a lower bound on the log marginal likelihood:\n\n$$\\log p_\\theta(x) \\ge \\mathbb{E}_{q(z)}\\left[\\log \\frac{p_\\theta(x,z)}{q(z)}\\right]$$\n\nThe gap between the bound and the true log likelihood is a KL divergence between $q(z)$ and the true posterior $p_\\theta(z|x)$.\n\n## E-step and M-step\n- **E-step:** with parameters fixed, set or update $q(z)$ to better approximate the posterior.\n- **M-step:** with $q(z)$ fixed, update parameters to maximize the expected complete-data log-likelihood.\n\nFor exact EM, the E-step uses the true posterior under the old parameters, so the bound touches the likelihood at the current point.\n\n## PPCA generative model\nProbabilistic PCA turns PCA into a likelihood-based latent variable model. A low-dimensional latent $z$ is sampled from a Gaussian prior, mapped linearly, and corrupted by isotropic Gaussian noise.\n\n$$z\\sim\\mathcal{N}(0,I),\\quad x=Wz+\\mu+\\epsilon,\\quad \\epsilon\\sim\\mathcal{N}(0,\\sigma^2I)$$\n\nThe marginal distribution over $x$ is Gaussian with structured covariance:\n\n$$x\\sim\\mathcal{N}(\\mu,WW^T+\\sigma^2I)$$\n\n## Why PPCA matters\nPPCA is a clean example of a continuous latent variable model where likelihood, posterior, and dimensionality reduction connect. It prepares the intuition for VAEs: keep latent variables, replace the linear Gaussian decoder with a neural decoder, and approximate inference when exact posterior updates no longer work.\n",
+    "questions": [
+      "What distribution is optimized in the E-step?",
+      "Why is the ELBO a lower bound?",
+      "Write the PPCA generative process.",
+      "How does PPCA motivate VAEs?"
+    ]
+  },
+  {
+    "slug": "w3-vae",
+    "week": "Week 3 · Lecture 1",
+    "shortTitle": "VAE",
+    "title": "Lecture 5 — Nonlinear Latent Variable Models and VAEs",
+    "focus": "Deep decoders, amortized inference, ELBO, and reparameterization.",
+    "relatedFriendChapter": "vae",
+    "notes": "\n## From PPCA to deep latent variable models\nPPCA uses a linear decoder and Gaussian assumptions. A nonlinear latent variable model replaces the linear map with a neural network decoder, making the model far more expressive but removing closed-form posterior inference.\n\n## VAE components\nA VAE has:\n\n- a prior $p(z)$, usually standard normal;\n- a decoder $p_\\theta(x|z)$ that generates observations;\n- an encoder $q_\\phi(z|x)$ that approximates the intractable posterior.\n\nThe encoder is **amortized inference**: instead of optimizing a separate variational distribution for every datapoint, one network predicts posterior parameters for all datapoints.\n\n## The VAE objective\nThe ELBO contains reconstruction and regularization:\n\n$$\\mathcal{L}(x)=\\mathbb{E}_{q_\\phi(z|x)}[\\log p_\\theta(x|z)]-KL(q_\\phi(z|x)\\Vert p(z))$$\n\nThe first term rewards explaining the observation. The KL term keeps the approximate posterior close to the prior, so samples drawn from the prior decode to plausible data.\n\n## Reparameterization trick\nTo backpropagate through stochastic sampling, write Gaussian samples as a deterministic transform of noise:\n\n$$z=\\mu_\\phi(x)+\\sigma_\\phi(x)\\odot\\epsilon,\\quad \\epsilon\\sim\\mathcal{N}(0,I)$$\n\nThe randomness is isolated in $\\epsilon$, so gradients can flow through $\\mu_\\phi$ and $\\sigma_\\phi$.\n\n## Common pitfalls\n- A VAE optimizes a lower bound, not exact likelihood.\n- The decoder is generative; the encoder is an inference helper.\n- Strong decoders can ignore latents, causing posterior collapse.\n- Blurry samples often come from simple likelihood choices, not from the latent-variable idea itself.\n",
+    "questions": [
+      "Which VAE network is used for generation after training?",
+      "Explain reconstruction versus KL in the ELBO.",
+      "Why is reparameterization needed?",
+      "What is amortized inference?"
+    ]
+  },
+  {
+    "slug": "w5-ebm",
+    "week": "Week 5 · Lecture 1",
+    "shortTitle": "EBM",
+    "title": "Lecture 6 — Energy-Based Models",
+    "focus": "Unnormalized densities, partition functions, negative phase, and MCMC.",
+    "relatedFriendChapter": "ebm",
+    "notes": "\n## Energy view of probability\nAn Energy-Based Model assigns low energy to likely configurations and high energy to unlikely ones. The probability is defined through a normalized exponential:\n\n$$p_\\theta(x)=\\frac{\\exp(-E_\\theta(x))}{Z_\\theta}$$\n\nwhere the partition function sums or integrates over all possible data:\n\n$$Z_\\theta=\\int \\exp(-E_\\theta(x))\\,dx$$\n\n## Why training is hard\nThe log-likelihood gradient has two forces. The positive phase lowers energy on data. The negative phase raises energy on model samples.\n\n$$\\nabla_\\theta \\log p_\\theta(x)=-\\nabla_\\theta E_\\theta(x)-\\nabla_\\theta \\log Z_\\theta$$\n\nThe second term requires expectation under the model distribution, which is hard because sampling from the model is hard.\n\n## MCMC and Langevin dynamics\nEBMs often need Markov chain Monte Carlo to generate negative samples. Langevin dynamics uses energy gradients to move samples toward lower energy while injecting noise for exploration.\n\n$$x_{k+1}=x_k-\\eta\\nabla_x E_\\theta(x_k)+\\sqrt{2\\eta}\\,\\epsilon_k$$\n\n## Contrastive thinking\nMany EBM training methods approximate the negative phase: contrastive divergence, persistent chains, replay buffers, or score matching variants. The exam point is not the implementation detail; it is that unnormalized density makes likelihood gradients depend on difficult model expectations.\n\n## How EBMs differ from VAEs and flows\n- VAEs learn a normalized decoder but optimize a bound.\n- Flows have exact normalized density through invertibility.\n- EBMs can use very flexible energies but pay with difficult normalization and sampling.\n",
+    "questions": [
+      "What is the partition function and why does it appear?",
+      "Describe positive phase and negative phase.",
+      "Why does an EBM need MCMC-like sampling?",
+      "Compare an EBM to a flow in one sentence."
+    ]
+  },
+  {
+    "slug": "w5-flow",
+    "week": "Week 5 · Lecture 2",
+    "shortTitle": "Normalising Flows",
+    "title": "Lecture 7 — Normalising Flows",
+    "focus": "Invertible transformations, exact likelihood, and Jacobian determinants.",
+    "relatedFriendChapter": "normalising-flows",
+    "notes": "\n## Why flows are introduced\nVAEs use latent variables but optimize an approximate objective. Normalising Flows take a different route: make generation an invertible transformation between simple noise and data, so density can be evaluated exactly.\n\nLet $z$ follow a simple base density and $x=g_\\theta(z)$ be invertible. Equivalently, $z=f_\\theta(x)=g_\\theta^{-1}(x)$.\n\n## Change of variables\nThe density of $x$ is the base density corrected by how the transformation changes volume:\n\n$$\\log p_X(x)=\\log p_Z(f(x))+\\log |\\det J_f(x)|$$\n\nThe Jacobian determinant is not decorative. It is the term that says whether a small region was stretched or compressed by the map.\n\n## Design constraint\nTo train by exact likelihood, a flow layer must satisfy two requirements:\n\n- it must be invertible, so samples and densities can move both directions;\n- its Jacobian determinant must be cheap enough to compute.\n\nThis is why flows use carefully structured transformations such as coupling layers, autoregressive flows, or continuous-time variants.\n\n## Sampling and likelihood\nSampling is simple: sample $z\\sim p_Z$, then compute $x=g_\\theta(z)$. Density evaluation is also direct: compute $z=f_\\theta(x)$ and the log determinant.\n\nThat gives flows a clean theoretical story: exact likelihood and exact sampling, but at the cost of architectural constraints.\n\n## Exam comparison\nIf asked “why not always use flows?”, answer: exact density is attractive, but invertibility and tractable Jacobians restrict the transformations. VAEs are less exact but more flexible; diffusion models sample slowly but can produce very high quality; EBMs are flexible but hard to normalize and sample.\n",
+    "questions": [
+      "What two properties must a normalising flow transformation have?",
+      "Explain the Jacobian determinant in the change-of-variables formula.",
+      "How do sampling and likelihood evaluation work in a flow?",
+      "What is the main trade-off of flows compared with VAEs?"
+    ]
+  },
+  {
+    "slug": "w5-score",
+    "week": "Week 5 · Lecture 3",
+    "shortTitle": "Score-based",
+    "title": "Lecture 8 — Score-based Models",
+    "focus": "Learning gradients of log-density and sampling with Langevin dynamics.",
+    "relatedFriendChapter": "score-based",
+    "notes": "\n## The score function\nScore-based models learn the gradient of the log-density with respect to the data:\n\n$$s_\\theta(x)\\approx \\nabla_x \\log p(x)$$\n\nThis is useful because the gradient does not require the normalizing constant. If $p(x)=\\tilde{p}(x)/Z$, then $\\nabla_x\\log Z=0$ because $Z$ does not depend on $x$.\n\n## Score matching objective\nInstead of fitting a normalized density directly, the model fits a vector field pointing toward higher data density. Classical score matching avoids likelihood normalization but involves derivatives of the score network.\n\nA practical variant is denoising score matching: corrupt data with Gaussian noise and train the model to undo that corruption.\n\n## Why noise levels matter\nA single score field is unreliable in low-density regions where few data points exist. Adding multiple noise levels smooths the distribution and teaches the model how to move from broad noisy regions back toward clean data.\n\nThis is the conceptual bridge to diffusion: learn denoising directions across a noise schedule.\n\n## Sampling with Langevin dynamics\nOnce a score is learned, samples can be produced by iteratively moving in the score direction while adding noise:\n\n$$x_{k+1}=x_k+\\eta s_\\theta(x_k)+\\sqrt{2\\eta}\\,\\epsilon_k$$\n\nThe score term moves toward high density; the noise term keeps the chain stochastic and able to explore.\n\n## What to remember\nA score model usually does not give a normalized likelihood directly. It gives a way to navigate the data distribution by learning gradients. Diffusion models package this idea into a structured forward noising and reverse denoising process.\n",
+    "questions": [
+      "What is the score function?",
+      "Why does the partition function disappear from the score?",
+      "Why are multiple noise levels useful?",
+      "How does Langevin sampling use the learned score?"
+    ]
+  },
+  {
+    "slug": "w6-diffusion",
+    "week": "Week 6 · Lecture 1-1",
+    "shortTitle": "Diffusion",
+    "title": "Lecture 9 — Diffusion Models",
+    "focus": "Forward noising, learned reverse denoising, and the DDPM objective.",
+    "relatedFriendChapter": "diffusion",
+    "notes": "\n## Diffusion in one sentence\nA diffusion model learns to reverse a gradual noising process. Training knows how clean data was corrupted; generation starts from noise and repeatedly denoises.\n\n## Forward process\nThe forward process is fixed, not learned. At each timestep, add a small amount of Gaussian noise:\n\n$$q(x_t|x_{t-1})=\\mathcal{N}(\\sqrt{1-\\beta_t}x_{t-1},\\beta_t I)$$\n\nAfter many steps, $x_T$ becomes close to standard Gaussian noise.\n\nA useful closed form samples $x_t$ directly from $x_0$:\n\n$$x_t=\\sqrt{\\bar{\\alpha}_t}x_0+\\sqrt{1-\\bar{\\alpha}_t}\\,\\epsilon$$\n\n## Reverse process\nThe learned model approximates the reverse transition: how to go from $x_t$ to a slightly less noisy $x_{t-1}$. Many DDPM implementations train a neural network to predict the noise that was added.\n\n$$L_{simple}=\\mathbb{E}_{x_0,t,\\epsilon}\\Vert\\epsilon-\\epsilon_\\theta(x_t,t)\\Vert^2$$\n\nPredicting the noise is equivalent to learning a denoising direction, closely related to score matching.\n\n## Sampling\nGeneration begins with $x_T\\sim\\mathcal{N}(0,I)$ and applies the learned reverse chain step by step. This produces high-quality samples but can be slow because many denoising steps are needed.\n\n## Relationship to score models\nDiffusion models can be viewed as score-based models across a sequence of noise levels. Each timestep asks: given this noisy point, what direction points back toward the data distribution?\n\n## Exam answer pattern\nFor any diffusion question, structure the answer as: fixed forward noising, learned reverse denoising, training objective, sampling procedure, and trade-off between quality and sampling cost.\n",
+    "questions": [
+      "Which process is fixed and which process is learned?",
+      "Write the Gaussian forward transition.",
+      "What does the simple DDPM loss predict?",
+      "Why can diffusion sampling be slow?"
+    ]
+  },
+  {
+    "slug": "w6-flow-matching",
+    "week": "Week 6 · Lecture 1-2",
+    "shortTitle": "Flow Matching",
+    "title": "Lecture 10 — Continuous Flows and Flow Matching",
+    "focus": "Continuous normalising flows, velocity fields, and simulation-free flow matching losses.",
+    "relatedFriendChapter": "flow-matching",
+    "notes": "\n## From discrete flows to continuous flows\nNormalising flows compose a sequence of invertible layers. Continuous Normalising Flows replace the finite composition with an ordinary differential equation.\n\n$$\\frac{d x_t}{dt}=v_\\theta(t,x_t)$$\n\nThe vector field $v_\\theta$ says how samples move over continuous time from a base distribution to the data distribution.\n\n## Density evolution\nA continuous flow changes density according to the divergence of the vector field:\n\n$$\\frac{d\\log p_t(x_t)}{dt}=-\\nabla\\cdot v_\\theta(t,x_t)$$\n\nThis gives likelihood access, but exact training or sampling can require solving ODEs, which may be computationally expensive.\n\n## Flow Matching idea\nFlow Matching trains the vector field directly against a target velocity along paths between noise and data. A common objective is:\n\n$$\\mathcal{L}_{FM}=\\mathbb{E}_{t,x_t}\\Vert v_\\theta(t,x_t)-u_t(x_t)\\Vert^2$$\n\nHere $u_t$ is the target velocity induced by a chosen probability path. The key advantage is that the model can learn the vector field without simulating the full ODE during training.\n\n## Relation to diffusion\nBoth diffusion and flow matching transport simple noise into data. Diffusion usually learns a stochastic denoising process; flow matching learns a deterministic or ODE-style velocity field. Modern formulations blur the line, but the exam distinction is noise-prediction/score versus velocity-field matching.\n\n## What to compare\nWhen comparing flows, continuous flows, diffusion, and flow matching, mention: invertibility, likelihood access, ODE cost, stochastic versus deterministic generation, and whether training requires simulating the generative process.\n",
+    "questions": [
+      "What does the vector field in a continuous flow represent?",
+      "How does divergence affect log-density?",
+      "What is matched in Flow Matching?",
+      "How is flow matching related to diffusion but not identical to it?"
+    ]
+  },
+  {
+    "slug": "w6-evaluation",
+    "week": "Week 6 · Lecture 2",
+    "shortTitle": "Evaluation",
+    "title": "Lecture 11 — Evaluation of Generative Models",
+    "focus": "Likelihood, sample quality, precision/recall, FID, KID/MMD, and domain caveats.",
+    "relatedFriendChapter": "evaluation",
+    "notes": "\n## Why evaluation is not one number\nGenerative models can be good in different ways. A model may assign high likelihood but produce poor samples, or generate sharp samples while missing modes. Evaluation asks which failure matters for the task.\n\n## Likelihood is useful but incomplete\nLikelihood rewards assigning probability mass to test data, but it does not always align with perceptual sample quality. In high dimensions, a model can improve likelihood by modelling background statistics or noise that humans barely notice.\n\nUse likelihood when the model explicitly supports it and when density estimation matters. Do not use it as the only proof of sample quality.\n\n## Sample quality and diversity\nTwo important questions are:\n\n- **quality / precision:** are generated samples realistic?\n- **coverage / recall:** does the generator cover the real data distribution, or only a few modes?\n\nMode collapse is high precision but low recall: samples may look good, but diversity is poor.\n\n## FID and feature-space metrics\nFID compares real and generated samples in a feature space, often Inception features for images:\n\n$$FID=\\Vert\\mu_r-\\mu_g\\Vert^2+Tr(\\Sigma_r+\\Sigma_g-2(\\Sigma_r\\Sigma_g)^{1/2})$$\n\nLower FID is better, but it depends on the feature extractor, sample size, preprocessing, and domain. For non-natural-image data, Inception features may be inappropriate.\n\n## MMD and KID\nMaximum Mean Discrepancy compares distributions using kernels. KID is an MMD-based metric often used as an alternative to FID because it has an unbiased estimator under common settings.\n\n## Practical evaluation checklist\n- Use held-out data, not the training set.\n- Inspect samples and nearest neighbours to catch memorization.\n- Report more than one metric when possible.\n- Match the metric to the domain: molecules, proteins, medical images, and causal data need domain-specific validity checks.\n- State the trade-off: likelihood, quality, diversity, and usefulness are not identical.\n",
+    "questions": [
+      "Why can likelihood and visual quality disagree?",
+      "What is the difference between precision and recall for generated samples?",
+      "What does FID compare, and what are its caveats?",
+      "Why might a domain-specific metric be necessary?"
+    ]
+  },
+  {
+    "slug": "w7-life",
+    "week": "Week 7 · Lecture 1",
+    "shortTitle": "Life Sciences",
+    "title": "Lecture 12 — Generative Models for Life Sciences",
+    "focus": "Conditioning, guidance, molecules/proteins, and scientific validity constraints.",
+    "relatedFriendChapter": "life-sciences",
+    "notes": "\n## Why life sciences need control\nIn images, “realistic” may be enough for a demo. In molecules or proteins, generated objects must satisfy constraints: chemical validity, binding, stability, function, synthesizability, or structural compatibility.\n\nThis lecture focuses on controllable generation: steering a generative model toward properties or constraints.\n\n## Conditioning versus guidance\nConditioning gives the model the desired variable during training, such as class, property, text, motif, scaffold, or structural context. Guidance modifies the sampling process so samples move toward a condition.\n\nClassifier guidance uses Bayes-style decomposition:\n\n$$\\nabla_x\\log p(x|y)=\\nabla_x\\log p(x)+\\nabla_x\\log p(y|x)$$\n\nThe second term pushes samples toward condition $y$.\n\n## Classifier-free guidance\nClassifier-free guidance trains the same denoising model with and without conditions, then combines predictions at sampling time:\n\n$$\\tilde{\\epsilon}_\\theta=\\epsilon_\\theta(x_t,t,\\emptyset)+w(\\epsilon_\\theta(x_t,t,y)-\\epsilon_\\theta(x_t,t,\\emptyset))$$\n\nLarger guidance weight can improve condition adherence but may reduce diversity or create artifacts.\n\n## Molecules and proteins\nFor molecules, generated structures must obey chemical rules and optimize properties. For proteins, generation can involve sequence, backbone geometry, motifs, binding sites, or functional constraints.\n\nThe modelling challenge is representation: strings, graphs, 3D coordinates, torsion angles, contact maps, or equivariant geometric models all impose different inductive biases.\n\n## Exam-ready caveat\nAlways separate generic generative quality from scientific usefulness. A molecule-like sample is not automatically valid, synthesizable, safe, or active. Evaluation must include domain constraints and often downstream simulation or experimental validation.\n",
+    "questions": [
+      "Why is visual/sample realism insufficient in life-science generation?",
+      "Explain conditioning versus classifier guidance.",
+      "Write the classifier-free guidance idea in words.",
+      "Name two domain-specific constraints for molecules or proteins."
+    ]
+  },
+  {
+    "slug": "w7-causal",
+    "week": "Week 7 · Lecture 2",
+    "shortTitle": "Causal GM",
+    "title": "Lecture 13 — Causal Generative Modeling",
+    "focus": "Optional/non-exam context on causal generative modelling; keep separate from the exam study path.",
+    "relatedFriendChapter": null,
+    "notes": "\n## Optional / non-exam\nThis causal-generative lecture is kept as course context, but it is not part of the exam scope you identified. Prioritize the other lecture pages and the 11 friend-note chapters first.\n\n## Why causality enters generative modelling\nA standard generative model can learn correlations in observed data. Causal generative modelling asks for something stronger: a model that represents how variables respond to interventions and counterfactual changes.\n\nCorrelation answers “what tends to co-occur?” Causation answers “what would change if we forced this variable to change?”\n\n## Pearl ladder\nA useful hierarchy is:\n\n- **association:** observing $p(y|x)$;\n- **intervention:** setting a variable, written $do(x)$;\n- **counterfactual:** asking what would have happened under a different action for the same unit.\n\nA model that only matches observations may fail under interventions.\n\n## Structural causal models\nAn SCM represents each variable as a function of its parents and independent noise. The joint distribution factorizes according to the causal graph:\n\n$$p(z_1,\\ldots,z_d)=\\prod_i p(z_i|pa_i)$$\n\nIntervening replaces one structural equation instead of merely conditioning:\n\n$$p(x|do(z_j=a))$$\n\nThis difference between conditioning and intervening is central.\n\n## Counterfactual recipe\nCounterfactual reasoning is often described as:\n\n1. **abduction:** infer latent/noise variables from the observed case;\n2. **action:** modify the structural equation with an intervention;\n3. **prediction:** generate the outcome under the modified model.\n\n## Disentanglement and identifiability\nCausal representation learning hopes latent dimensions correspond to causal factors. But representations are not automatically identifiable from observational data. Without assumptions, interventions, environments, or inductive biases, many latent explanations can fit the same observations.\n\n## Exam-ready conclusion\nCausal generative modelling is not “a generator with a causal-sounding latent space.” It requires assumptions about mechanisms, interventions, or invariances that let the model answer questions beyond the training distribution.\n",
+    "questions": [
+      "What is the difference between conditioning on $x$ and intervening with $do(x)$?",
+      "State the three levels of Pearl’s ladder.",
+      "What are the three steps of counterfactual reasoning?",
+      "Why is causal disentanglement not identifiable from observations alone?"
+    ]
+  }
+]

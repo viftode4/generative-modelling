@@ -1,0 +1,182 @@
+Non-Linear Latent Variable Models
+& Variational Auto-Encoders (VAEs)
+
+
+Chirag Raman
+Assistant Professor
+Department of Intelligent Systems, TUDelft
+
+Generative Modeling DSAIT4030, 06/05/2025
+Latent variables: the story so far
+                         e.g. Gaussian Mixture Model
+
+                                                                  z
+                         e.g. Probabilistic PCA
+
+Now if we want to fit this model to data with some parameter w,
+we typically maximize the likelihood function
+                                                                  x
+
+For PPCA, we assumed
+
+
+                                                                      2
+What about non-linear transformations?
+ Can we use the flexibility of deep neural networks to model more complex
+         transformations from the latent space to the data space?
+
+
+  What happens to data not lying
+  exactly on the manifold?
+
+  What choices can we make?
+
+
+  where the neural network has linear output activations,
+
+                       Fig. from “Deep Learning: Foundations and Concepts” – Bishop & Bishop (https://www.bishopbook.com/ )
+                                                                                                                              3
+What about non-linear transformations?
+
+
+                                 𝑝(𝐱, 𝑧)
+
+                                                     𝑝(𝐱)
+
+                                                                Recall: PPCA
+
+
+
+
+                Figs. from “Deep Learning: Foundations and Concepts” – Bishop & Bishop (https://www.bishopbook.com/ )
+                                                                                                                        4
+Let us re-examine the likelihood function
+
+
+Note that 𝑝(𝐱|𝐳, 𝐰) is intractable! (the integral cannot be evaluated analytically)
+
+
+   Can we approximate the likelihood? -> the ELBO!
+
+
+
+
+                                                                                      5
+                       Recap: Deriving the ELBO
+
+
+
+
+Evidence Lower Bound    Gap to the true log-likelihood
+                                                         6
+Back to the likelihood
+Consider a set of iid training data points from 𝑝 𝐱 , X = 𝐱1 , … , 𝐱 𝑁 ∈ ℝ𝐷
+
+
+
+
+where
+
+
+
+Note that this introduces a separate latent 𝐳𝑛 ∈ ℝ𝑄 corresponding to each 𝐱𝑛
+Does this remind you of other models we have seen?
+How can we maximize the lower bound?
+                                                                               7
+Maximizing the lower bound
+Since we can choose 𝑞𝑛 𝐳𝑛 , set it to 𝑝 𝐳𝑛 𝐱 𝑛 , 𝐰 to get zero KL
+
+                                                  𝑝(𝐱, 𝑧)
+
+                                                                      𝑝(𝐱)
+
+
+
+
+                                                            <- Intractable!
+
+                                                                              8
+Amortized variational inference
+We could consider a separate parameterized model for each 𝑞𝑛 𝐳𝑛 ;
+this is expensive for large datasets!
+       Even if every 𝑞𝑛 𝐳𝑛 is a diagonal Gaussian, we have 𝑁 × 2𝑄 parameters
+
+   Let us train a single network to approximate all these distributions!
+
+We consider an amortized variational posterior 𝑞 𝐳 𝐱, 𝜙 , where
+• 𝜙 denotes the parameters of the encoder or inference network
+• The encoder maps a datapoint to the parameters of the variational distribution
+
+
+We can consider the variational distribution to be a tractable approximation of
+the true posterior: 𝑞 𝐳 𝐱, 𝜙 ≈ 𝑝 𝐳 𝐱, 𝐰
+                                                                                   9
+Reparameterization trick
+Hang on… The lower bound is still intractable!
+
+
+
+
+   Monte-Carlo estimate
+                                             KL between two Gaussians; can
+                                                be computed analytically
+
+
+               are drawn from
+
+                                                                             10
+Reparameterization trick
+We can “reparameterize” the random variable                  using
+
+                                     where
+Note:
+1.           is differentiable wrt
+2.   does not depend on
+
+
+
+
+                                              Fig. from “Deep Generative Modeling” – Jakub Tomczak
+                                                                                                     11
+                                                        Deterministic
+                                                        node
+Reparameterization trick                                Stochastic
+                                                        node
+
+              𝑓               Backprop   𝑓
+
+                                𝜕𝑓
+𝐳~𝒒 𝐳|𝐱, 𝜙    𝐳                          𝐳     𝐳 = 𝐠 𝜙, 𝐱, 𝛜
+                                𝜕𝐳
+
+
+                         𝜕𝑓
+     𝜙        𝐱                  𝜙       𝐱       𝛜
+                         𝜕𝜙
+
+         Original form          Reparameterized form
+                                                                        12
+The Variational Autoencoder (VAE)
+A generative latent variable model consisting of 3 key ideas:
+1. Use of the ELBO to approximate the likelihood
+
+
+
+2. Amortized inference in which an encoder approximates the posterior
+   distributions over latents
+
+3. Training is made tractable using
+   the reparameterization trick for
+   computing gradients
+
+                                                                        13
+Latent representation
+𝑞 𝐳 𝐱, 𝜙 ≈ 𝑝 𝐳 𝐱, 𝐰 gives a stochastic latent representation of data,
+e.g. for MNIST:
+
+
+
+
+                                                        Fig. from https://argmax.ai/blog/vhp-vae/
+                                                                                                    14
+

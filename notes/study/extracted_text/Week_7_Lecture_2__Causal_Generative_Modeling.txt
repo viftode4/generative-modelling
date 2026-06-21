@@ -1,0 +1,587 @@
+                                                                                         DSAIT4030 · Generative Modelling
+
+
+
+
+FROM CORRELATION TO CAUSATION
+
+
+
+Causal Generative Modeling
+
+
+
+Anuj Singh
+PhD Candidate · Researching Lifelong Learning using Causal Representations · Tapri Lab
+a.r.singh@tudelft.nl
+COURSE MODULE
+
+Where this lecture is going
+ 1   Why causal?
+
+ 2   What makes representations causal?
+
+
+ 3   How are representations made causal?
+
+ 4   How do we model world dynamics causally?
+
+
+ 5   How do these causal world models help agents?
+
+
+
+
+                                                     02
+Prompt = a cow.   Prompt = a cow on a beach.
+
+
+
+
+                             ?
+
+
+
+
+                                               03
+1 · WHY CAUSAL
+
+Generative models learn correlations,
+not causes
+
+
+
+
+                                                   Spurious correlations & shortcut learning — keying on the
+    VAEs, flows, GANs and diffusion fit a data
+                                                   background, not the object.
+    density p(x) and sample from it with
+    remarkable fidelity — by capturing                   Poor out-of-distribution behaviour when the world shifts.
+
+    correlations among features.
+                                                   No explanation of what generated the data.
+
+
+                                                 To fix this we climb from what goes together to what produces what.
+
+
+
+
+Arjovsky et al., 2020 · Schölkopf et al., 2021                                                                       03
+1 · WHY CAUSAL
+
+Pearl's ladder of causation
+
+
+
+
+                                                     Seeing         When I prompt 'a cow' and sample, what images
+                                                                    come out?
+
+
+                                        Imagining    Doing          If I force the background to be a beach and
+                         Doing                                      generate, what cow images come out?
+ Seeing
+                                                     Imagining      This specific cow I just generated on grass, what
+                                                                    would it have looked like on a beach?
+
+
+
+                                                    Each rung needs the one above it: L1 ⊂ L2 ⊂ L3 .
+
+
+
+
+Pearl, 2019 · Bareinboim et al., 2022                                                                               04
+1 · WHY CAUSAL
+
+Structural causal models
+
+An SCM generates each variable from its
+parents and its own noise term:
+
+
+  MECHANISMS & ENTAILED DISTRIBUTION
+
+
+
+
+  ε The noise (exogenous) terms εi are everything outside the
+    model that influences z i — the unmodeled, individual-specific
+    sources of variation.
+
+                                                                     z₃ = f₃(z₁, z₂, ε₃) — an SCM is a generative model of
+                                                                                           the world
+
+
+
+
+Pearl, 2009                                                                                                                  05
+1 · WHY CAUSAL · L2
+
+Interventions and the do-operator
+An intervention edits a mechanism, and we re-read the entailed distribution.
+Take z₁ → z₂ , observationally p(z₁, z₂) = p(z₁).p(z₂ | z₁).
+
+  HARD INT ER VENTI ON                                                  SOFT INT ER VENTI ON
+
+
+
+
+  IN GENERAL — SURGERY ON THE FACTORIZATION
+
+
+
+
+Pearl, 2009 · Peters et al., 2017                                                              06
+1 · WHY CAUSAL · L3
+
+Counterfactuals
+A unit-level query relative to a factual observation. We observed image x₁ = g(prompt = “a cow”)
+- a specific cow on grass and ask: what would this same cow look like on a beach?
+
+
+  STEP 1 · A BDUCT ION                                   STEP 2 · A CTION                         STEP 3 · P REDIC TIO N
+ Infer the noise that explains this unit from what       Apply the intervention to the SCM.       Recompute, reusing the same εx1.
+ we saw.                                             →                                        →
+
+
+
+
+  THE COUNTERFACTUAL QUERY
+
+
+
+
+Pearl, 2009 — abduction · action · prediction                                                                                        07
+1 · WHY CAUSAL
+
+
+Why causality for generative models?
+
+
+
+
+Non-causal controllable generation samples
+p(x | a) — limited to attribute combinations
+seen in training .
+A causal model goes further:
+
+  Generate unseen combinations , with downstream effects
+  propagated automatically.
+                                                           Pawlowski et al. (DeepSCM), 2020
+  Edit one attribute while holding the rest fixed.
+                                                               Counterfactual MRI: “Generate the MRI of this brain,
+                                                                       had the patient been 40 years older"
+
+
+
+
+Schölkopf et al., 2021                                                                                                08
+2 · DISENTANGLED REPRESENTATIONS
+
+
+What disentanglement is, and why we need it
+
+
+                                                   Isolated factors are what let us climb the ladder inside the latent space:
+A few latent factors generate x through a
+                                                   L1 · See           interpretable, robust associations that don't hinge on spurious features.
+mixing function: x = g(z).
+A representation is disentangled when each         L2 · Do            intervene on one factor (do(zi)) without disturbing the others.
+
+factor is axis-aligned with one coordinate.
+                                                   L3 · Imagine       counterfactuals that imagine a change in a single semantic factor,
+                                                                      holding the rest fixed to what was observed.
+  vary z₁ → position              vary z₂ → size
+
+
+
+
+Bengio et al., 2013 · Locatello et al., 2020                                                                                             09
+3 · IDENTIFIABILITY
+
+The identifiability problem
+
+
+
+
+• A standard generative model only ever matches the marginal      IDENTIFIABILITY
+  p(x).
+• Independence penalties push the codes apart but cannot pin
+  down which factors they are.
+                                                               It guarantees that however often we re-train, we recover the same
+   • recall KL-divergence with isotropic gaussian in VAE
+                                                               factors up to harmless ambiguities.
+
+                                                               A model is unidentifiable when different internals explain the same
+                                                               data equally well.
+
+
+
+
+Locatello et al., 2019 · Khemakhem et al., 2020                                                                                      10
+3 · IDENTIFIABILITY
+
+Identifiability theory starts with ICA
+
+
+
+                                                         Rotated Gaussian — invariant to rotation,
+      INDEPENDENT COMPONENT ANALYSIS                     so every rotation is an equivalent solution.
+                                                         (why PCA's axes aren't identifiable)
+
+
+
+      Linear g (x = As) is identifiable — provided at
+      most only one source is Gaussian.                  Darmois construction — a CDF transform yields
+                                                         independent uniforms, but unrelated to the true sources.
+
+      Nonlinear g is not identifiable: infinitely many
+      independent s
+                  ̃ = h(x) fit equally well.
+
+                                                                ⟹ Unsupervised disentanglement is impossible without
+                                                                an inductive bias or auxiliary signal.
+
+
+
+
+Comon, 1994 · Hyvärinen & Pajunen, 1999 · Locatello et al., 2019                                                       11
+3 · IDENTIFIABILITY
+
+Injectivity and the mixing function
+
+
+
+
+We assume the mixing g : ℝⁿ → ℝᵈ is
+injective, often diffeomorphic:
+
+ Injective → distinct latents never collapse to the same x; g is
+ invertible on its image.
+
+ Diffeomorphic → smooth map with a smooth inverse.
+
+ So, inverting to z is well-posed - no information is destroyed.   a low-dimensional manifold embedded in high-dimensional
+ Necessary, but not sufficient.                                                             space
+
+
+
+
+Manifold hypothesis · n ≪ d                                                                                                  12
+3 · IDENTIFIABILITY
+
+Identifiable — up to what?
+
+
+
+
+We never recover factors exactly , only up to
+tolerable ambiguities. Two milestones:
+
+  Affine equivalence — up to an invertible linear map.
+  Too weak: still entangled.
+
+  Permutation equivalence — reordering + per-axis rescaling.
+  This is disentanglement.
+
+
+
+
+Khemakhem et al., 2020                                         13
+    ROUTES TO IDENTIFIABILITY · 1 / 4
+
+Latent conditioning — iVAE
+
+
+
+Condition the latents on an observed auxiliary variable u
+(class, domain, time index).
+                                                                 architecture
+With a conditionally factorized exponential-family prior the
+factors become identifiable.                                            x   →   q(z|x,u)         →   z   →        p(x|z)    →   x̂
+                                                                                 encoder                          decoder
+
+                                                                                   →
+  CONDITIONAL PRIOR                                                                        u             p(z|u)
+                                                                                     auxiliary
+                                                                                                     →    prior
+
+
+
+
+  OBJECTIVE — CONDITIONAL ELBO
+                                                               RESULT   Identifiable up to permutation, given enough variability
+                                                                        in u.
+
+
+
+
+Khemakhem et al., 2020 — iVAE                                                                                                        14
+    ROUTES TO IDENTIFIABILITY · 2 / 4
+
+Multi-view & contrastive learning
+
+
+Use pairs of views that share a subset S of
+factors — e.g. a scene before and after a                                      two views, shared content
+sparse change. The shared structure supplies
+                                                                                                  x₁   →     f(·)     →   z₁
+the variability needed to identify factors.                                                                 encoder
+
+
+
+
+                                                                                                       →     f(·)     →
+  PAIRED GENERATIVE PROCESS                                                                       x₂
+                                                                                                            encoder
+                                                                                                                          z₂
+
+
+
+                                                                                      align shared factors · contrast the rest
+where f keeps z on the shared set S and resamples the rest.
+A contrastive objective then provably inverts the data-generating process.
+                                                                             RESULT    Block-identifies the shared content latents.
+
+
+
+
+Locatello et al., 2020 · Zimmermann et al., 2021 · von Kügelgen et al., 2021                                                          15
+    ROUTES TO IDENTIFIABILITY · 3 / 4
+
+Restricting the mixing — IMA
+
+
+Independent Mechanism Analysis
+constrains the geometry of the decoder: the
+columns of the mixing Jacobian must be             orthogonal Jacobian columns
+orthogonal , so each source influences the
+output through its own channel.
+
+
+   IMA CONDITION
+
+
+
+
+Added as a regularizer on the decoder
+                                                 RESULT   An inductive bias that yields identifiability with no
+Jacobian, it shrinks the solution space toward            auxiliary data.
+the true factors — without any labels.
+
+
+
+
+Gresele et al., 2021 · Reizinger et al., 2022                                                                     16
+    ROUTES TO IDENTIFIABILITY · 4 / 4
+
+Sparsity
+
+
+Structural sparsity: for each latent zi there
+is a set of observed variables that only it                                             sparse mixing — z → x
+generates. Sparse wiring between sources
+and observations breaks the symmetry.
+
+
+  SPARSE MIXING SUPPORT
+
+
+
+                                                                                                    x₃ is generated by z₂ alone
+Variants add sparse mechanisms between latents, or a sparse temporal action graph.
+
+                                                                                     RESULT Disentanglement from sparsity — no labels, no pairs.
+
+
+
+
+Zheng et al., 2022 · Lachapelle et al., 2022                                                                                                       17
+3 · IDENTIFIABILITY
+
+The causal ingredients
+
+
+
+
+ Causal representation learning keeps identifiability:
+                                                         Independent Causal Mechanisms — each mechanism is
+                                                         autonomous; intervening on one leaves the others unchanged.
+  FACTORS MAY BE CAUSALLY DEPENDENT
+
+                                                         Sparse Mechanism Shift — distribution shifts touch only a few
+                                                         mechanisms → built-in robustness.
+
+
+
+
+Schölkopf et al., 2021                                                                                              18
+4 · MODELING WORLD DYNAMICS
+
+From static factors to dynamics over
+time
+
+
+In an interactive environment we observe a
+sequence of images Xt and the agent's action
+Rt. Hidden causal variables zt evolve like a
+dynamic Bayesian network and generate each
+frame, Xt = g(zt).
+
+
+   A LEARNED, ACTION-CONDITIONED TRANSITION MODEL
+
+
+                                                    latent states transition under actions; each emits an
+                                                                         observation
+The same identifiability question returns — now
+across time, conditioned on actions.
+
+
+
+
+Lippe et al., 2023 — BISCUIT                                                                                20
+4 · MODELING WORLD DYNAMICS
+
+BISCUIT — identifiability from binary
+interactions
+
+
+• Key assumption: the agent's effect on each causal variable is
+   a binary interaction Iti ∈ {0,1}                               action → binary interaction mask → mechanism per latent
+• This means, every variable has two mechanisms (observational
+                                                                                     Rt
+                                                                                            →    MLP     →    0     1      0     1
+   vs. interventional), like a soft intervention.                                  action
+
+
+
+
+   INTERACTION = UNKNOWN FUNCTION OF THE ACTION                   Distinct interaction patterns (+ variability) make causal variables identifiable
+                                                                  up to permutation — breaking the Gaussian rotation symmetry.
+
+
+e.g. pressing a button, opening a door, colliding
+with an object — each switches a variable's
+dynamics.
+
+
+
+
+Lippe et al., 2023 — BISCUIT                                                                                                                         21
+4 · MODELING WORLD DYNAMICS
+
+BISCUIT — a causal transition prior
+
+
+
+A VAE with a structured prior : per latent, an
+MLP infers the interaction Îti from (zt-1, Rt) ,    prior structure (per latent i)
+
+then a second MLP outputs that latent's next-
+                                                             zt-1, Rt       →         MLP           →      Ît i
+step distribution.                                                                interaction
+
+
+
+
+  FACTORIZED, ACTION-CONDITIONED TRANSITION PRIOR                                  MLP
+                                                           Îti, zt-1    →       transition
+                                                                                                →       μt i , σt i
+
+
+
+                                                    each latent = a causal variable the action can
+                                                      switch → controllable generation of unseen
+  OBJECTIVE — ELBO OVER OBSERVATION TRIPLETS                            states
+
+
+
+
+Lippe et al., 2023 — BISCUIT                                                                                          22
+5 · CAUSALITY FOR PLANNING
+
+Language agents meet causality
+
+
+
+• An LLM's commonsense causality is often incomplete or wrong for a
+  specific environment.
+                                                                               one rollout step of the causal world model
+
+  So, wrap a BISCUIT causal world model around it acting as a                          image Xt      →       Causal encoder    →   latents zt
+                                                                                                                 BISCUIT
+  learned simulator the LLM can query.
+
+                                                                                 Transition model              state descriptor              LLM
+                                                                                                         →                         →
+  Causal latents are grounded in natural language — a flexible interface for        pω(zt|zt-1, a)                    → text           proposes action a
+
+  the LLM.
+                                                                                   the LLM's text action feeds back in — the loop
+                                                                                            autoregresses in latent space
+  Text-based actions replace hand-coded action encodings — intuitive and
+  data-efficient.
+
+
+
+
+Gkountouras et al., 2024 — Language Agents Meet Causality                                                                                                  23
+5 · CAUSALITY FOR PLANNING
+
+Planning with action-conditioned
+causal rollouts
+
+
+
+                                                                       RESULT   Causally-aware planning outperforms LLM-only
+   THE WORLD MODEL, WITH TEXT ACTIONS L T                                       reasoners — and the gap grows with the planning
+                                                                                horizon .
+
+
+
+   The LLM rolls out candidate actions in latent space and
+   evaluates several possible futures before committing.
+
+   BISCUIT's identifiability makes those predicted effects reliable,
+   not hallucinated.
+
+
+
+
+Gkountouras et al., 2024                                                                                                          24
+6 · WORLD MODELS
+
+Causal-JEPA — world models by
+object-level masking
+
+
+
+JEPA predicts world states in representation space , never pixels.
+C-JEPA runs it over object-centric latents and enforces causal
+learning by masking object-level latents as a latent intervention.       object-level masked prediction
+
+
+
+  Each masked object must be inferred from the others →
+  counterfactual-like prediction queries.
+
+  This blocks shortcut solutions (trivial interpolation) and makes
+  interaction reasoning necessary.
+
+Assumes an object-centric encoder; actions enter as optional auxiliary
+variables.
+
+
+
+
+Nam et al., 2026 — Causal-JEPA                                                                            25
+That’s all folks
+
+
+
+
+                   25
+

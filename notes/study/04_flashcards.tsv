@@ -1,0 +1,45 @@
+Front	Back
+Generative vs discriminative model?	Generative models model data generation, e.g. p(x) or p(x,y), and can sample; discriminative models model decisions/conditionals, e.g. p(y|x).
+Why does KL(p_data || pθ) give maximum likelihood?	The data entropy term is constant in θ, so minimizing KL equals maximizing expected log pθ(x) over data.
+Standard latent variable joint?	pθ(x,z)=pθ(x|z)p(z).
+Why is latent-variable marginal likelihood hard?	It requires summing/integrating over z, often intractable for nonlinear or high-dimensional models.
+EM E-step?	Update posterior beliefs/responsibilities over latent variables under current parameters.
+EM M-step?	Update parameters to maximize expected complete-data log-likelihood or ELBO.
+PPCA covariance form?	C = W W^T + σ²I.
+VAE encoder role?	Approximate posterior qφ(z|x), amortizing inference over data points.
+VAE decoder role?	Generative likelihood pθ(x|z), mapping latent samples to observations.
+VAE ELBO in words?	Expected reconstruction/log-likelihood minus KL between approximate posterior and prior.
+Reparameterization trick?	Sample z as μ + σ⊙ε with external ε so gradients flow through μ and σ.
+EBM density?	pθ(x)=exp(-Eθ(x))/Zθ.
+Why is EBM training hard?	The partition function and model expectation/negative phase are intractable, requiring approximate sampling.
+EBM positive phase?	Lower energy of observed data.
+EBM negative phase?	Raise energy of model-generated negative samples.
+Normalizing flow requirement?	Invertible differentiable transform with tractable Jacobian determinant.
+Flow likelihood formula idea?	Base log-density at inverse point plus log absolute determinant of inverse Jacobian.
+Flow strength?	Exact likelihood and efficient sampling/inference when architecture constraints are satisfied.
+Score function?	Gradient of log-density with respect to x: ∇x log p(x).
+Why score ignores partition function?	The gradient of log Z with respect to x is zero.
+Denoising score matching reason?	Noise perturbation makes score learning well behaved around data manifolds and across noise levels.
+Langevin sampling?	Iteratively move in the score direction and add noise.
+Annealed Langevin?	Run Langevin across decreasing noise levels.
+Diffusion forward process?	Gradually add noise to data until it approaches a simple noise distribution.
+Diffusion reverse process?	Learn denoising transitions that turn noise back into data.
+DDPM common prediction target?	The added Gaussian noise ε at a timestep.
+Diffusion as hierarchical VAE?	Noising steps define latent hierarchy; training can be written as an ELBO-like objective.
+Probability flow ODE?	Deterministic ODE with marginals matching the stochastic diffusion process.
+CNF?	Continuous normalizing flow: samples evolve by an ODE dx/dt=vθ(t,x).
+Why divergence in CNF?	Divergence measures local volume expansion/contraction and thus log-density change.
+Flow matching intuition?	Supervise a vector field to move samples from noise to data without simulating full flows during training loss.
+Likelihood metric caveat?	High likelihood does not necessarily imply high perceptual sample quality.
+Inception Score caveat?	Depends on classifier/domain assumptions and does not compare directly to real data distribution.
+FID measures?	Distance between Gaussian feature statistics of real and generated samples.
+MMD/KID measures?	Kernel two-sample discrepancy between real and generated distributions/features.
+Precision in generative evaluation?	How realistic/fidelitous generated samples are.
+Recall in generative evaluation?	How much of the real data distribution/diversity the model covers.
+Conditioning vs guidance?	Conditioning feeds desired information into the model; guidance steers sampling with a condition/objective gradient or prediction combination.
+Classifier-free guidance?	Combines conditional and unconditional model predictions to steer diffusion without a separate classifier.
+Why proteins are hard generation targets?	They require geometric, physical, functional, and discrete-structure validity, not only plausible samples.
+Causal generative modeling motivation?	Avoid shortcut correlations and improve robustness under interventions/distribution shift.
+Intervention?	Actively setting/changing a causal variable.
+Counterfactual?	What would have happened for the same instance under a different condition/action.
+Identifiability?	Recoverability of underlying latent/causal factors from observations under assumptions.

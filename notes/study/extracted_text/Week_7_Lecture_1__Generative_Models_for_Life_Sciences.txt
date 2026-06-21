@@ -1,0 +1,593 @@
+Lecture 10: Generative Models for
+Life Sciences
+Controlling Diffusion Models for
+Protein Design
+
+DSAIT4030 - Generative Modeling 02-06-26
+
+
+Amelia Villegas-Morcillo
+Senior Researcher at LUMC & TU Delft
+Part I – From diffusion to controlled generation
+In the first 45 mins we will…
+
+
+
+▪ Motivate the need for controllable diffusion
+
+▪ Learn mechanisms of conditioning & guidance in diffusion models
+
+▪ Introduce representations for protein generation
+
+
+
+
+                                                                    2
+Why controllable diffusion models?
+▪ Well-known success in image and        ▪ But also, revolutionized the fields of
+  video generation                         protein and small molecule design
+
+
+▪ Example: Transform images into         ▪ Example: Generate novel proteins that
+  visuals with a few descriptive words     bind to target molecules
+
+
+
+
+Source: NVIDIA Research                  Source: RFDiffusion                        3
+Core question:
+
+How to sample useful data points, not
+just plausible ones?
+Recap: Diffusion as iterative denoising
+                                                          𝑞 𝐱 𝑡 𝐱 𝑡−1 = 𝑁 𝐱 𝑡 ; 1 − 𝛽𝑡 𝐱 𝑡−1 , 𝛽𝑡 𝐈
+                                                  iteratively add noise on forward process
+𝑞 𝐱 0 is unknown                                                                                              𝑞 𝐱 𝑇 |𝐱 𝑇−1 ≈ 𝑁 0, 1
+
+
+         Data                                                                                                       Noise
+        (𝑡 = 0)                                                                                                     (𝑡 = 𝑇)
+
+
+                                              learn to remove this noise on reverse process                     𝑝 𝐱 𝑇 = 𝑁 0, 1
+                                                                                                             easy to sample from
+                                                      𝑝𝜃 𝐱 𝑡−1 𝐱 𝑡 = 𝑁 𝐱 𝑡−1 ; 𝝁𝜃 𝐱 𝑡 , 𝑡 , 𝚺𝜃 𝐱 𝑡 , 𝑡
+
+
+
+                                                     𝐿𝑠𝑖𝑚𝑝𝑙𝑒 = 𝔼𝐱0,𝑡,𝝐 𝝐 − 𝝐𝜃 𝐱 𝑡 , 𝑡                    2
+
+
+Source: Ho et al. (2020) - Denoising diffusion probabilistic models                                                             5
+Recap: DDPM training and sampling
+
+
+                                                                                  sample from prior
+
+
+
+
+    predicted                     𝐱 𝑡 , noised sample                 predicted      add noise back for
+      noise                            at timestep 𝑡                    noise          stochasticity
+
+
+Source: Ho et al. (2020) - Denoising diffusion probabilistic models                                   6
+Controlling the generation process
+
+      Unconditional               Conditional
+
+      Sample from 𝑝 𝐱             Sample from 𝑝 𝐱 𝐲
+
+      - Broad data distribution   - Target a specific class
+      - e.g., images of animals   - e.g., cat images
+
+
+                    𝑝 𝐱                      𝑝 𝐱 𝐲 = "cat"
+
+
+
+
+                                                              7
+Controlling the generation process
+Learn a conditional generative model 𝑝 𝐱 𝐲 by training on data pairs 𝐱, 𝐲
+(e.g., images and captions)
+
+
+
+
+     𝐱𝑡
+                                                          𝝐𝜃 𝐱 𝑡 , 𝑡, 𝐲
+
+     𝑡
+     𝐲
+
+
+
+                                                                            8
+Conditioning vs guidance
+Often used interchangeably in literature; both model conditional 𝑝 𝐱 𝐲 ; differences:
+
+
+
+  Conditioning                                  Guidance
+
+  Changes in the target distribution            Changes in the sampling trajectory
+             𝑝 𝐱 → 𝑝 𝐱 𝐲                                 𝐱 𝑡 ← 𝐱 𝑡 + 𝛼∇𝐱 𝑓 𝐱 𝑡
+
+  The condition is part of the model input      An external objective steer generation
+  or probabilistic formulation                  during sampling towards desired regions
+
+
+  What should be generated given context?          Where should the sample move to?
+       e.g., context-given inpainting               e.g., gradient-based guidance
+
+                                                                                          9
+Classifier guidance
+Sampling from a conditional generative model:                                      forward model (classifier)
+                                                                        𝑝 𝐱 𝑝 𝐲| 𝐱
+                                                                𝑝 𝐱 𝐲 =
+                                                                           𝑝 𝐲
+
+However, we need an estimation of the score function:
+                                                        𝑝 𝐱 𝑝 𝐲| 𝐱
+                ∇𝐱 log 𝑝 𝐱 𝐲 = ∇𝐱 log
+                                                           𝑝 𝐲
+                                                                                          0
+                                         = ∇𝐱 log 𝑝 𝐱 + ∇𝐱 log 𝑝 𝐲| 𝐱 − ∇𝐱 log 𝑝 𝐲
+                                         = ∇𝐱 log 𝑝 𝐱 + ∇𝐱 log 𝑝 𝐲| 𝐱                               Different forward
+                                                                                                    models for the same
+                             unconditional score classifier gradient                                score model
+                                  ≈ 𝒔𝜽 𝐱
+
+
+Source: Dhariwal & Nichol (2021) - Diffusion Models Beat GANs on Image Synthesis                                     10
+Classifier guidance on timestep 𝑡
+                   Diffusion model              Noise 𝝐𝜃
+
+
+                                                              ෤𝝐𝜃 𝐱 𝑡 , 𝑡, 𝐲
+
+ 𝐱𝑡 , 𝑡
+                                                           guidance
+                                     Gradient              (scale 𝑤)
+                                ∇𝐱𝑡 log 𝑝𝜙 𝐲| 𝐱 𝑡 , 𝑡
+
+
+              Classifier 𝜙
+
+
+          ෤𝝐𝜃 𝐱𝑡 , 𝑡, 𝐲 = 𝝐𝜃 𝐱 𝑡 , 𝑡 + 𝑤𝜎𝑡 ∇𝐱𝑡 log 𝑝𝜙 𝐲| 𝐱 𝑡 , 𝑡
+                                                                               11
+Classifier-free guidance (CFG)
+          Classifier guidance requires training a forward model (classifier) for all noisy
+          versions of the data samples
+
+          Can we do better? → Classifier-free guidance!
+
+          Train both conditional + unconditional diffusion model together (by randomly
+          dropping the condition 𝐲) → implicitly learn the classifier
+
+                                               ∇𝐱 log 𝑝 𝐲| 𝐱 = ∇𝐱 log 𝑝 𝐱 𝐲 − ∇𝐱 log 𝑝 𝐱
+
+                                                 implicit                conditional unconditional
+                                                classifier!         diffusion model diffusion model
+
+
+
+Source: Ho & Salimans (2021) - Classifier-Free Diffusion Guidance                                     12
+CFG modified score
+Combining the two models with a guidance strength 𝑤
+                ∇𝐱 log 𝑝 𝐱 𝐲 = ∇𝐱 log 𝑝 𝐱 + 𝑤∇𝐱 log 𝑝 𝐲 | 𝐱                                 classifier guidance
+                                          = ∇𝐱 log 𝑝 𝐱 + 𝑤 ∇𝐱 log 𝑝 𝐱 𝐲 − ∇𝐱 log 𝑝 𝐱
+Predicted noise at timestep 𝑡:
+                                      𝝐෤ 𝜃 𝐱𝑡 , 𝑡, 𝐲 = 𝝐𝜃 𝐱 𝑡 , 𝑡, ∅ + 𝑤 𝝐𝜃 𝐱 𝑡 , 𝑡, 𝐲 − 𝝐𝜃 𝐱 𝑡 , 𝑡, ∅
+          where ∅ means empty conditioning (dropped during training)
+
+CFG sits at the boundary!
+▪ Conditioning: model learns to denoise under 𝐲 → approximate 𝑝 𝐱 𝐲
+▪ Guidance:       at sampling, amplify conditional direction with 𝑤 → change trajectory
+
+
+Source: Ho & Salimans (2021) - Classifier-Free Diffusion Guidance                                                 13
+CFG sits at the boundary
+                            ෤𝝐𝜃 𝐱𝑡 , 𝑡, 𝐲 = 𝝐𝜃 𝐱𝑡 , 𝑡, ∅ + 𝑤 𝝐𝜃 𝐱 𝑡 , 𝑡, 𝐲 − 𝝐𝜃 𝐱 𝑡 , 𝑡, ∅
+
+ 𝑤 = 0: unconditional sampling; 𝑤 = 1: conditional sampling; 𝑤 > 1: stronger guidance
+
+
+
+
+                                                                                             𝑤
+Source: Ho & Salimans (2021) - Classifier-Free Diffusion Guidance                                14
+Video on conditional generation
+
+
+
+
+                                  15
+Wait a second…
+
+But why are proteins an interesting
+use case for generative modeling?
+Diverse protein applications
+▪ Nature has evolved proteins to perform necessary functions for life
+▪ Humans have engineered proteins for different applications
+
+
+
+
+         Genome editing                                         Bioprocessing            Drug discovery
+      E.g., CRISPR for plants                              E.g., Plastic degradation   E.g., Biotherapeutics
+
+
+Images from: NIH Genome News & Genetics Engineering and Biotechnology News                                     17
+Proteins come in different modalities!
+                              Determines                          Determines
+
+
+           Sequence                             Structure                            Function
+
+     𝐱 = amino acid tokens               𝐱 = 3D atom coords,                 𝐱 = family, interactions,
+     (vocabulary of ~20)                 local frames or angles              cellular location, etc.
+
+     MQIFVKTLTGKTITLEVEPSDTIE                                                Ubiquitin, small regulatory
+     NVKAKIQDKEGIPPDQQRLIFAG                                                 protein that tags obsolete
+     KQLEDGRTLSDYNIQKESTLH…                                                  proteins for destruction
+
+
+
+ -   Sequence alignments             -   3D atom coordinates (Cα,        -    Text (natural language)
+ -   Amino acid properties               backbone, or full), angles      -    Labels (discrete or
+ -   Protein language model          -   Distance maps (Cα-Cα)                continuous)
+     embeddings                      -   Graphs (threshold on maps)
+
+                                                                                                           18
+Generative protein design pipeline
+  Condition (motif,                               Structure and/or sequence generation                   Prediction + filtering
+   target, family)                                          (diffusion models)                         (opt. wet lab validation)
+
+
+
+   Function                                    Structure                             Sequence                 Final designs
+
+
+
+                         Structure                                   Sequence
+                                                                                                Filtering
+                        generation                                   generation
+
+
+
+
+Credits: Jason Yim (2025) – MIT Introduction to Flow Matching and Diffusion Models                                                 19
+Time for a break!
+Part II – Controlling protein design
+In the second 45 mins we will show three case studies…
+
+
+
+▪ Motif scaffolding    = geometric conditioning
+
+▪ Antibody co-design   = modality + interaction conditioning
+
+▪ Latent diffusion     = latent semantic guidance
+
+
+
+
+                                                               21
+The motif-scaffolding problem
+Similar to image inpainting problem      Motif → functional site of the protein
+                                         Scaffold → structure that supports a motif
+
+                                                                           Sequence
+
+                                                 LEAF????KEM                              LEAFEKALKEM
+
+
+                                                                                                             scaffold
+
+
+
+
+                                                                                                                motif
+                                                                           Structure
+
+                                      Source: Wang et al. (2022) - Scaffolding protein functional sites using deep learning   22
+Why motifs matter
+▪ In many protein design cases, we are not interested in modifying the motif to
+  maintain the protein function
+
+▪ In turn, we want to optimize the scaffold to get a protein with better properties
+  (e.g., more stable)
+
+▪ Conditional generation problem → given a functional motif, generate a protein
+  scaffold that supports it
+                                𝑝 𝐱 = scaffold | 𝐲 = motif
+
+
+▪ Example of motif: enzyme active sites
+
+
+
+                                                                                      23
+Unconditional protein structure design
+Gaussian diffusion (standard DDPM) on
+3D coordinates for Cα atoms (one per
+amino acid)
+
+
+
+
+Source: Trippe et al. (2023) - Diffusion probabilistic modeling of protein backbones in 3D for the motif-scaffolding problem   24
+Structure diffusion needs geometric models
+Desired property → Equivariance
+▪ Translations, rotations, and reflections
+  applied to the input correspond to
+  the same transformations at the output
+                      𝐑𝑓 𝒙 = 𝑓 𝐑𝒙
+
+
+
+
+Denoiser → Equivariant GNN
+▪ Protein as a graph: nodes are Cα atoms,
+  edges represent spatial proximity (Cα-Cα)
+                                                                                                                   2
+▪ EGNN messages use pairwise distances:                                             𝐦𝑖𝑗 = MLP 𝐡𝑖 , 𝐡𝑗 , 𝐱 𝑖 − 𝐱𝑗
+▪ Coordinate updates use relative positions:                                            𝐱 𝑖 ← 𝐱 𝑖 + σ𝑗≠𝑖 𝐱 𝑖 − 𝐱𝑗 MLP 𝐦𝑖𝑗
+
+Source: Hoogeboom et al. (2022) - Equivariant Diffusion for Molecule Generation in 3D                                       25
+Motif-conditioned protein structure design
+▪ Motif is fixed during generation
+▪ Random noise 𝐱 𝑠𝑇 + motif 𝐱 𝑚 → input to RFdiffusion
+▪ Iteratively refines that noise until a final protein structure is designed
+
+
+     Functional motif                                   Random noise                                                Motif-scaffolding
+            𝐱𝑚                                           𝐱 𝑠𝑇 ~ 𝑁 𝐎, 𝐈                        𝐱 𝑠𝑡 | 𝐱 𝑠𝑡−1 , 𝐱 𝑚      𝐱 𝑠0 | 𝐱1𝑠 , 𝐱 𝑚
+
+
+
+
+Source: Watson et al. (2023) - De novo design of protein structure and function with RFdiffusion                                          26
+We have seen an example of intra-
+protein conditional backbone design…
+
+How can we extrapolate this to
+protein-protein interaction design?
+The antibody design problem
+▪ Antibodies are proteins produced by the immune system in response to antigens
+▪ CDR loops determine interaction → affinity and specificity
+▪ Conditional generation problem → generate antibody CDRs that bind to antigen,
+  given antibody framework
+                 𝑝 𝐱 = antibody CDRs | 𝐲 = antigen, antibody framework
+
+
+                                Antibody (Ab)                 CDR-L3     CDR-L1
+Antigen (Ag)                      structure        CDR-H2
+ structure
+                                                                                      Ab
+                                                                                  framework
+
+                                                              CDR-H3
+                           Ab variable regions
+                                                     CDR-H1       CDR-L2
+                                                                                         28
+Diffusion for antibody design
+▪ For antibody design, diffusion models can generate CDR sequences and structures
+
+▪ Multimodal:
+  ▪ Sequence (discrete) → amino acid types
+  ▪ Backbone geometry (continuous) → Cα atom coordinates + local orientations
+
+
+▪ Conditioning signals:
+  ▪ Three modalities of bound antigen + antibody framework (around CDRs)
+
+
+
+
+Source: Luo et al. (2022) - Antigen-specific antibody design and optimization with diffusion-based generative models   29
+Diffusion for antibody design
+▪ Three modalities → three interacting diffusion processes
+▪ Common denoiser for sequence and structure → equivariant
+
+
+
+
+                                                                         Orientation-
+                                                                          aware 3D
+                                                                       attention model
+
+
+
+                                                              Generative diffusion process
+
+
+Source: Luo et al. (2022) - Antigen-specific antibody design and optimization with diffusion-based generative models   30
+Three interacting diffusion processes
+                                 Forward diffusion process (𝒕 = 𝟎, … , 𝑻)                                              Prior distribution
+         Modality
+                                 Distributions 𝒒                                                                       (sampling at 𝒕 = 𝑻)
+                                 Multinomial distribution:
+         Amino acid                                                                            1 − 𝛼ത 𝑡                Uniform distribution
+         types                     𝑞 𝑠𝑗𝑡 |𝑠𝑗0   = Multinomial          𝛼ത 𝑡 ∙ onehot 𝑠𝑗0     +          ·𝟏             over 20 classes
+                                                                                                 20
+
+         Cα 3D                   Normal distribution:                                                                  Standard normal
+         coordinates                    𝑞 𝐱𝑗𝑡 |𝐱𝑗0 = 𝑁 𝐱𝑗𝑡 | 𝛼ത 𝑡 · 𝐱𝑗0 , 1 − 𝛼ത 𝑡 𝐈                                   distribution
+
+         Orientations            Isotropic Gaussian distribution in SO(3):                                             Uniform distribution
+         in SO(3)                  𝑞 𝐎𝑗𝑡 |𝐎𝑗0 = 𝐼𝐺SO 3 𝐎𝑗𝑡 | ScaleRot 𝛼ത 𝑡 · 𝐎𝑗0 , 1 − 𝛼ത 𝑡                            over SO(3)
+
+
+Conditional sampling:
+                                                              𝑝 𝑠𝑗𝑡−1 , 𝐱𝑗𝑡−1 , 𝐎𝑗𝑡−1 | 𝑅𝑡 , 𝐶
+                                                𝑝 𝐱 = CDR𝑡−1 | 𝐲 = CDR𝑡 , Ag, Ab framework
+
+Source: Luo et al. (2022) - Antigen-specific antibody design and optimization with diffusion-based generative models                          31
+Discrete diffusion for sequences
+▪ Instead of Gaussian noise, use token                                                                       Uniform noise   Absorbing noise
+  corruption through Multinomial diffusion
+
+▪ Noise → probability of transitioning from
+  one category to another (uniform) or to a
+  or to a mask [#] state (absorbing)
+
+▪ Defined by transition matrices 𝐐𝑡
+
+▪ Forward process:
+               𝑞 𝐱 𝑡 |𝐱 𝑡−1 = Cat 𝐱𝑡 ; 𝒑 = 𝐱 𝑡−1 𝐐𝑡
+
+
+
+Sources: Austin et al. (2021) - Structured denoising diffusion models in discrete state-spaces
+         Alamdari et al. (2023) - Protein generation with evolutionary diffusion: sequence is all you need
+                                                                                                                                          32
+Challenges increase when diffusing
+several modalities in the data space…
+
+Is there a better way to diffuse
+discrete or complex data?
+Latent diffusion!
+▪ Encoder to map data 𝐱 into (lower-dim) latent embeddings 𝐳
+▪ Forward + reverse Gaussian diffusion on the latent space
+▪ Decoder to reconstruct data 𝐱෤ from denoised latent embeddings 𝐳෤
+
+
+
+
+     Pre-trained encoder-decoder (e.g., VAE)              Diffusion model (e.g., DDPM)
+
+Source: Latent Diffusion Models - NeurIPS 2023 Tutorial                                  34
+Guidance in latent diffusion
+                                      Latents                               𝑞 𝐳𝑡 |𝐳𝑡−1
+
+
+
+
+                                                                   Reverse Diffusion Process
+                                                                        𝑝𝜃 𝐳𝑡−1 |𝐳𝑡 , 𝑡, 𝐲
+
+▪ Classifier-free guidance → on-off switch for the condition 𝐲
+▪ Conditioning is added through concatenation or cross-attention
+
+Source: Rombach et al. (2022) - High-Resolution Image Synthesis with Latent Diffusion Models   35
+Latent diffusion for protein sequences
+▪ Structural data is complex (geometry, preserve equivariance) and highly scarce
+      → protein sequence data is abundant and easier to manage
+
+▪ Discrete diffusion requires sampling from a Multinomial distribution
+
+▪ Can we use continuous representations for protein sequence design?
+     → DiMA: diffusion on protein language model embeddings (e.g., ESM-2)
+
+▪ Conditional generation problem → generate protein sequence embeddings
+  conditioned on motif, family, fold, text, etc.
+                                       𝑝 𝐱 = protein LM embeddings | 𝐲 = motif, fold, text
+
+
+
+Source: Meshchaninov et al. (2025) - Diffusion on language model encodings for protein sequence generation   36
+Diffusing protein language model embeddings
+
+
+                                                                                MSE on noise added
+                                                                               to latent embeddings
+
+
+
+
+Pre-trained
+protein LM
+
+
+
+
+                                                                                                       Different approaches:
+                                                                                                   training conditional models,
+                                                                                                     classifier guidance, CFG
+
+ Source: Meshchaninov et al. (2025) - Diffusion on language model encodings for protein sequence generation                       37
+Diffusing protein language model embeddings
+
+
+
+
+                                                                                                       Different approaches:
+                                                                                                      conditional fine-tuning,
+                                                                                                      classifier guidance, CFG
+
+Source: Meshchaninov et al. (2025) - Diffusion on language model encodings for protein sequence generation                       38
+The three cases put together
+
+    Example             Conditioning         Guidance         Diffusion space
+
+    Motif scaffolding   Motif geometry       Stability        3D structure
+
+                        Antigen + antibody   Affinity /       Sequence +
+    Antibody design
+                        framework            developability   geometry
+
+    Latent sequence                                           Protein LM
+                        Motif / fold         Family
+    design                                                    embeddings
+
+
+
+Control becomes increasingly abstract: geometry → interaction → latent semantics
+
+                                                                                39
+Lecture recap
+In this ~90 min, we have detailed:
+
+
+▪ Why controlled diffusion matters
+
+▪ How conditioning / guidance is implemented
+
+▪ Why protein design is a compelling domain for generative modeling
+
+▪ What changes when data are structured / geometric / discrete
+
+▪ Three case studies for protein generation
+       Questions?
+Interested in these research topics?
+    Email: a.o.villegasmorcillo@tudelft.nl
+
+
+                                             41
+References (I)
+▪ J. Ho, et al. “Denoising diffusion probabilistic models,” 34th Conference on Neural Information
+  Processing Systems (NeurIPS), 2020. [URL]
+▪ P. Dhariwal and A. Nichol. “Diffusion Models Beat GANs on Image Synthesis,” 35th Conference
+  on Neural Information Processing Systems (NeurIPS), 2021. [URL]
+▪ J. Austin, et al. “Structured denoising diffusion models in discrete state-spaces,” 35th
+  Conference on Neural Information Processing Systems (NeurIPS), 2021. [URL]
+▪ J. Ho and T. Salimans. “Classifier-Free Diffusion Guidance,” NeurIPS Workshop on Deep
+  Generative Models and Downstream Applications, 2021. [URL]
+▪ R. Rombach, et al. “High-Resolution Image Synthesis with Latent Diffusion Models,” IEEE/CVF
+  Conference on Computer Vision and Pattern Recognition (CVPR), 2022. [URL]
+
+
+
+
+                                                                                                42
+References (II)
+▪ E. Hoogeboom, et al. “Equivariant Diffusion for Molecule Generation in 3D,” Proceedings of the
+  39th International Conference on Machine Learning (ICML), PMLR, 2022. [URL]
+▪ S. Luo, et al. “Antigen-specific antibody design and optimization with diffusion-based
+  generative models,” 36th Conference on Neural Information Processing Systems (NeurIPS),
+  2022. [URL]
+▪ B.L. Trippe, et al. “Diffusion probabilistic modeling of protein backbones in 3D for the motif-
+  scaffolding problem,” The Eleventh International Conference on Learning Representations
+  (ICLR), 2023. [URL]
+▪ J.L. Watson, et al. “De novo design of protein structure and function with RFdiffusion,” Nature
+  620, 1089–1100, 2023. [URL]
+▪ S. Alamdari, et al. “Protein generation with evolutionary diffusion: sequence is all you need,”
+  NeurIPS Generative AI and Biology Workshop, 2023. [URL]
+▪ V. Meshchaninov, et al. “Diffusion on language model encodings for protein sequence
+  generation,” Proceedings of the 42nd International Conference on Machine Learning (ICML),
+  PMLR, 2025. [URL]                                                                                 43
+

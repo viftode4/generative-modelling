@@ -1,0 +1,399 @@
+Normalising Flows
+Lecture 8
+
+
+
+
+Ojas Shirekar | 21st May 2026   1
+Recap: VAE
+Posterior and Likelihood Approximation
+
+                            (x ∣ g(z, w), σ I)
+                                                2
+    p(x ∣ z, w) =
+                          Intractable likelihood
+
+
+
+              ∫
+    p(x | w) = p(x | z, w)p(z)dz
+
+               And so you decided to use variational approximation and amortisation.
+
+
+
+
+                                    Now, let’s rewind a little bit
+                                                                                       2
+           𝒩
+    Recap: VAE
+    Why was VI used?
+
+                                    (x ∣ g(z, w), σ I)
+                                                         2
+    p(x ∣ z, w) =
+
+
+
+
+    g : z, w → x ; speci ies how to gener te the observ tion x
+    true posterior p(z | x) - don’t know / c n’t c lcul te
+
+    likelihood – intr ct ble
+    Bec use g is            non-line r m p                           Therefore, you need VI; and cannot do exact MLE
+                                                                                                                       3
+                    𝒩
+
+
+
+
+                                                             a
+                                                 a
+                                             a
+                                     a
+                                a
+                            f
+                        a
+                a
+            a
+a                                                                a
+                                                     a
+An alternate solution
+Normalising Flows
+
+Non-linear g makes posterior intractable forces us to use VI
+
+
+What if we enforce g to be an invertible class of functions?
+
+                                          −1
+        x = g(z, w),             z = g (x, w)
+This way no posterior calculation + bijective z ↦ x
+
+
+
+        But how?
+                                                               4
+
+
+                                    ;
+   ,
+Normalising Flows
+Change of Variables/Measures
+
+z has a known density pZ(z)
+                                                                  −1
+x is obtained by an invertible, di erentiable map x = g(z); so z = g (x)
+
+
+ Then density of x is:
+                         pX(x) = pZ (g (x)) det Jg−1(x)
+                                          −1
+
+
+
+
+                                                                           5
+
+
+                           ff
+        Normalising Flows
+        Change of Variables/Measures - Jacobian
+
+                                                    pX(x) = pZ (g (x)) det Jg−1(x)
+                                                                   −1
+        What s a Jacobian?
+
+
+                                    d      d
+        g is vector valued map g : ℝ → ℝ
+                                                                          ∂g1                   ∂g1
+        Then the Jacobian matrix at point z is
+                                                                          ∂z1
+                                                                                       ⋯        ∂zd
+                                                         ∂g
+                                                 Jg(z) =    → Jg(z) =      ⋮           ⋱        ⋮
+                                                         ∂z
+                                                                          ∂gd                   ∂gd
+                                                                          ∂z1
+                                                                                       ⋯        ∂zd
+                                                                    J cobi n m trix t point z
+                                                                                                      6
+
+
+            a
+        ’
+    a
+a               a
+                Normalising Flows
+                Change of Variables/Measures - Jacobian
+                                                                                         ∂g1                  ∂g1
+                                                                                                   ⋯
+                How to feel it?                                                           ∂z1                 ∂zd
+
+                Take a tiny step Δz Jacobian tells you matching step in x:   Jg(z) =      ⋮        ⋱          ⋮
+                                                                                         ∂gd                  ∂gd
+                                    g(z + Δz) ≈ g(z) + Jg(z)Δz                            ∂z1
+                                                                                                   ⋯          ∂zd
+
+                So Jg is the map s linear approximation!                          J cobi n m trix t point z
+
+
+
+                    det Jg(z) is the volume scaling factor:
+                                                                                        g
+                •       > 1 local expansion
+                                                                             z
+
+                •       < 1 local compression
+
+                •       = 1 local volume preservation                                                               7
+
+
+a   ,   a   ;
+            ;
+            ;       a     a     ’   ;
+First, in 1D
+Change of Variables in 1D
+How to feel it?
+                                       x = g(z) = 2z
+
+                  A tiny interval around z,   dz
+                                                           dx = 2dz
+                  Gets stretched to dx = | g′(z) | dz
+                                                                  1
+                                    pZ(z)dz = pX(x)dx      pX(x) = pZ(z)
+                                                                  2
+                                                   pZ(z)
+                                   pX(g(z)) =
+                                                   g′(z)
+              ￼
+
+
+
+
+                                                                           8
+    ￼
+        First in 1D
+        Why determinant?
+                                        x = g(z)
+                                        g(z + dz) ≈ g(z) + g′(z)dz
+                   Gets stretched to dx = | g′(z) | dz
+
+    So the image interval as width: dx ≈ | g(z + dz) − g(z) |
+
+    Substitute the approximation: dx ≈ | g′(z)dz | ,          dx = | g′(z) | dz
+
+    In 1D Jacobian is a 1 × 1 matrix: Jg(z) = [g′(z)],       det Jg(z) = g′(z)
+
+
+                                    1D: | g′(z) | scales length
+                                    2D/3D: | det Jg(z) | scales area/volume
+                                                                                  9
+                                    ￼
+                                ￼
+               ￼
+           ￼
+           ￼
+￼
+
+
+
+
+                     ￼
+
+
+
+
+    ,
+        Normalising Flows
+        Why do we need a Det of Jacobian?
+                                                                                  ∂g1                  ∂g1
+                                                                                   ∂z1
+                                                                                            ⋯          ∂zd
+        Mass in a tiny region around z = pZ(z) dz                     Jg(z) =      ⋮        ⋱          ⋮
+                                                                                  ∂gd                  ∂gd
+        After mapping x = g(z)                                                              ⋯
+                                                                                   ∂z1                 ∂zd
+                                                                           J cobi n m trix t point z
+        The same tiny region is stretched/compressed
+        into a region around x
+
+                     dx = det Jg(z) dz
+
+        Must obey mass conservation
+                                    pZ(z) dz = pX(x) dx
+                                                                 −1                                          10
+                                    pX(g(z)) = pZ(z) det Jg(z)
+             a
+         a
+    a
+a
+    Normalising Flows
+    Still, why is there a det?
+    Jg−1 measures how a tiny volume around x is stretched
+    Or squashed when we pull it back to z
+
+
+
+
+    In 2D zoom in on a tiny square around z                         g
+         [0]          [1]
+          1            0
+    e1 =     ,   e2 =     .   ← 2D unit basis vectors           z
+
+    Push its corners through g you get a little parallelogram
+
+
+    a = Jge1 =    rst column , b = Jge2 = second column
+                                                                        11
+           fi
+
+
+
+
+,
+Normalising Flows
+Change of Variables/Measures
+                                                                pX(x) = pZ (g (x)) det Jg−1(x)
+                                                                             −1
+
+     [0]              [1]
+      1                0
+e1 =     ,       e2 =     .    ← 2D unit basis vectors
+                                                                                  g
+a = Jge1 =           rst column ,   b = Jge2 = second column           z
+
+
+
+          [c d][0] [c ⋅ 1 + d ⋅ 0 ]
+                                    = [c ]
+           a b 1    a⋅1+b⋅0            a
+Jg(z)e1 =         =
+
+
+For any 2 vectors area of ||-gram is:    det[a b]
+
+Area of new shape after warp =         det Jg(z)   × 1 unit 2
+
+
+                                                                                                 12
+      fi
+
+
+
+
+                 ,
+             ,
+Normalising Flows
+Change of Variables/Measures
+
+❗Recall one of the key constraints when moving mass:                       pX(x) = pZ (g (x)) det Jg−1(x)
+                                                                                        −1
+
+
+
+                     ∫R               ∫g(R)
+                          pZ(z)dz =           pX(x)dx = 1
+
+Before mapping: small volume dz mass pZ(z)dz                                                 g
+After: stretched/rotated whose volume: dx =                 det Jg(z) dz
+
+Mass must be unchanged: pX(x)dx = pZ(z)dz
+x = g(z)
+pX(x) dx = pZ(z) dz
+pX(x) det Jg(z) dz = pZ(z)dz                                                                                13
+             −1
+pX(x) = pZ(g (x)) det Jg−1(x)
+                 ,             ;
+Normalising Flows
+Training
+
+
+Choose simple prior distribution as usual p(z) ∼         (0,I)
+
+                                                  −1
+We saw data-density given by: pX(x) = pZ(g          (x)) det Jg−1(x)
+
+
+Take logs: log pX(x) =     log pZ(z)       + log det Jg−1(x) .
+                         base density
+
+
+
+
+                                                                       14
+  𝒩
+
+
+
+
+                                       ,
+Self-study
+Training – multiple layers
+                                                                                            −1
+Compose K simple bijective maps: gθ = gK ∘ gK−1 ∘ ⋯ ∘ g1,                   x = gθ(z), z = gθ (x)
+                                           K
+                        pθ(x) = pZ (hK)     det Jgk−1 (hk−1) ,             −1
+                                          ∏
+                                                                     hK = gθ (x) .
+                                          k=1
+                                                        K
+                       log pθ(x) = log pZ (gθ−1(x)) +         log det Jgk−1 (hk−1)
+                                                        ∑
+                                                        k=1
+
+
+
+
+                                                                                                    15
+
+
+             ,
+Recap
+
+• Normalising Flows
+
+ • Jacobian and its interpretation
+
+ • mini-derivation
+
+• Next Lecture: Flow Matching
+
+
+
+
+                                     16
+Advanced Topics
+
+• RealNVP and co.
+
+• Conditional Normalising Flows
+
+• Flow Matching
+
+
+
+
+                                  17
+References
+
+• https://optimaltransport.github.io/
+
+• Computational Optimal Transport - (https://arxiv.org/abs/1803.00567)
+
+• Optimal Transport for Machine Learners - (https://arxiv.org/abs/2505.06589)
+
+• The Elegance of Optimal Transport - Hugo Cisneros -(https://hugocisneros.com/blog/the-
+  elegance-of-optimal-transport/)
+
+• Flows - (https://jmtomczak.github.io/blog/3/3_ ows.html)
+
+• 3.8: Jacobians - Mathematics LibreTexts
+
+• The Jacobian of a Transformation
+                                                                                           18
+
+
+                                        fl
+

@@ -1,0 +1,163 @@
+{
+  "sourceRootLabel": "DSAIT_Notes/Q4/GM",
+  "chapterFiles": [
+    {
+      "slug": "intro",
+      "filename": "1_Intro.md",
+      "shortTitle": "Intro"
+    },
+    {
+      "slug": "mle-lvm",
+      "filename": "2_MaxLikelihood&LatentVariableModels.md",
+      "shortTitle": "MLE + latent variables"
+    },
+    {
+      "slug": "em-ppca",
+      "filename": "3_EM&PPCA.md",
+      "shortTitle": "EM + PPCA"
+    },
+    {
+      "slug": "vae",
+      "filename": "4_NonLinearLatentVariableModels&VAEs.md",
+      "shortTitle": "VAE"
+    },
+    {
+      "slug": "ebm",
+      "filename": "5_EnergyBasedModels.md",
+      "shortTitle": "EBM"
+    },
+    {
+      "slug": "normalising-flows",
+      "filename": "6_NormalisingFlows.md",
+      "shortTitle": "Normalising flows"
+    },
+    {
+      "slug": "score-based",
+      "filename": "7_ScoreBased.md",
+      "shortTitle": "Score-based models"
+    },
+    {
+      "slug": "diffusion",
+      "filename": "8_Diffusion.md",
+      "shortTitle": "Diffusion"
+    },
+    {
+      "slug": "flow-matching",
+      "filename": "9_ContinuousFlow&FlowMatching.md",
+      "shortTitle": "Continuous flows + flow matching"
+    },
+    {
+      "slug": "evaluation",
+      "filename": "10_Evaluation.md",
+      "shortTitle": "Evaluation"
+    },
+    {
+      "slug": "life-sciences",
+      "filename": "11_GenerativeForScience.md",
+      "shortTitle": "Generative models for science"
+    }
+  ],
+  "questions": {
+    "intro": [
+      "Explain discriminative vs generative modelling using P(Y|X) and P(X,Y).",
+      "Compare autoregressive, VAE, flow, diffusion, GAN, and EBM by density evaluation and sampling.",
+      "What does conditional generation change in the probability model?"
+    ],
+    "mle-lvm": [
+      "Show why minimizing KL from data to model becomes maximizing log-likelihood.",
+      "Why does marginalizing latent variables make learning harder?",
+      "Why does EM help for Gaussian mixture models?"
+    ],
+    "em-ppca": [
+      "State what is held fixed in the E-step and M-step.",
+      "Write the ELBO idea in words and explain why it is a lower bound.",
+      "Give the PPCA generative story and explain the role of noise."
+    ],
+    "vae": [
+      "Derive the VAE ELBO at a high level: introduce q, use Jensen, separate reconstruction and KL.",
+      "Why is amortized inference useful?",
+      "Why does the reparameterization trick make gradients possible?"
+    ],
+    "ebm": [
+      "What is the partition function and why is it hard?",
+      "Explain positive phase and negative phase in EBM training.",
+      "Why are MCMC and Langevin dynamics needed?"
+    ],
+    "normalising-flows": [
+      "State the change-of-variables formula and explain why invertibility matters.",
+      "Why do coupling layers or triangular Jacobians make the log-determinant tractable?",
+      "Compare flows with VAEs and diffusion by likelihood evaluation and sampling speed."
+    ],
+    "score-based": [
+      "Define the score ∇x log p(x) and explain why score matching can avoid the normalized density.",
+      "Why does denoising score matching train scores at multiple noise levels?",
+      "How do Langevin-style samplers use a learned score to generate samples?"
+    ],
+    "diffusion": [
+      "Explain the forward noising process and the learned reverse denoising process.",
+      "Connect the denoising objective to score or noise prediction.",
+      "What role does the timestep or noise schedule play in training and sampling?"
+    ],
+    "flow-matching": [
+      "Define the continuous-flow or ODE view and the velocity field being learned.",
+      "Explain the flow-matching objective and the path between base and data distributions.",
+      "Compare flow matching with diffusion in training target and sampling dynamics."
+    ],
+    "evaluation": [
+      "Explain FID and name at least two things it can miss.",
+      "Compare likelihood, sample quality, diversity, precision, recall, and downstream usefulness.",
+      "Why does the right evaluation depend on the purpose of the generative model?"
+    ],
+    "life-sciences": [
+      "What does conditional generation mean for molecules, proteins, or biological data?",
+      "Which validity, property, and constraint checks matter in scientific generation?",
+      "Why do domain constraints and expert evaluation matter more here than generic visual quality?"
+    ]
+  },
+  "slides": [
+    {
+      "label": "1_Introduction to GenMod.pdf",
+      "path": "DSAIT_Notes/Q4/GM/slides/1_Introduction to GenMod.pdf"
+    },
+    {
+      "label": "2_Lecture3 - MLL and Discrete LVM.pdf",
+      "path": "DSAIT_Notes/Q4/GM/slides/2_Lecture3 - MLL and Discrete LVM.pdf"
+    },
+    {
+      "label": "3_Lecture 4 - EM and Continuous LVM.pdf",
+      "path": "DSAIT_Notes/Q4/GM/slides/3_Lecture 4 - EM and Continuous LVM.pdf"
+    },
+    {
+      "label": "4_Lecture 5 - Deep LVMs.pdf",
+      "path": "DSAIT_Notes/Q4/GM/slides/4_Lecture 5 - Deep LVMs.pdf"
+    },
+    {
+      "label": "5_Lecture - EBM.pdf",
+      "path": "DSAIT_Notes/Q4/GM/slides/5_Lecture - EBM.pdf"
+    },
+    {
+      "label": "6_nf.pdf",
+      "path": "DSAIT_Notes/Q4/GM/slides/6_nf.pdf"
+    },
+    {
+      "label": "7_score-based-models.pdf",
+      "path": "DSAIT_Notes/Q4/GM/slides/7_score-based-models.pdf"
+    },
+    {
+      "label": "8_diffusion-models.pdf",
+      "path": "DSAIT_Notes/Q4/GM/slides/8_diffusion-models.pdf"
+    },
+    {
+      "label": "9_flow_matching.pdf",
+      "path": "DSAIT_Notes/Q4/GM/slides/9_flow_matching.pdf"
+    },
+    {
+      "label": "10_Lecture11-Evaluations_of_generative_models.pdf",
+      "path": "DSAIT_Notes/Q4/GM/slides/10_Lecture11-Evaluations_of_generative_models.pdf"
+    },
+    {
+      "label": "11_2026-06-02_Lecture_GenMod_Applications_Biology.pdf",
+      "path": "DSAIT_Notes/Q4/GM/slides/11_2026-06-02_Lecture_GenMod_Applications_Biology.pdf"
+    }
+  ]
+}

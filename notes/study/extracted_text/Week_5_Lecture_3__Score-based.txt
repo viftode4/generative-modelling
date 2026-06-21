@@ -1,0 +1,515 @@
+Score-based Models
+DSAIT4030 Generative Modelling | Week 5 Lecture 3
+
+Sayak Mukherjee
+sayak.mukherjee@tudelft.nl
+
+PhD Student
+Cognitive A ective Technology Lab
+Intelligent Systems / Pattern Recognition & Bioinformatics
+
+
+
+
+     ff
+“A tiny astronaut hatching   “A small cactus with a happy    “Panda mad scientist mixing
+from an egg on the moon”      face in the Sahara desert”    sparkling chemicals, digital art.”
+
+     PixArt-Alpha                    DALL-E 3                       Flux.1 Merged
+
+                                                       Image Generation
+                                                                     Source: Slides by Sayak Paul @ HugginFace
+                           x = Molecules [Hoogeboom et al. 2022]                 x = Audio [Kong et al. 2022]
+
+
+
+
+       x = 3D Avatar                  x = Video [Ho et al. 2022]   x = Social Interaction [Tanke et al. 2023]
+     [Zhang et al. 2024]
+
+                                                                      Beyond Images
+                                                                                               Di usion for x
+
+ff
+ Wait, let’s take a step back!
+                                       Sampling
+                                       x ∼ p(x)
+
+
+Data Distribution
+      p(x)
+
+
+                                 Probability Evaluation
+                                         p(x)
+Prior Distribution
+      p(z)
+     Continuous Latent Variable Model
+
+     To t this model to data with parameters w, we maximise the likelihood                                  z
+
+
+               ∫
+     p(x | w) = p(x | z, w)p(z)dz
+
+     where, x = g(z, w)                                                                                    x
+
+
+     Q: How did we approach this so far?
+
+
+                                                       Image Source: Deep Learning: Foundations and Concepts — Chris Bishop
+
+fi
+Continuous Latent Variable Model
+• Using restrictions on the model family
+  • Probabilistic PCA (linear)
+  • Normalising ows (invertible)
+
+• Modelling only the generative process
+  • Variational Autoencoder (using ELBO)
+  • Generative Adversarial Network
+
+
+                                           Image Source: Probabilistic Machine Learning: Advanced Topics — Kevin Murphy
+
+        fl
+How to model the probability distribution?
+Axioms of probability:
+   1. Non-negative
+   2. Sums / integrates to 1
+                                 exp( fθ(x))
+So, we can model p(x) as pθ(x) =               Q: Why?
+                                    Zθ
+
+Q: Does it remind you of a speci c type of generative model?
+Q: What is the problem with this approach?
+Q: How to solve this?
+
+
+
+                               fi
+The Score Function
+Given a di erentiable probability density function
+p(x), its score function is
+
+                      ∇x log p(x)
+
+The score function points in the direction of the
+increasing probability.
+
+
+
+
+⚠ This is the gradient w.r.t the input and not the
+parameters of a model!
+
+
+                                                     Image Source: Blog on Score-based Generative Models — Yang Song
+
+     ff
+What is the bene t?
+                                   exp( fθ(x))
+Let’s start with the model pθ(x) =
+                                      Zθ
+Now, we can compute the score function
+
+                 ∇x log pθ(x) = ∇x fθ(x) − ∇x log Zθ
+
+
+Q: Do you see the bene t?
+So, now we don’t have to worry about the normalising constant! 🥳
+
+
+
+
+                          fi
+                    fi
+Let’s learn the score function
+                                           d        d
+The goal is now to use a model sθ(x) : ℝ       → ℝ to learn the score function.
+
+
+
+
+      Data distribution         i.i.d samples                    Score function
+             p(x)             x1, x2, ⋯, xn ∼ p(x)             sθ(x) ≈ ∇x log p(x)
+
+                                                        Image Source: Blog on Score-based Generative Models — Yang Song
+    Score Matching
+    Objective function: Minimise the expected value of squared di erence over the
+    whole space where the expectation is taken with respect to p(x)
+
+
+                          1
+                              x∼p [ θ                     ]
+                                                           2
+                                   ∥s (x) − ∇ x log p(x)∥
+                          2
+
+             Q: Do you see the problem? We don’t know ∇x log p(x) 😰
+
+
+
+𝔼
+
+
+
+
+                                                            ff
+    Score Matching: Derivation in 1D
+                               1
+                                      x∼p [∥sθ(x) − ∇x log p(x)∥ ]
+                                                                2
+                               2
+                              1
+                              2∫
+                                                      2
+                            =    (sθ(x) − ∇x log p(x)) p(x)dx        Break this as (a − b)2
+
+
+
+            1                          1
+            2∫                         2∫               ∫
+                                 2                 2
+          =    p(x)( ∇x log p(x)) dx +    p(x)sθ(x) dx − p(x) ∇x log p(x)sθ(x)dx
+
+
+               Does not depend on θ
+
+                             1
+                             2∫              ∫
+                                         2
+                   = const +    p(x)sθ(x) dx− p(x) ∇x log p(x)sθ(x)dx            Let’s look at the last term
+
+
+
+
+𝔼
+Score Matching: Derivation in 1D
+                  ∫
+                      p(x) ∇x log p(x)sθ(x)dx
+
+
+                          ∇x p(x)
+                    ∫
+                   = p(x)         sθ(x)dx
+                           p(x)
+
+
+                        ∫                                              ∫           ∫
+                       = ∇x p(x)sθ(x)dx         Integration by parts     udv = uv − vdu
+
+
+
+                                ∫
+                            ∞
+              = p(x)sθ(x) | −∞ − p(x) ∇x sθ(x)dx      Let’s put this back
+         Score Matching (Hyvärinen, 2005)
+                                       1
+                                           x∼p [∥sθ(x) − ∇x log p(x)∥ ]
+                                                                         2
+                                       2
+                                        1
+                                        2∫                   ∫
+                                                       2
+                             = const +      p(x)sθ(x) dx − p(x) ∇x log p(x)sθ(x)dx
+                                            1
+                                            2∫                  ∫
+                                                           2
+                                = const +        p(x)sθ(x) dx + p(x) ∇x sθ(x)dx Replacing the last term
+
+    Try this yourself.                 1
+                                          x∼p(x) [sθ(x) ] + x∼p(x) [ ∇x sθ(x)]
+                                                         2
+                                    ≡
+                                       2
+    Hint: Look at how we
+                                    1
+                                        x∼p(x) [sθ(x) ] + x∼p(x) [tr ( ∇x sθ(x))]
+    obtained the last term       ≡                   2
+                                                                                  In d-dimensional space
+                                    2
+
+
+                 So, now we don’t have to worry having access to ∇x log p(x) ! 🥳
+𝔼
+
+
+
+
+                         𝔼
+                         𝔼
+     𝔼
+     𝔼
+    Score Matching (Hyvärinen, 2005)
+    Let’s take a closer look at the reformulated objective
+           1
+                     [       ]                  [   (           )]
+                               2
+               x∼p(x) θs (x)   +         x∼p(x)  tr   ∇  s
+                                                        x θ (x)
+           2
+
+                  ∂sθ,1(x)   ∂sθ,1(x)   ∂sθ,1(x)
+                    ∂x1        ∂x2        ∂x3
+                  ∂sθ,2(x)   ∂sθ,2(x)   ∂sθ,2(x)
+     ∇x sθ(x) =     ∂x1        ∂x2        ∂x3
+                  ∂sθ,3(x)   ∂sθ,3(x)   ∂sθ,3(x)
+                    ∂x1        ∂x2        ∂x3
+
+
+
+                      𝔼
+𝔼
+    Score Matching (Hyvärinen, 2005)
+    Let’s take a closer look at the reformulated objective
+           1
+                     [       ]                  [   (           )]
+                               2
+               x∼p(x) θs (x)   +         x∼p(x)  tr   ∇  s
+                                                        x θ (x)
+           2
+
+                  ∂sθ,1(x)   ∂sθ,1(x)   ∂sθ,1(x)                     Q: Do you see a problem?
+                    ∂x1        ∂x2        ∂x3
+                  ∂sθ,2(x)   ∂sθ,2(x)   ∂sθ,2(x)                     Problem #1: When the input space
+     ∇x sθ(x) =     ∂x1        ∂x2        ∂x3                        is large computing the last term in
+                  ∂sθ,3(x)   ∂sθ,3(x)   ∂sθ,3(x)                     expensive 😰
+                    ∂x1        ∂x2        ∂x3
+
+
+
+                      𝔼
+𝔼
+Recap: Manifold Hypothesis
+Most naturally occurring high dimensional data lies on a low dimensional
+manifold embedded in that high-dimensional space
+
+
+
+
+            CIFAR10 examples. Goldt et al.     Digit images. Y Bengio.
+Challenges in Low Density Regions
+
+
+
+
+Problem #2: The score estimation is accurate only in the high-density regions.
+
+                                                 Image Source: Blog on Score-based Generative Models — Yang Song
+Issues with Score Matching
+1. When the input space is large computing the last term in expensive.
+
+2. The score estimation is accurate only in the high-density regions
+
+Solution: Noise the data
+                               2
+       z = x + ϵ, ϵ ∼      (0,σ I)
+
+
+
+
+             x                z1             z2                         zT
+
+
+                                                                         ∫
+                                                  p(x)            qσ(z) = q(z | x, σ)p(x)dx
+         𝒩
+Noise Perturbation
+
+
+
+
+                     Image Source: Blog on Score-based Generative Models — Yang Song
+Issues with Score Matching
+1. When the input space is large computing the last term in expensive.
+
+2. The score estimation is accurate only in the high-density regions. ✅
+
+Solution: Noise the data
+
+                               2
+       z = x + ϵ, ϵ ∼      (0,σ I)
+
+
+
+
+             x                z1            z2                        zT
+
+                                                                       ∫
+                                                 p(x)           qσ(z) = q(z | x, σ)p(x)dx
+         𝒩
+            Denoising Score Matching (Vincent, 2011)
+                    Original Objective                                   Refactored Objective
+            1                                                   1
+                     [                       ]                       x∼p(x) [sθ(x) ] +   x∼p(x) [tr ( ∇x sθ(x))]
+                                               2
+                 x∼p   ∥sθ(x) − ∇x log p(x)∥                                     2
+            2                                                   2
+
+
+
+
+                Noise-perturbed Objective                 Refactored Noise-perturbed Objective
+            1                                               1
+                      [                           ]                 x∼p, z∼qσ(z|x) [∥sθ(z) − ∇z log qσ(z | x)∥ ]
+                                                2
+                 z∼qσ   ∥sθ (z) − ∇ z log qσ (z)∥                                                                  2
+            2                                               2
+
+
+
+𝔼
+    𝔼
+    𝔼
+        𝔼
+
+
+
+
+                         𝔼
+                                   Check the derivation if you’re curious.
+    Denoising Score Matching (Vincent, 2011)
+                                 1
+                                         x∼p, z∼qσ(z|x) [∥sθ(z) − ∇z log qσ(z | x)∥ ]
+                                                                                   2
+                                 2
+
+                                                                                         1         − 12 ∥z−x∥2
+                                                                          qσ(z | x) =            e  2σ
+                                                                                      (2π)d/2σ 2
+                                                                                                1              1          2
+                                                                   ∇z log qσ(z | x) = ∇z log           + ∇z −      ∥z − x∥
+                                                                                             (2π) σ
+                                                                                                 d/2 2        2σ 2
+             x                      z1                       z2                                zT
+
+           z = x + ϵ, ϵ ∼     (0,σ I)2                                                            1
+                                                                           ∇z log qσ(z | x) = − 2 (z − x)
+                                                 Conditional                                     σ
+                                2                Density
+             qσ(z | x) =    (x, σ I)                                                                ϵ
+                                                                               ∇z log qσ(z | x) = − 2
+                                                                                                    σ
+𝔼
+
+
+
+
+       𝒩         𝒩
+        Denoising Score Matching (Vincent, 2011)
+                                x∼p, z∼qσ(z|x) [∥sθ(z) + 2 ∥ ]
+                            1                            ϵ 2
+                            2                           σ
+
+
+
+                                 +                           =
+
+                      x
+                      x               ϵ ∼z1       2
+                                              (0,σ I)
+                                                 x               z2   z
+                                                                      z1        z2zT
+
+
+
+
+                      sθ(                ) = −
+
+𝔼
+
+
+
+
+                 x               z
+                                 z1                     z2       ϵ         zT
+    𝒩
+Issues with Score Matching
+1. When the input space is large computing the last term in expensive. ✅
+
+2. The score estimation is accurate only in the high-density regions. ✅
+
+Solution: Noise the data
+
+                               2
+       z = x + ϵ, ϵ ∼      (0,σt I)
+
+
+
+
+             x                 z1           z2                         zT
+
+                                                                        ∫
+                                                 p(x)           qσt(z) = q(z | x, σt)p(x)dx
+         𝒩
+But, how much noise?
+• Too much noise: Good for score estimation, bad for learning p(x)
+                                                                                                          😐
+• Too little noise: Good for learning p(x), bad for score estimation
+
+Solution: Take the best of both worlds! 🥳
+  Here, we take T increasing σ values
+
+          σ1 < σ2 < ⋯ < σT
+
+
+               ∫
+      qσt(zt) = q(zt | x, σt)p(x)dx
+
+
+                                        Image Source: Blog on Score-based Generative Models — Yang Song
+    Noise Conditional Score Networks
+    • Naïve approach: Learn separate score models independently. ⚠ Costly
+    • Single conditional score network for all perturbation levels ✅
+     Objective: Minimise loss over all noise levels
+                                                                 (1)
+         T                                                     zt
+     1
+           λ(σt) zt∼qσ [∥sθ(zt, σt) − ∇x log qσt(zt)∥]
+       ∑
+                                                                             1
+                                                                            sθ
+     T t=1            t
+                                                               zt(2)
+
+                                                                            sθ2
+         weighing function                                      σt
+
+𝔼
+    Sample Generation and Langevin Dynamics
+
+
+
+
+     Score function        Follow the scores                       Langevin MCMC
+
+         sθ(zt, σt)        zt−1 ← zt + αsθ(zt, σt)                        ϵ∼          (0,I)
+
+                      Collapses to high density regions!   zt−1 ← zt + αsθ(zt, σt) +                    2αϵ
+
+                                                            Image Source: Slides by Yang Song and Stefano Ermon
+𝒩
+Annealed Langevin Dynamics
+
+
+
+
+                 Image Source: Blog on Score-based Generative Models — Yang Song
+Summary
+1. Score Function
+
+2. Score Matching
+
+3. Denoising Score Matching
+
+4. Sample Generation
+
+
+
+
+            “cat scientist in lab coat, excited,
+                 eager to explore, digital art.”
+                                    Flux.1 Dev
+
