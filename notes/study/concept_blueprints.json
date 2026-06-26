@@ -1,0 +1,1107 @@
+{
+  "w1-intro": [
+    {
+      "title": "Generative versus discriminative modelling",
+      "mustKnow": "Know the target distribution each approach represents and what questions it can answer.",
+      "coreIdea": "Discriminative models predict labels from observations; generative models describe the data distribution or joint distribution so they can sample, score, complete, or condition data.",
+      "formulaOrRule": "Use P(Y|X) for discriminative prediction and P(X,Y) or P(X) for generative modelling.",
+      "commonTrap": "Do not call every neural net generative; the model must define or learn a data-generating distribution.",
+      "examUse": "Start comparison answers by naming the probability object, then list operations: sampling, likelihood, conditioning, missing-data reasoning.",
+      "checks": [
+        "Which probability does a classifier model?",
+        "What extra operations does a joint generative model enable?"
+      ],
+      "formula": "P(X,Y)=P(Y|X)P(X)",
+      "tags": [
+        "conditional",
+        "density",
+        "discriminative",
+        "generative",
+        "sampling"
+      ]
+    },
+    {
+      "title": "Density, sampling, and inference trade-off",
+      "mustKnow": "Know that each model family makes different operations easy or hard.",
+      "coreIdea": "The course is organized around whether a model can evaluate density, draw samples, and infer hidden variables or reverse processes tractably.",
+      "formulaOrRule": "A good comparison always states density access, sampling procedure, and inference cost.",
+      "commonTrap": "Do not rank model families by sample beauty alone; exact likelihood and tractable inference may matter depending on the task.",
+      "examUse": "Use this concept whenever an exam asks you to compare VAEs, flows, EBMs, diffusion, or autoregressive models.",
+      "checks": [
+        "Which models have exact likelihood?",
+        "Which models sample iteratively?"
+      ],
+      "tags": []
+    },
+    {
+      "title": "Conditional generation",
+      "mustKnow": "Know how a condition changes the probability model and sampling target.",
+      "coreIdea": "Conditional generation models the distribution of data given side information such as class, text, property, scaffold, or causal intervention.",
+      "formulaOrRule": "Replace P(X) by P(X|Y=y) or learn a conditional score/denoiser/decoder.",
+      "commonTrap": "Do not confuse conditioning with post-hoc filtering; conditioning changes the generation distribution.",
+      "examUse": "Mention the condition variable, how it enters the model, and the trade-off between adherence and diversity.",
+      "checks": [
+        "Give two examples of conditioning variables.",
+        "Why is filtering generated samples not the same as conditional generation?"
+      ],
+      "formula": "p_\\theta(x|y)",
+      "tags": []
+    },
+    {
+      "title": "Model family map",
+      "mustKnow": "Know the one-line identity of each major family in the course.",
+      "coreIdea": "Autoregressive models factorize conditionals; VAEs use latent variables and an ELBO; flows use invertible maps; EBMs use unnormalized energies; score and diffusion models learn denoising directions.",
+      "formulaOrRule": "Map every model to its distribution parameterization and training objective.",
+      "commonTrap": "Do not memorize names without knowing the density/sampling mechanism.",
+      "examUse": "Use the map as the opening paragraph for broad synthesis questions.",
+      "checks": [
+        "Which family uses a partition function?",
+        "Which family uses an invertible transformation?"
+      ],
+      "tags": []
+    },
+    {
+      "title": "Empirical data distribution",
+      "mustKnow": "Know why the dataset represents an empirical approximation to the unknown data law.",
+      "coreIdea": "Maximum likelihood and divergence arguments compare the model to the distribution that generated the observed dataset, approximated by samples.",
+      "formulaOrRule": "Training replaces population expectations with averages over datapoints.",
+      "commonTrap": "Do not treat the finite dataset as the true distribution without acknowledging approximation and generalization.",
+      "examUse": "Use this concept when explaining why train/test evaluation is necessary.",
+      "checks": [
+        "Why do we use sample averages in training?",
+        "What can go wrong if the empirical distribution is memorized?"
+      ],
+      "formula": "\\mathbb{E}_{p_{data}}[f(x)]\\approx \\frac{1}{N}\\sum_{i=1}^N f(x_i)",
+      "tags": []
+    }
+  ],
+  "w1-mle-lvm": [
+    {
+      "title": "Maximum likelihood objective",
+      "mustKnow": "Know MLE as the baseline objective for fitting probabilistic generative models.",
+      "coreIdea": "MLE chooses parameters that assign high probability to observed samples, turning distribution fitting into optimization of log probabilities.",
+      "formulaOrRule": "Maximize the sum or average of log likelihoods over training data.",
+      "commonTrap": "Do not maximize raw probabilities directly; products underflow and log turns products into sums.",
+      "examUse": "For derivations, write the empirical log-likelihood before discussing approximations.",
+      "checks": [
+        "Why do we use log likelihood?",
+        "What parameter is optimized in MLE?"
+      ],
+      "formula": "\\hat\\theta=\\arg\\max_\\theta\\sum_{i=1}^N\\log p_\\theta(x_i)",
+      "tags": [
+        "kl divergence",
+        "latent variable",
+        "marginal likelihood",
+        "maximum likelihood",
+        "posterior"
+      ]
+    },
+    {
+      "title": "KL divergence to MLE",
+      "mustKnow": "Know the algebra connecting distribution matching to log-likelihood.",
+      "coreIdea": "Minimizing KL from data to model is equivalent to maximizing expected model log-likelihood because the data entropy term is constant in theta.",
+      "formulaOrRule": "Forward KL decomposes into a constant minus expected log likelihood.",
+      "commonTrap": "Do not drop the direction of KL; reverse KL has different behavior and is not this derivation.",
+      "examUse": "Use this in any question asking why MLE is a sensible learning objective.",
+      "checks": [
+        "Which term is constant in the KL derivation?",
+        "Why does KL direction matter?"
+      ],
+      "formula": "KL(p_{data}\\Vert p_\\theta)=\\mathbb{E}_{p_{data}}[\\log p_{data}(x)-\\log p_\\theta(x)]",
+      "tags": []
+    },
+    {
+      "title": "Latent variable joint model",
+      "mustKnow": "Know how hidden variables make a model expressive.",
+      "coreIdea": "A latent variable model defines a joint distribution over observations and hidden variables, so hidden structure can explain clusters, styles, causes, or low-dimensional factors.",
+      "formulaOrRule": "Specify a prior over z and a conditional likelihood for x given z.",
+      "commonTrap": "Do not assume z is observed; if it were observed, learning would be much easier.",
+      "examUse": "When asked for a generative story, say sample z first, then sample x from p(x|z).",
+      "checks": [
+        "What is sampled first in a latent variable model?",
+        "Why can z improve expressiveness?"
+      ],
+      "formula": "p_\\theta(x,z)=p_\\theta(x|z)p(z)",
+      "tags": []
+    },
+    {
+      "title": "Marginal likelihood",
+      "mustKnow": "Know why latent variables make likelihood computation hard.",
+      "coreIdea": "The observed likelihood requires summing or integrating out z, which is tractable only for special model families.",
+      "formulaOrRule": "Compute p(x) by marginalizing the joint distribution over z.",
+      "commonTrap": "Do not replace marginalization by plugging in one best z unless the approximation is explicitly justified.",
+      "examUse": "Use this as the reason EM, variational inference, and VAEs become necessary.",
+      "checks": [
+        "Why is the log outside the integral a problem?",
+        "When is marginalization easy?"
+      ],
+      "formula": "p_\\theta(x)=\\int p_\\theta(x,z)\\,dz",
+      "tags": []
+    },
+    {
+      "title": "Posterior inference",
+      "mustKnow": "Know that learning often needs p(z|x), not only p(x).",
+      "coreIdea": "Posterior inference asks which latent explanations are plausible for an observed datapoint; many training algorithms need expectations under this posterior.",
+      "formulaOrRule": "Use Bayes rule to connect joint, marginal, and posterior.",
+      "commonTrap": "Do not confuse the prior p(z) with the posterior p(z|x).",
+      "examUse": "Mention posterior intractability when explaining why approximate inference is used.",
+      "checks": [
+        "What is the difference between prior and posterior?",
+        "Why does EM need posterior responsibilities?"
+      ],
+      "formula": "p_\\theta(z|x)=\\frac{p_\\theta(x,z)}{p_\\theta(x)}",
+      "tags": []
+    }
+  ],
+  "w2-mle-lvm": [
+    {
+      "title": "Closed-book maximum likelihood derivation",
+      "mustKnow": "Be able to reproduce the maximum likelihood and KL derivation without notes.",
+      "coreIdea": "This repeated deck should be used to make the core derivation automatic: data distribution, KL, constant entropy, log-likelihood objective.",
+      "formulaOrRule": "Start with KL and isolate the only theta-dependent term.",
+      "commonTrap": "Do not skip the expectation notation; it explains why sample averages appear.",
+      "examUse": "Use it as the first paragraph of most probabilistic training answers.",
+      "checks": [
+        "Write the KL decomposition from memory.",
+        "Which part becomes the training loss?"
+      ],
+      "formula": "\\max_\\theta\\frac{1}{N}\\sum_{i=1}^N\\log p_\\theta(x_i)",
+      "tags": [
+        "approximation",
+        "complete-data",
+        "marginalization",
+        "maximum likelihood"
+      ]
+    },
+    {
+      "title": "Discrete versus continuous marginalization",
+      "mustKnow": "Know both forms because lectures use mixtures and continuous latents.",
+      "coreIdea": "Discrete latent variables are summed out; continuous latent variables are integrated out, but the conceptual bottleneck is the same.",
+      "formulaOrRule": "Use a sum for categorical z and an integral for continuous z.",
+      "commonTrap": "Do not mix notation in an answer without saying what type of latent variable is assumed.",
+      "examUse": "When comparing GMM, PPCA, and VAE, identify which marginalization form is used.",
+      "checks": [
+        "When do we write a sum over z?",
+        "When do we write an integral over z?"
+      ],
+      "formula": "p(x)=\\sum_z p(x,z)\\quad\\text{or}\\quad p(x)=\\int p(x,z)\\,dz",
+      "tags": []
+    },
+    {
+      "title": "Complete-data likelihood",
+      "mustKnow": "Know why latent-variable learning would be easier if z were observed.",
+      "coreIdea": "Complete-data likelihood treats both x and z as known, often turning hard mixture or latent updates into supervised-style parameter updates.",
+      "formulaOrRule": "Observed-data likelihood hides z and requires marginalization or posterior expectations.",
+      "commonTrap": "Do not optimize complete-data likelihood on real data unless z labels are actually given.",
+      "examUse": "Use this distinction to motivate EM.",
+      "checks": [
+        "What data is missing in observed-data likelihood?",
+        "Why does EM use expected complete-data log likelihood?"
+      ],
+      "tags": []
+    },
+    {
+      "title": "Approximation bridge",
+      "mustKnow": "Know how this lecture points forward to EM and variational methods.",
+      "coreIdea": "When exact marginal likelihood or posterior inference is hard, the course introduces lower bounds, approximate posteriors, and amortized inference.",
+      "formulaOrRule": "Approximate the intractable posterior or optimize a lower bound on log p(x).",
+      "commonTrap": "Do not claim approximation is optional in deep latent variable models; it is usually the central issue.",
+      "examUse": "Use this as a transition sentence from MLE/LVM to EM, PPCA, and VAEs.",
+      "checks": [
+        "Why is exact posterior inference usually unavailable?",
+        "What is the role of a lower bound?"
+      ],
+      "tags": []
+    },
+    {
+      "title": "Latent interpretation caution",
+      "mustKnow": "Know that latent variables are useful but not automatically meaningful.",
+      "coreIdea": "A latent coordinate can help model density without corresponding to a human-interpretable factor or causal variable.",
+      "formulaOrRule": "Interpret latents only when the model, data, or assumptions justify the interpretation.",
+      "commonTrap": "Do not equate latent with causal or disentangled.",
+      "examUse": "Use this caveat later in causal generative modelling.",
+      "checks": [
+        "Why is a latent variable not necessarily causal?",
+        "What extra assumptions help interpretation?"
+      ],
+      "tags": []
+    }
+  ],
+  "w2-em-ppca": [
+    {
+      "title": "EM algorithm",
+      "mustKnow": "Know EM as alternating posterior inference and parameter update.",
+      "coreIdea": "EM optimizes latent-variable likelihood by building a bound using current posterior expectations and then maximizing that bound with respect to parameters.",
+      "formulaOrRule": "Repeat E-step and M-step until convergence.",
+      "commonTrap": "Do not say EM directly maximizes the exact likelihood in one step; it improves via a bound.",
+      "examUse": "Use EM whenever the model has tractable posterior expectations but hidden assignments.",
+      "checks": [
+        "What is held fixed in the E-step?",
+        "What is held fixed in the M-step?"
+      ],
+      "tags": [
+        "e-step",
+        "elbo",
+        "em",
+        "m-step"
+      ]
+    },
+    {
+      "title": "E-step responsibilities",
+      "mustKnow": "Know what the E-step computes conceptually.",
+      "coreIdea": "The E-step computes or updates the distribution over latent explanations for each observation under current parameters.",
+      "formulaOrRule": "For mixtures, this means responsibilities; for general models, expectations under q(z).",
+      "commonTrap": "Do not update model parameters during the E-step.",
+      "examUse": "Use responsibilities to explain soft cluster assignment in GMMs.",
+      "checks": [
+        "What does a responsibility represent?",
+        "Why is soft assignment useful?"
+      ],
+      "formula": "\\gamma_{ik}=p_\\theta(z_i=k|x_i)",
+      "tags": []
+    },
+    {
+      "title": "M-step expected complete likelihood",
+      "mustKnow": "Know what the M-step optimizes.",
+      "coreIdea": "The M-step updates parameters as if latent assignments were observed in expectation, using the distribution found in the E-step.",
+      "formulaOrRule": "Maximize the expected complete-data log likelihood under q.",
+      "commonTrap": "Do not recompute q inside the same M-step unless describing generalized EM.",
+      "examUse": "Use this to derive or explain parameter updates.",
+      "checks": [
+        "What objective is maximized in the M-step?",
+        "Why are expectations used?"
+      ],
+      "formula": "\\theta^{new}=\\arg\\max_\\theta\\mathbb{E}_{q(z)}[\\log p_\\theta(x,z)]",
+      "tags": []
+    },
+    {
+      "title": "ELBO and gap",
+      "mustKnow": "Know the lower-bound identity behind EM and variational inference.",
+      "coreIdea": "The ELBO lower-bounds log likelihood; the gap is a KL divergence between the approximate posterior and true posterior.",
+      "formulaOrRule": "Tighten q in the E-step and improve parameters in the M-step.",
+      "commonTrap": "Do not call the ELBO the exact likelihood unless the KL gap is zero.",
+      "examUse": "Use this concept to connect EM, VI, and VAEs.",
+      "checks": [
+        "When is the ELBO tight?",
+        "What distribution appears in the KL gap?"
+      ],
+      "formula": "\\log p_\\theta(x)\\ge \\mathbb{E}_{q(z)}\\left[\\log\\frac{p_\\theta(x,z)}{q(z)}\\right]",
+      "tags": []
+    },
+    {
+      "title": "Probabilistic PCA",
+      "mustKnow": "Know PPCA as PCA formulated as a Gaussian latent-variable model.",
+      "coreIdea": "PPCA samples a low-dimensional Gaussian latent, maps it linearly, and adds isotropic Gaussian noise, giving a tractable Gaussian marginal.",
+      "formulaOrRule": "The covariance is low-rank structure plus isotropic noise.",
+      "commonTrap": "Do not treat PPCA as ordinary deterministic PCA; it is a likelihood model with noise.",
+      "examUse": "Use PPCA as the clean bridge from linear latent models to VAEs.",
+      "checks": [
+        "What is the generative story of PPCA?",
+        "How does PPCA covariance depend on W?"
+      ],
+      "formula": "x\\sim\\mathcal{N}(\\mu,WW^T+\\sigma^2I)",
+      "tags": [
+        "ppca"
+      ]
+    }
+  ],
+  "w3-vae": [
+    {
+      "title": "Nonlinear latent variable model",
+      "mustKnow": "Know why neural decoders increase expressiveness and inference difficulty.",
+      "coreIdea": "Replacing a linear decoder with a neural decoder lets the model represent complex data manifolds, but usually destroys closed-form posterior inference.",
+      "formulaOrRule": "Keep the latent prior simple and make p_theta(x|z) flexible.",
+      "commonTrap": "Do not expect PPCA-style closed-form updates after adding a deep decoder.",
+      "examUse": "Use this point to motivate approximate inference.",
+      "checks": [
+        "Why does nonlinearity make inference harder?",
+        "What stays simple in many deep LVMs?"
+      ],
+      "tags": [
+        "decoder",
+        "elbo",
+        "encoder",
+        "reparameterization",
+        "vae"
+      ]
+    },
+    {
+      "title": "Encoder and decoder roles",
+      "mustKnow": "Know which network is inference and which network is generation.",
+      "coreIdea": "The encoder q_phi(z|x) approximates posterior inference; the decoder p_theta(x|z) defines how samples are generated from latent variables.",
+      "formulaOrRule": "Generate by sampling z from the prior and passing through the decoder.",
+      "commonTrap": "Do not sample from the encoder when generating unconditional new data unless conditioning on an input.",
+      "examUse": "Use this to avoid common VAE architecture confusion.",
+      "checks": [
+        "Which network is used after sampling z from the prior?",
+        "What does the encoder approximate?"
+      ],
+      "formula": "z\\sim p(z),\\quad x\\sim p_\\theta(x|z)",
+      "tags": []
+    },
+    {
+      "title": "VAE ELBO",
+      "mustKnow": "Know the two-term objective and its interpretation.",
+      "coreIdea": "The VAE objective trades reconstruction accuracy against keeping the approximate posterior close to the prior.",
+      "formulaOrRule": "ELBO equals expected reconstruction log likelihood minus a KL regularizer.",
+      "commonTrap": "Do not interpret the KL term as arbitrary regularization; it comes from variational inference.",
+      "examUse": "Use reconstruction plus KL language in almost every VAE answer.",
+      "checks": [
+        "What does the reconstruction term reward?",
+        "Why is the KL term needed?"
+      ],
+      "formula": "\\mathcal{L}(x)=\\mathbb{E}_{q_\\phi(z|x)}[\\log p_\\theta(x|z)]-KL(q_\\phi(z|x)\\Vert p(z))",
+      "tags": []
+    },
+    {
+      "title": "Amortized inference",
+      "mustKnow": "Know why a neural encoder is computationally useful.",
+      "coreIdea": "Instead of optimizing a separate variational distribution for every datapoint, a single encoder network predicts posterior parameters for any input.",
+      "formulaOrRule": "Inference cost is amortized across the dataset through learned parameters phi.",
+      "commonTrap": "Do not confuse amortized inference with exact inference; it is fast but approximate.",
+      "examUse": "Use this concept when explaining why VAEs scale better than per-datapoint VI.",
+      "checks": [
+        "What is amortized across datapoints?",
+        "Why can amortization introduce an approximation gap?"
+      ],
+      "tags": []
+    },
+    {
+      "title": "Reparameterization trick",
+      "mustKnow": "Know how stochastic latent sampling becomes differentiable.",
+      "coreIdea": "A Gaussian latent sample is written as a deterministic function of encoder parameters and external noise, allowing gradients to flow through the sample path.",
+      "formulaOrRule": "Move randomness into epsilon drawn from a fixed distribution.",
+      "commonTrap": "Do not backpropagate through a raw sampling operation without reparameterization or another estimator.",
+      "examUse": "Use this for training mechanics questions.",
+      "checks": [
+        "What random variable is independent of phi?",
+        "Why does this help backpropagation?"
+      ],
+      "formula": "z=\\mu_\\phi(x)+\\sigma_\\phi(x)\\odot\\epsilon,\\quad\\epsilon\\sim\\mathcal{N}(0,I)",
+      "tags": []
+    },
+    {
+      "title": "Posterior collapse",
+      "mustKnow": "Know a common VAE failure mode.",
+      "coreIdea": "A powerful decoder may ignore z, making q(z|x) close to the prior and reducing latent information.",
+      "formulaOrRule": "Watch for near-zero KL or latents that do not affect reconstructions.",
+      "commonTrap": "Do not assume a low training loss means useful latent representations.",
+      "examUse": "Mention decoder strength, KL annealing, or architecture choices as possible remedies.",
+      "checks": [
+        "What symptom indicates posterior collapse?",
+        "Why can a strong decoder cause it?"
+      ],
+      "tags": []
+    }
+  ],
+  "w5-ebm": [
+    {
+      "title": "Energy parameterization",
+      "mustKnow": "Know how an EBM turns energy into probability.",
+      "coreIdea": "Lower energy means higher probability, but probabilities require global normalization by a partition function.",
+      "formulaOrRule": "Probability is proportional to exp(-energy).",
+      "commonTrap": "Do not interpret raw energy as probability; only normalized exponentiated energy is a density.",
+      "examUse": "Use this to define EBMs before discussing training.",
+      "checks": [
+        "What does low energy mean?",
+        "Why is energy not a probability?"
+      ],
+      "formula": "p_\\theta(x)=\\frac{\\exp(-E_\\theta(x))}{Z_\\theta}",
+      "tags": [
+        "energy",
+        "langevin",
+        "negative phase",
+        "partition function",
+        "positive phase"
+      ]
+    },
+    {
+      "title": "Partition function",
+      "mustKnow": "Know why the normalizer is the main computational bottleneck.",
+      "coreIdea": "The partition function sums or integrates exp(-energy) over all possible configurations, which is usually intractable in high dimensions.",
+      "formulaOrRule": "It makes the density valid but couples every datapoint to the whole sample space.",
+      "commonTrap": "Do not ignore Z when deriving likelihood gradients.",
+      "examUse": "Use this to explain why EBMs need approximations or MCMC.",
+      "checks": [
+        "What space does Z integrate over?",
+        "Why is Z hard for images?"
+      ],
+      "formula": "Z_\\theta=\\int \\exp(-E_\\theta(x))\\,dx",
+      "tags": []
+    },
+    {
+      "title": "Positive phase and negative phase",
+      "mustKnow": "Know the two forces in EBM likelihood training.",
+      "coreIdea": "The positive phase lowers energy on data; the negative phase raises energy on samples from the current model distribution.",
+      "formulaOrRule": "Likelihood gradients compare data statistics and model statistics.",
+      "commonTrap": "Do not train only on data energy; without negative phase the model can lower energy everywhere.",
+      "examUse": "Use this for any EBM gradient explanation.",
+      "checks": [
+        "What happens in the positive phase?",
+        "Why is the negative phase necessary?"
+      ],
+      "tags": []
+    },
+    {
+      "title": "Langevin dynamics",
+      "mustKnow": "Know how gradient-based MCMC samples from an EBM approximately.",
+      "coreIdea": "Langevin dynamics moves samples downhill in energy while adding Gaussian noise to preserve stochastic exploration.",
+      "formulaOrRule": "Iterative updates combine an energy gradient step and a noise step.",
+      "commonTrap": "Do not remove the noise term and still call it sampling from the model; that becomes deterministic optimization.",
+      "examUse": "Use this to explain why EBM sampling can be slow.",
+      "checks": [
+        "Why add noise in Langevin dynamics?",
+        "What gradient is used?"
+      ],
+      "formula": "x_{k+1}=x_k-\\eta\\nabla_xE_\\theta(x_k)+\\sqrt{2\\eta}\\,\\epsilon_k",
+      "tags": []
+    },
+    {
+      "title": "Contrastive divergence and persistent chains",
+      "mustKnow": "Know common approximations for the negative phase.",
+      "coreIdea": "Because exact model samples are expensive, training often uses short chains, replay buffers, or persistent chains to approximate negative samples.",
+      "formulaOrRule": "Approximation quality depends on mixing and chain initialization.",
+      "commonTrap": "Do not claim contrastive divergence gives exact maximum likelihood.",
+      "examUse": "Use this as the practical training caveat for EBMs.",
+      "checks": [
+        "Why are persistent chains useful?",
+        "What bias can short chains introduce?"
+      ],
+      "tags": []
+    }
+  ],
+  "w5-flow": [
+    {
+      "title": "Normalising flow as invertible transport",
+      "mustKnow": "Know the central flow idea.",
+      "coreIdea": "A normalising flow transports a simple base distribution into the data distribution through an invertible map.",
+      "formulaOrRule": "Invertibility lets the same model sample forward and evaluate density backward.",
+      "commonTrap": "Do not use non-invertible arbitrary neural networks if exact flow likelihood is required.",
+      "examUse": "Use this as the first sentence of a flow definition.",
+      "checks": [
+        "What distribution is transformed by a flow?",
+        "Why is invertibility required?"
+      ],
+      "tags": [
+        "change of variables",
+        "coupling",
+        "invertible",
+        "jacobian",
+        "normalising flow"
+      ]
+    },
+    {
+      "title": "Change of variables",
+      "mustKnow": "Know the exact likelihood formula for flows.",
+      "coreIdea": "Density changes by the base density times a Jacobian volume correction under an invertible transformation.",
+      "formulaOrRule": "Evaluate x by mapping it back to z and adding log absolute determinant.",
+      "commonTrap": "Do not omit the determinant; it is what preserves probability mass under stretching.",
+      "examUse": "Use this formula for almost every flow derivation.",
+      "checks": [
+        "Which direction maps x to z for likelihood?",
+        "What does the determinant correct?"
+      ],
+      "formula": "\\log p_X(x)=\\log p_Z(f(x))+\\log|\\det J_f(x)|",
+      "tags": []
+    },
+    {
+      "title": "Jacobian determinant intuition",
+      "mustKnow": "Know what the determinant means geometrically.",
+      "coreIdea": "The Jacobian determinant measures local volume expansion or compression, so density decreases when volume expands and increases when volume compresses.",
+      "formulaOrRule": "Small regions transform according to the local linearization.",
+      "commonTrap": "Do not treat the determinant as a generic penalty; it is required by probability conservation.",
+      "examUse": "Use this to explain the one-dimensional stretch examples.",
+      "checks": [
+        "What happens to density under volume expansion?",
+        "Why is absolute value used?"
+      ],
+      "tags": []
+    },
+    {
+      "title": "Coupling layers",
+      "mustKnow": "Know why structured layers are used in practical flows.",
+      "coreIdea": "Coupling layers keep part of the input unchanged while transforming the rest, making the inverse and determinant cheap.",
+      "formulaOrRule": "Architecture is restricted to keep determinants tractable.",
+      "commonTrap": "Do not assume any expressive neural layer can be dropped into a flow.",
+      "examUse": "Use coupling as the standard example of flow design trade-offs.",
+      "checks": [
+        "Why do coupling layers make determinants cheap?",
+        "What is the expressiveness trade-off?"
+      ],
+      "tags": []
+    },
+    {
+      "title": "Exact likelihood versus architectural constraint",
+      "mustKnow": "Know the main advantage and cost of flows.",
+      "coreIdea": "Flows provide exact likelihood and efficient sampling, but require invertible transformations with tractable Jacobians.",
+      "formulaOrRule": "The benefit is mathematical cleanliness; the cost is constrained model design.",
+      "commonTrap": "Do not conclude flows dominate VAEs or diffusion just because likelihood is exact.",
+      "examUse": "Use this in model comparison answers.",
+      "checks": [
+        "What is exact in a flow?",
+        "What constraints buy that exactness?"
+      ],
+      "tags": []
+    },
+    {
+      "title": "Conditional normalising flow",
+      "mustKnow": "Know how flows can be steered by side information.",
+      "coreIdea": "A conditional flow lets transformation parameters depend on a condition while preserving invertibility with respect to x.",
+      "formulaOrRule": "Model p(x|y) through an invertible map whose parameters receive y.",
+      "commonTrap": "Do not make y part of the variable that must be inverted unless the model is designed for it.",
+      "examUse": "Use this when connecting flows to controlled generation.",
+      "checks": [
+        "What variable remains invertible?",
+        "How can the condition enter the model?"
+      ],
+      "formula": "p_\\theta(x|y)",
+      "tags": []
+    }
+  ],
+  "w5-score": [
+    {
+      "title": "Score function",
+      "mustKnow": "Know the object learned by score-based models.",
+      "coreIdea": "The score is the gradient of log density with respect to the data; it points toward locally increasing probability.",
+      "formulaOrRule": "The model learns a vector field over data space.",
+      "commonTrap": "Do not confuse score with a scalar classifier score; here it is a gradient vector.",
+      "examUse": "Use this definition before discussing score matching or diffusion.",
+      "checks": [
+        "What is the score a gradient of?",
+        "Why is it a vector field?"
+      ],
+      "formula": "s_\\theta(x)\\approx\\nabla_x\\log p(x)",
+      "tags": [
+        "denoising",
+        "langevin",
+        "noise levels",
+        "score function",
+        "score matching"
+      ]
+    },
+    {
+      "title": "Normalizer disappears in the score",
+      "mustKnow": "Know why scores avoid partition functions.",
+      "coreIdea": "The gradient with respect to x of a constant log normalizer is zero, so unnormalized densities can still have learnable scores.",
+      "formulaOrRule": "If p is proportional to unnormalized density, the score ignores log Z.",
+      "commonTrap": "Do not say the model has normalized likelihood just because it learns a score.",
+      "examUse": "Use this to connect EBMs and score matching.",
+      "checks": [
+        "Why does log Z vanish?",
+        "What remains unavailable even if the score is known?"
+      ],
+      "tags": []
+    },
+    {
+      "title": "Score matching",
+      "mustKnow": "Know the training principle for score models.",
+      "coreIdea": "Score matching fits the model score to the data score without requiring normalized likelihood, often through objectives involving derivatives of the score network.",
+      "formulaOrRule": "Minimize discrepancy between true and model scores.",
+      "commonTrap": "Do not assume the true score is directly observed; objectives are designed to avoid needing it explicitly.",
+      "examUse": "Use this when asked how score models train without likelihood.",
+      "checks": [
+        "What is being matched?",
+        "Why is direct true-score supervision unavailable?"
+      ],
+      "tags": []
+    },
+    {
+      "title": "Denoising score matching",
+      "mustKnow": "Know the practical noisy-data variant.",
+      "coreIdea": "By corrupting data with Gaussian noise, the model learns directions that denoise samples back toward high-density regions.",
+      "formulaOrRule": "Train across noise levels to cover low-density regions.",
+      "commonTrap": "Do not train only at zero noise and expect robust sampling from random noise.",
+      "examUse": "Use this as the bridge from score models to diffusion.",
+      "checks": [
+        "Why add noise to training data?",
+        "How does denoising relate to score estimation?"
+      ],
+      "tags": []
+    },
+    {
+      "title": "Noise conditional score networks",
+      "mustKnow": "Know why multiple noise levels are used.",
+      "coreIdea": "Different noise scales smooth the data distribution differently, allowing the model to learn global-to-local directions.",
+      "formulaOrRule": "Condition the score network on the noise level or timestep.",
+      "commonTrap": "Do not use one score field for all noise scales without telling the model the scale.",
+      "examUse": "Use this to explain diffusion timestep conditioning.",
+      "checks": [
+        "What does large noise teach?",
+        "Why provide the noise level as input?"
+      ],
+      "tags": []
+    },
+    {
+      "title": "Langevin score sampling",
+      "mustKnow": "Know the iterative sampling procedure.",
+      "coreIdea": "Starting from noise, Langevin updates move along the learned score and inject randomness to sample from the learned distribution.",
+      "formulaOrRule": "Gradient step plus noise step repeated many times.",
+      "commonTrap": "Do not interpret one update as full generation; the chain is iterative.",
+      "examUse": "Use this when comparing score sampling with diffusion reverse chains.",
+      "checks": [
+        "Why is sampling iterative?",
+        "What roles do score and noise play?"
+      ],
+      "formula": "x_{k+1}=x_k+\\eta s_\\theta(x_k)+\\sqrt{2\\eta}\\,\\epsilon_k",
+      "tags": []
+    }
+  ],
+  "w6-diffusion": [
+    {
+      "title": "Forward noising process",
+      "mustKnow": "Know the fixed process that corrupts data into noise.",
+      "coreIdea": "Diffusion training defines a Markov chain that gradually adds Gaussian noise to clean data until it becomes nearly standard normal.",
+      "formulaOrRule": "The forward process is known and not learned.",
+      "commonTrap": "Do not say the model learns to add noise; it learns the reverse denoising process.",
+      "examUse": "Use this as step one of any diffusion explanation.",
+      "checks": [
+        "Which process is fixed?",
+        "What happens as t approaches T?"
+      ],
+      "formula": "q(x_t|x_{t-1})=\\mathcal{N}(\\sqrt{1-\\beta_t}x_{t-1},\\beta_tI)",
+      "tags": [
+        "forward noising",
+        "noise prediction",
+        "reverse process",
+        "sampling",
+        "score"
+      ]
+    },
+    {
+      "title": "Closed-form noisy sample",
+      "mustKnow": "Know why training can sample any timestep directly.",
+      "coreIdea": "The Gaussian forward chain has a closed form that samples x_t from x_0 without simulating every previous step.",
+      "formulaOrRule": "Use alpha-bar to combine signal and noise.",
+      "commonTrap": "Do not confuse x_t with a generated sample; during training it is a corrupted real sample.",
+      "examUse": "Use this formula when deriving the noise prediction loss.",
+      "checks": [
+        "Why is direct timestep sampling useful?",
+        "What controls signal-to-noise ratio?"
+      ],
+      "formula": "x_t=\\sqrt{\\bar\\alpha_t}x_0+\\sqrt{1-\\bar\\alpha_t}\\,\\epsilon",
+      "tags": []
+    },
+    {
+      "title": "Reverse denoising process",
+      "mustKnow": "Know what the neural network approximates.",
+      "coreIdea": "The learned reverse model predicts how to move from a noisy sample to a slightly cleaner sample, approximating the reverse of the forward Markov chain.",
+      "formulaOrRule": "Parameterize p_theta(x_{t-1}|x_t) or predict noise/score used in that transition.",
+      "commonTrap": "Do not think generation is one-shot; it is a chain of reverse steps.",
+      "examUse": "Use this in sampling explanations.",
+      "checks": [
+        "What distribution is learned in reverse?",
+        "Why are many steps used?"
+      ],
+      "tags": []
+    },
+    {
+      "title": "Noise prediction objective",
+      "mustKnow": "Know the common DDPM training loss.",
+      "coreIdea": "The network is trained to predict the Gaussian noise that produced x_t from x_0, which gives a denoising direction.",
+      "formulaOrRule": "Minimize squared error between true and predicted noise.",
+      "commonTrap": "Do not call this plain autoencoding; the target changes with timestep noise.",
+      "examUse": "Use this to connect practical DDPM training to score estimation.",
+      "checks": [
+        "What is the target epsilon?",
+        "Why is timestep input needed?"
+      ],
+      "formula": "L_{simple}=\\mathbb{E}_{x_0,t,\\epsilon}\\Vert\\epsilon-\\epsilon_\\theta(x_t,t)\\Vert^2",
+      "tags": []
+    },
+    {
+      "title": "Score connection",
+      "mustKnow": "Know how diffusion relates to score-based modelling.",
+      "coreIdea": "Predicting denoising directions at each noise level is equivalent to learning scores of noisy data distributions up to scaling.",
+      "formulaOrRule": "Diffusion packages multi-noise score learning into forward and reverse processes.",
+      "commonTrap": "Do not treat score models and diffusion as unrelated topics.",
+      "examUse": "Use this in synthesis questions linking Week 5 and Week 6.",
+      "checks": [
+        "How does denoising imply a score direction?",
+        "Why are noise levels central to both topics?"
+      ],
+      "tags": []
+    },
+    {
+      "title": "Sampling cost and accelerations",
+      "mustKnow": "Know the main practical trade-off.",
+      "coreIdea": "Diffusion models can generate high-quality samples but often require many iterative reverse steps; deterministic samplers or distillation can reduce steps.",
+      "formulaOrRule": "Quality, diversity, and speed are controlled by sampler and schedule.",
+      "commonTrap": "Do not compare diffusion speed to one-pass models without mentioning number of function evaluations.",
+      "examUse": "Use this in model comparison and deployment questions.",
+      "checks": [
+        "Why is diffusion sampling slow?",
+        "What kinds of methods reduce sampling steps?"
+      ],
+      "tags": []
+    }
+  ],
+  "w6-flow-matching": [
+    {
+      "title": "Continuous normalising flow",
+      "mustKnow": "Know how a flow can be defined by an ODE.",
+      "coreIdea": "A continuous normalising flow moves samples through time using a learned velocity field instead of a finite stack of invertible layers.",
+      "formulaOrRule": "The state follows dx/dt equals v_theta(t,x).",
+      "commonTrap": "Do not think continuous means non-invertible; ODE flows are invertible under standard conditions.",
+      "examUse": "Use this to bridge discrete normalising flows and flow matching.",
+      "checks": [
+        "What defines the transformation over time?",
+        "Why can an ODE flow be invertible?"
+      ],
+      "formula": "\\frac{dx_t}{dt}=v_\\theta(t,x_t)",
+      "tags": [
+        "continuity equation",
+        "continuous flow",
+        "flow matching",
+        "ode",
+        "velocity"
+      ]
+    },
+    {
+      "title": "Continuity equation",
+      "mustKnow": "Know how density changes under a velocity field.",
+      "coreIdea": "As probability mass flows through space, log-density changes according to the negative divergence of the velocity field along trajectories.",
+      "formulaOrRule": "Divergence measures local expansion or compression.",
+      "commonTrap": "Do not use ordinary Jacobian determinant formulas without adapting to continuous time.",
+      "examUse": "Use this to explain likelihood in continuous flows.",
+      "checks": [
+        "What does positive divergence do to density?",
+        "Why is this a PDE/ODE density relation?"
+      ],
+      "formula": "\\frac{d\\log p_t(x_t)}{dt}=-\\nabla\\cdot v_\\theta(t,x_t)",
+      "tags": []
+    },
+    {
+      "title": "Flow Matching objective",
+      "mustKnow": "Know what is supervised in flow matching.",
+      "coreIdea": "Flow matching trains the model velocity field to match a target velocity along a chosen probability path from noise to data.",
+      "formulaOrRule": "The loss is regression on velocities, not direct likelihood maximization.",
+      "commonTrap": "Do not describe flow matching as simply another DDPM loss; the target is a velocity field.",
+      "examUse": "Use this as the core definition of the lecture.",
+      "checks": [
+        "What is the model predicting?",
+        "What does the target velocity represent?"
+      ],
+      "formula": "\\mathcal{L}_{FM}=\\mathbb{E}_{t,x_t}\\Vert v_\\theta(t,x_t)-u_t(x_t)\\Vert^2",
+      "tags": []
+    },
+    {
+      "title": "Probability paths",
+      "mustKnow": "Know that different paths define different learning problems.",
+      "coreIdea": "A probability path specifies intermediate distributions between base noise and data; the velocity field transports mass along this path.",
+      "formulaOrRule": "Path choice can encode straight-line interpolation, optimal transport, or diffusion-like behavior.",
+      "commonTrap": "Do not discuss flow matching without specifying what path is being matched.",
+      "examUse": "Use this to compare conditional flow matching variants.",
+      "checks": [
+        "What are endpoints of the path?",
+        "How can path choice affect training?"
+      ],
+      "tags": []
+    },
+    {
+      "title": "Simulation-free training",
+      "mustKnow": "Know a key advantage of flow matching.",
+      "coreIdea": "Flow matching can train on sampled intermediate points and target velocities without simulating the whole ODE during training.",
+      "formulaOrRule": "This reduces training burden compared with backpropagating through full ODE solves.",
+      "commonTrap": "Do not claim sampling is simulation-free; generation still follows or solves the learned flow.",
+      "examUse": "Use this when explaining why flow matching is attractive.",
+      "checks": [
+        "What is avoided during training?",
+        "What still happens during generation?"
+      ],
+      "tags": []
+    },
+    {
+      "title": "Relation to diffusion and optimal transport",
+      "mustKnow": "Know the conceptual family resemblance and distinction.",
+      "coreIdea": "Diffusion, flow matching, and optimal transport all move simple noise toward data, but differ in stochasticity, target, and path definition.",
+      "formulaOrRule": "Diffusion often predicts noise or score; flow matching predicts velocity.",
+      "commonTrap": "Do not collapse all generative transport methods into one algorithm.",
+      "examUse": "Use this for compare-and-contrast questions.",
+      "checks": [
+        "What does diffusion predict?",
+        "What does flow matching predict?"
+      ],
+      "tags": []
+    }
+  ],
+  "w6-evaluation": [
+    {
+      "title": "Likelihood evaluation",
+      "mustKnow": "Know what likelihood measures and what it misses.",
+      "coreIdea": "Likelihood evaluates whether held-out data receives high probability, which is important for density models but not always aligned with perceptual quality.",
+      "formulaOrRule": "Use test log-likelihood or bits per dimension only when the model supports density evaluation.",
+      "commonTrap": "Do not compare likelihoods across incompatible preprocessing or supports.",
+      "examUse": "Use this to explain why evaluation needs multiple metrics.",
+      "checks": [
+        "Why can high likelihood samples look bad?",
+        "Which model families support exact likelihood?"
+      ],
+      "tags": [
+        "likelihood",
+        "precision",
+        "recall"
+      ]
+    },
+    {
+      "title": "Precision and recall for generators",
+      "mustKnow": "Know the quality-diversity split.",
+      "coreIdea": "Precision asks whether generated samples look real; recall asks whether the generator covers the real distribution and does not miss modes.",
+      "formulaOrRule": "Mode collapse is high precision but low recall.",
+      "commonTrap": "Do not use one visual grid as evidence of coverage.",
+      "examUse": "Use this whenever discussing sample evaluation.",
+      "checks": [
+        "What does mode collapse do to recall?",
+        "Can a model have high recall and low precision?"
+      ],
+      "tags": []
+    },
+    {
+      "title": "FID and Inception features",
+      "mustKnow": "Know what FID approximates.",
+      "coreIdea": "FID compares mean and covariance of real and generated samples in a learned feature space, usually Inception features for images.",
+      "formulaOrRule": "Lower FID means generated feature distribution is closer under this Gaussian approximation.",
+      "commonTrap": "Do not use FID blindly outside natural images or with tiny sample sizes.",
+      "examUse": "Use this as the standard image-generation metric explanation.",
+      "checks": [
+        "What statistics does FID compare?",
+        "Why can feature extractor choice matter?"
+      ],
+      "formula": "FID=\\Vert\\mu_r-\\mu_g\\Vert^2+Tr(\\Sigma_r+\\Sigma_g-2(\\Sigma_r\\Sigma_g)^{1/2})",
+      "tags": [
+        "fid"
+      ]
+    },
+    {
+      "title": "MMD and KID",
+      "mustKnow": "Know kernel-based distribution comparison.",
+      "coreIdea": "MMD compares distributions through kernel mean embeddings; KID is an MMD-based metric often used for generated images.",
+      "formulaOrRule": "Unlike FID, KID has an unbiased estimator in common settings.",
+      "commonTrap": "Do not interpret a kernel metric without saying which representation and kernel are used.",
+      "examUse": "Use this as an alternative metric when discussing statistical comparison.",
+      "checks": [
+        "What does MMD compare?",
+        "Why is KID sometimes preferred to FID?"
+      ],
+      "tags": [
+        "mmd"
+      ]
+    },
+    {
+      "title": "Train-test and memorization checks",
+      "mustKnow": "Know why generated samples must be checked against held-out data.",
+      "coreIdea": "A generator can overfit or memorize training examples, so evaluation should inspect nearest neighbours and use held-out splits.",
+      "formulaOrRule": "Compare generated samples to train and test data in feature or domain space.",
+      "commonTrap": "Do not call memorized samples successful generalization.",
+      "examUse": "Use this as an evaluation caveat for every model family.",
+      "checks": [
+        "How can nearest neighbours reveal memorization?",
+        "Why evaluate on test data?"
+      ],
+      "tags": []
+    },
+    {
+      "title": "Domain-specific validity",
+      "mustKnow": "Know that metrics must match the data domain.",
+      "coreIdea": "Molecules, proteins, medical images, and causal simulations require validity, constraints, or downstream task metrics beyond image-quality scores.",
+      "formulaOrRule": "Choose metrics that reflect scientific or causal usefulness.",
+      "commonTrap": "Do not use Inception-based FID as proof of quality for non-image scientific objects.",
+      "examUse": "Use this in life-science and causal evaluation questions.",
+      "checks": [
+        "Name one molecule-specific validity metric.",
+        "Why is image realism not enough for proteins?"
+      ],
+      "tags": []
+    }
+  ],
+  "w7-life": [
+    {
+      "title": "Need for controllable generation",
+      "mustKnow": "Know why life-science generation is constraint-heavy.",
+      "coreIdea": "Scientific generation needs samples that satisfy properties, structures, functions, and feasibility constraints, not merely plausible-looking outputs.",
+      "formulaOrRule": "Condition or guide the model toward desired biological or chemical properties.",
+      "commonTrap": "Do not equate realistic samples with useful molecules or proteins.",
+      "examUse": "Use this as the opening motivation for the lecture.",
+      "checks": [
+        "Why is plausibility insufficient for molecules?",
+        "Name two constraints in protein generation."
+      ],
+      "tags": [
+        "classifier-free",
+        "conditioning",
+        "guidance",
+        "protein",
+        "validity"
+      ]
+    },
+    {
+      "title": "Conditioning mechanisms",
+      "mustKnow": "Know how side information enters a generative model.",
+      "coreIdea": "Conditioning trains the model with labels, properties, structures, motifs, or text so generated samples follow a specified target.",
+      "formulaOrRule": "Model p(x|y) or condition the denoiser/decoder on y.",
+      "commonTrap": "Do not confuse conditioning with selecting after generation.",
+      "examUse": "Use this when describing controlled diffusion or conditional flow models.",
+      "checks": [
+        "What is the difference between conditioning and filtering?",
+        "Where can y enter a diffusion model?"
+      ],
+      "formula": "p_\\theta(x|y)",
+      "tags": []
+    },
+    {
+      "title": "Classifier guidance",
+      "mustKnow": "Know the score modification used to steer diffusion.",
+      "coreIdea": "Classifier guidance adds the gradient of a classifier likelihood to the unconditional generative score, pushing samples toward a target class or property.",
+      "formulaOrRule": "Guided score combines data score and condition score.",
+      "commonTrap": "Do not forget that guidance needs a classifier or property model with gradients.",
+      "examUse": "Use this for derivation questions about controlled diffusion.",
+      "checks": [
+        "What gradient does the classifier provide?",
+        "Why can strong guidance reduce diversity?"
+      ],
+      "formula": "\\nabla_x\\log p(x|y)=\\nabla_x\\log p(x)+\\nabla_x\\log p(y|x)",
+      "tags": []
+    },
+    {
+      "title": "Classifier-free guidance",
+      "mustKnow": "Know the practical guidance method without an external classifier.",
+      "coreIdea": "Classifier-free guidance trains conditional and unconditional behavior in one model, then extrapolates between their predictions during sampling.",
+      "formulaOrRule": "Guidance weight controls condition adherence versus diversity.",
+      "commonTrap": "Do not set guidance weight high without expecting artifacts or diversity loss.",
+      "examUse": "Use CFG in modern diffusion control explanations.",
+      "checks": [
+        "What two predictions are combined?",
+        "What happens when guidance weight increases?"
+      ],
+      "formula": "\\tilde\\epsilon=\\epsilon_\\theta(x_t,t,\\emptyset)+w(\\epsilon_\\theta(x_t,t,y)-\\epsilon_\\theta(x_t,t,\\emptyset))",
+      "tags": []
+    },
+    {
+      "title": "Protein representations",
+      "mustKnow": "Know that representation choice is part of the model.",
+      "coreIdea": "Proteins can be represented as sequences, 3D coordinates, backbones, torsion angles, contact maps, or equivariant graphs, each encoding different inductive biases.",
+      "formulaOrRule": "Choose representation according to task: sequence design, structure generation, motif scaffolding, or binding.",
+      "commonTrap": "Do not treat proteins as ordinary image pixels; geometry and invariance matter.",
+      "examUse": "Use this in application questions about biological generative models.",
+      "checks": [
+        "Why does rotation equivariance matter?",
+        "When would a sequence representation be insufficient?"
+      ],
+      "tags": []
+    },
+    {
+      "title": "Molecular and protein validity",
+      "mustKnow": "Know the downstream checks required after generation.",
+      "coreIdea": "Generated molecules need chemical validity and synthesizability; generated proteins need stability, structure, and functional plausibility.",
+      "formulaOrRule": "Evaluate with domain-specific constraints and often external simulation or experiments.",
+      "commonTrap": "Do not claim a sample is useful solely because the generative model produced it.",
+      "examUse": "Use this as the safety/scientific caveat.",
+      "checks": [
+        "What makes a molecule chemically invalid?",
+        "Why may experimental validation be needed?"
+      ],
+      "tags": []
+    }
+  ],
+  "w7-causal": [
+    {
+      "title": "Causal versus correlational generation",
+      "mustKnow": "Know why matching observations is not enough for interventions.",
+      "coreIdea": "A correlational generator can reproduce training patterns while failing when the environment or intervention changes.",
+      "formulaOrRule": "Causal modelling asks what changes under actions, not only what co-occurs.",
+      "commonTrap": "Do not call a latent variable causal just because it is interpretable.",
+      "examUse": "Use this as the motivation for causal generative modelling.",
+      "checks": [
+        "Why can shortcut learning fail out of distribution?",
+        "What extra question does causality answer?"
+      ],
+      "tags": [
+        "causal",
+        "counterfactual",
+        "identifiability",
+        "intervention"
+      ]
+    },
+    {
+      "title": "Pearl ladder",
+      "mustKnow": "Know the hierarchy of association, intervention, and counterfactuals.",
+      "coreIdea": "Association observes; intervention sets variables; counterfactuals reason about alternative outcomes for the same unit.",
+      "formulaOrRule": "Higher levels require stronger assumptions than passive observation.",
+      "commonTrap": "Do not answer do-operator questions with ordinary conditioning alone.",
+      "examUse": "Use the ladder to classify exam examples.",
+      "checks": [
+        "What level is p(y|x)?",
+        "What level asks what would have happened?"
+      ],
+      "tags": []
+    },
+    {
+      "title": "Structural causal model",
+      "mustKnow": "Know the mechanism-based representation of causal variables.",
+      "coreIdea": "An SCM defines each variable as a function of its parents and independent noise, inducing a graph-factorized joint distribution.",
+      "formulaOrRule": "Causal mechanisms, not just distributions, support interventions.",
+      "commonTrap": "Do not infer the graph uniquely from observational density without assumptions.",
+      "examUse": "Use SCMs to formalize causal generative models.",
+      "checks": [
+        "What are parents in an SCM?",
+        "Why do mechanisms matter?"
+      ],
+      "formula": "p(z_1,\\ldots,z_d)=\\prod_i p(z_i|pa_i)",
+      "tags": [
+        "scm"
+      ]
+    },
+    {
+      "title": "Intervention and do-operator",
+      "mustKnow": "Know why intervention differs from conditioning.",
+      "coreIdea": "An intervention replaces a structural equation, breaking normal causes of the intervened variable; conditioning merely selects observations where a variable has a value.",
+      "formulaOrRule": "Use do(z=a) for forced settings.",
+      "commonTrap": "Do not write p(y|x) when the question asks about setting x by intervention.",
+      "examUse": "Use this in any causal effect question.",
+      "checks": [
+        "What equation changes under intervention?",
+        "Why can p(y|x) differ from p(y|do(x))?"
+      ],
+      "formula": "p(x|do(z_j=a))",
+      "tags": []
+    },
+    {
+      "title": "Counterfactual reasoning",
+      "mustKnow": "Know the abduction-action-prediction recipe.",
+      "coreIdea": "Counterfactuals infer the latent/noise state of the observed individual, modify the causal model by an intervention, then predict the alternate outcome.",
+      "formulaOrRule": "The same unit is considered under a different action.",
+      "commonTrap": "Do not answer counterfactuals by sampling a new unrelated individual.",
+      "examUse": "Use the three-step recipe explicitly in exam answers.",
+      "checks": [
+        "What happens in abduction?",
+        "Why keep the same latent/noise state?"
+      ],
+      "tags": []
+    },
+    {
+      "title": "Identifiability and assumptions",
+      "mustKnow": "Know why causal representations are hard to learn.",
+      "coreIdea": "Many causal explanations can induce the same observational distribution, so causal factors are not identifiable without assumptions, interventions, environments, or inductive biases.",
+      "formulaOrRule": "Identifiability is about whether the target is determined by available data and assumptions.",
+      "commonTrap": "Do not claim disentanglement is guaranteed by unsupervised reconstruction.",
+      "examUse": "Use this as the main caveat for causal generative models.",
+      "checks": [
+        "Why is observational data insufficient in general?",
+        "What extra information can help identifiability?"
+      ],
+      "tags": []
+    },
+    {
+      "title": "Causal world models",
+      "mustKnow": "Know how causal structure can help agents reason under actions.",
+      "coreIdea": "A causal world model represents mechanisms and transitions so an agent can predict effects of interventions and plan beyond observed correlations.",
+      "formulaOrRule": "Model dynamics with causal variables and intervention-aware transitions.",
+      "commonTrap": "Do not treat a black-box next-state predictor as causal unless interventions/mechanisms are represented.",
+      "examUse": "Use this in final application questions linking causality and generative modelling.",
+      "checks": [
+        "How can causal structure help planning?",
+        "What would fail in a purely correlational world model?"
+      ],
+      "tags": []
+    }
+  ]
+}

@@ -1,6 +1,4 @@
-"""Merge guidance-gap score files, aggregate by gamma_2, and emit a Markdown
-table + a 4-panel Figure-7-style plot (metric vs gamma_2 with a standard baseline).
-"""
+"""Merge guidance-gap scores, aggregate by gamma_2, and output a Markdown table + figure."""
 from __future__ import annotations
 
 import argparse
@@ -54,7 +52,7 @@ def render_figure(agg: dict, gamma_1: float, out_png: Path) -> None:
         stds = [agg["by_gamma2"][g][m]["std"] * s for g in g2s]
         ax.errorbar(g2s, means, yerr=stds, marker="o", capsize=3, label="Z-Sampling")
         ax.axhline(agg["standard"][m]["mean"] * s, ls="--", color="gray", label="standard")
-        ax.axvline(gamma_1, ls=":", color="red", alpha=0.6)  # zero-gap line at gamma_2 = gamma_1
+        ax.axvline(gamma_1, ls=":", color="red", alpha=0.6)
         ax.set_title(METRIC_LABELS[m])
         ax.set_xlabel("inversion guidance gamma_2")
         ax.legend(fontsize=8)

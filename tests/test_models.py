@@ -76,12 +76,6 @@ class _FakePipe:
 
 
 def test_load_sdxl_pairs_real_inverse_scheduler(monkeypatch):
-    """Regression guard: the SDXL handle must carry a true DDIMInverseScheduler.
-
-    The earlier SDXL path (run_exp2's wrapper) silently used the forward DDIM
-    scheduler as the inverse, which would corrupt Z-Sampling inversion. load_sdxl
-    must instead derive a real DDIMInverseScheduler from the DDIM config.
-    """
     fake = _FakePipe(scheduler=DDIMScheduler())
     monkeypatch.setattr(
         models.StableDiffusionXLPipeline,
@@ -94,7 +88,6 @@ def test_load_sdxl_pairs_real_inverse_scheduler(monkeypatch):
     assert handle.hf_id == "stabilityai/stable-diffusion-xl-base-1.0"
     assert isinstance(handle.pipe.scheduler, DDIMScheduler)
     assert isinstance(handle.inverse_scheduler, DDIMInverseScheduler)
-    # The inverse scheduler must NOT be the same (forward) scheduler instance.
     assert handle.inverse_scheduler is not handle.pipe.scheduler
 
 
@@ -103,8 +96,6 @@ def test_sdxl_base_loader_function_exists():
 
 
 def test_resolve_sdxl_dtype_uses_fp16_on_cuda_fp32_elsewhere():
-    # SDXL's UNet produces NaN in fp16/bf16 on Apple MPS (verified empirically:
-    # NaN at the first forward), so MPS/CPU must run fp32; CUDA keeps fast fp16.
     assert models.resolve_sdxl_dtype(torch.device("cuda")) == torch.float16
     assert models.resolve_sdxl_dtype(torch.device("mps")) == torch.float32
     assert models.resolve_sdxl_dtype(torch.device("cpu")) == torch.float32

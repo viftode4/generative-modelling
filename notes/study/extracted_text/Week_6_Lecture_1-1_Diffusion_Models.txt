@@ -1,0 +1,513 @@
+Di usion Models
+DSAIT4030 Generative Modelling | Week 6 Lecture 1
+
+Sayak Mukherjee
+sayak.mukherjee@tudelft.nl
+
+PhD Student
+Cognitive A ective Technology Lab
+Intelligent Systems / Pattern Recognition & Bioinformatics
+
+
+
+
+     ff
+ff
+        Recap: Score-based Models
+        • Score function: points in the direction of the increasing probability.
+                                      d       d
+        • We use a model sθ(x) : ℝ → ℝ to learn the score function.
+
+                                    sθ(x) ≈ ∇x log p(x)
+
+        • Score matching: Training the model using data
+                        1
+                              x∼p [∥sθ(x) − ∇x log p(x)∥ ]
+                                                           2
+                        2
+                        1
+                              x∼p(x) [sθ(x) ] +   x∼p(x) [tr ( ∇x sθ(x))]
+                                          2
+                      ≡
+                        2
+        • Issues: (1) Not Scalable. (2) Inaccurate in low density regions.
+
+
+𝔼   𝔼                     𝔼
+
+
+
+
+                                                                               Image Source: Blog on Score-based Generative Models — Yang Song
+        Recap: Denoising Score Matching
+        1
+            x∼p [∥sθ(x) − ∇x log p(x)∥ ]
+                                        2
+                                             Original Objective                               qσ(z | x)
+        2
+
+        1
+            z∼qσ [∥sθ(z) − ∇z log qσ(z)∥ ] Noise-perturbed Objective
+                                         2
+        2                                                                x ∼ p(x)                                z ∼ qσ(z)
+
+          1
+               x∼p, z∼qσ(z|x) [∥sθ(z) − ∇z log qσ(z | x)∥ ]
+                                                        2
+        ≡
+          2
+
+
+               x∼p, z∼qσ(z|x) [∥sθ(z) + 2 ∥ ]
+          1                             ϵ 2
+        ≡
+          2                            σ
+
+
+                                                                                                             ∫
+                                                                            p(x)                      qσ(z) = q(z | x, σ)p(x)dx
+𝔼
+𝔼
+    𝔼
+
+
+
+
+    𝔼
+
+
+
+
+                                                                       Image Source: Blog on Score-based Generative Models — Yang Song
+    Recap: Joint Score Estimation
+
+                                                                         (1)
+                                                                       zt
+        T
+     1
+           λ(σt) zt∼qσ [∥sθ(zt, σt) − ∇x log qσt(zt)∥]
+                                                                                                         1
+                                                                                                        sθ
+       ∑
+     T t=1            t                                                zt(2)
+
+                                                                                                         2
+                                                                                                        sθ
+        weighing function                                               σt
+
+
+                                                            Noise Conditional Score Network
+
+
+
+                                                         Image Source: Blog on Score-based Generative Models — Yang Song
+𝔼
+Recap: Annealed Langevin Dynamics
+
+
+
+
+                         Image Source: Blog on Score-based Generative Models — Yang Song
+Recap: Annealed Langevin Dynamics
+
+
+
+
+                         Image Source: Blog on Score-based Generative Models — Yang Song
+Noising Process
+
+
+
+
+           qσ1(z1 | x)   qσ2(z2 | x)   qσ3(z3 | x)
+      Iterative Noising Process
+        q(z1 | x)        q(z2 | z1)                                                   q(zT | zT−1)
+
+
+
+
+         x          z1          z2                          ⋯                  zT−1          zT
+
+     • Slowly destroy structure in an iterative process by adding Gaussian noise:
+                                                                                  T
+                 q(zt | zt−1) =        ( 1 − βt zt−1, βtI),           {βt ∈ (0,1)}t=1
+                                                                                                     qσ1(z1 | x)       qσ2(z2 | x)                       qσ3(z3 | x)
+     • De nes a Markov chain with joint distribution:
+                                                      T
+
+                                                      ∏
+                                      q(z1:T | x) =         q(zt | zt−1)
+                                                      t=1
+
+
+
+                                                                                                       Image Source: Blog on Score-based Generative Models — Yang Song
+             𝒩
+
+
+
+
+fi
+      Multistep Transition
+        q(z1 | x)         q(z2 | z1)                                             q(zT | zT−1)
+                                                                                                                 Di usion Models
+
+                                                                                                             zt =       ᾱt x0 +       1 − ᾱt ϵ
+
+
+         x           z1          z2                   ⋯                   zT−1          zT
+                                                                                                         Denoising Score Matching
+
+     • Multistep transitions are also Gaussian can be computed in close form:                                        zt = x0 + σtϵ
+                                                                     t
+
+                                                                    ∏
+                 q(zt | x0) =      ( ᾱt x0, (1 − ᾱt)I),   ᾱt =         (1 − βs)
+                                                                    s=1
+
+
+
+
+             𝒩
+
+
+
+
+                                                                                                Image Source: Blog on Score-based Generative Models — Yang Song
+
+ff
+     Di usion Perspective
+
+                             q(z1 | x)
+
+
+                  x ∼ p(x)               z ∼ q1(z)
+
+
+
+
+           p(x)                                      q1(z1)   qT−1(zT−1)                            qT (zT )
+
+
+
+
+                                                                     Image Source: From slides of CS236 Deep Generative Models lecture
+
+ff
+     Iterative Denoising
+       q(z1 | x)        q(z2 | z1)                                                       q(zT | zT−1)
+
+                                                                                                          Sampling:
+
+                                                                                                              1.   Sample zT ∼      (0,I)
+
+                                                                                                              2.   Iteratively sample from pθ(zt−1 | zt)
+        x          z1           z2                       ⋯                        zT−1           zT
+
+
+
+                        pθ(z1 | z2)                                                      pθ(zT−1 | zT )
+
+    • During training we want to learn a reverse process that restores structure:
+                           pθ(zt−1 | zt) = (μθ(zt, t), βtI)
+    • Joint distribution:
+                                                 T
+
+                                                 ∏
+                         pθ(x, z1:T ) = p(zT )         pθ(zt−1 | zt) pθ(x | z1)
+                                                 t=2
+
+            𝒩
+𝒩
+         Di usion Model as Hierarchical VAE
+         Variational Autoencoder (VAE)                                                         qϕ(z ∣ x)
+         • One layer of latent z.                                                    x                            z
+
+                                             [    qϕ(z | x) ]
+                                                  pθ(x, z)                                     pθ(x ∣ z)
+         Evidence Lower Bound (ELBO): qϕ(z|x) log
+
+
+
+         Hierarchical VAE (HVAE)                                        q(z1 ∣ x)                                     q(zT ∣ zT−1)
+         • Multiple layers of latents.
+                                                                    x                     z1      ⋯        zT−1                      zT
+         • In Markovian HVAE, each latent is generated from only
+           the previous latent.                                         pθ(x ∣ z1)                                pθ(zT−1 ∣ zT )
+
+
+                                               [    q(z1:T | x) ]
+                                                    pθ(x, z1:T )
+         Evidence Lower Bound (ELBO): q(z1:T|x) log                 Diffusion model is an instance of HVAE where
+                                                                         q(zt | zt−1) =        (zt ∣   1 − β(t)zt−1, β(t)I)
+𝔼
+
+
+
+
+𝔼
+
+
+
+
+               𝒩
+
+
+
+
+    ff
+        Computing the ELBO
+                         [    q(z1:T | x) ]
+                              pθ(x, z1:T )
+                q(z1:T|x) log
+
+                                                T
+           =    q(z1:T|x)[ KL(q(zT ∣ x)∥p(zT )) + ∑ KL(q(zt−1 ∣ zt)∥pθ(zt−1 ∣ zt)) −log   pθ(x ∣ z1)]
+                                                  t=2
+
+
+               • First term is prior matching term does not depend on θ.
+               • Second term is the consistency term.
+                 • KL divergence between two Gaussians with the same variance.
+                 • Closed form solution.
+               • Third term is the reconstruction term similar as in VAEs.
+
+𝔼
+
+
+
+
+    𝔼
+Computing the ELBO
+                                 KL(q(zt−1 ∣ zt)∥pθ(zt−1 ∣ zt))
+
+
+                                                                 Forward Process
+
+                                  q(zt | zt−1) =           ( 1 − βt zt−1, βtI)
+                                                              Apply Bayes’ Rule
+
+                              Posterior
+
+                                      q(zt−1 | zt, x) =        (μ̃(zt, x), β̃tI)
+                                                              Minimise KL Divergence
+
+                                      pθ(zt−1 | zt) =         (μθ(zt, t), βtI)
+                              Backward Process
+
+         zt−1                                                                                           zt
+
+                               1 − βt (1 − ᾱt−1)            ᾱt−1 βt                    1 − ᾱt−1
+                μ̃(zt, x) =                         zt +                x   and    β̃t =           βt
+                                   1 − ᾱt                  1 − ᾱt                       1 − ᾱt
+ 𝒩
+
+
+
+
+ 𝒩
+
+
+
+
+     𝒩
+Computing the ELBO
+                                 KL(q(zt−1 ∣ zt)∥pθ(zt−1 ∣ zt))
+
+
+  • KL Divergence between two Gaussians can be computed as:
+                                                     1                          2
+                    KL(q(zt−1 ∣ zt)∥pθ(zt−1 ∣ zt)) = 2 ∥μ̃t(zt, x) − μθ(zt, t)∥
+                                                    2σt
+
+  • We can directly use this to train a model that predicts the mean.
+  • However, this was found to be not working well in practice.
+    Parameterising the noise
+                                                            1                         2
+                           KL(q(zt−1 ∣ zt)∥pθ(zt−1 ∣ zt)) = 2 ∥μ̃t(zt, x) − μθ(zt, t)∥
+                                                           2σt
+         • Recall the mean we are trying to learn is:
+                                                         1 − βt (1 − ᾱt−1)                 ᾱt−1 βt
+                                          μ̃(zt, x) =                            zt +                  x
+                                                                  1 − ᾱt                  1 − ᾱt
+
+         • Here, zt =   ᾱt x +   1 − ᾱt ϵ. Using this we can rewrite the mean as
+
+
+                                                               1 − βt (            1 − ᾱt )
+                                                                  1                   βt
+                                               μ̃(zt, x) =             zt −                 ϵ
+
+
+
+                                                             1 − βt (                            )
+                                                              1                  βt
+                                           μθ(zt, x) =                  zt −            ϵθ(xt, t)
+                                                                                1 − ᾱt
+
+         • Ho et al. proposed to learn the noise prediction network. Thus
+
+                                   x∼q(x),ϵ∼ (0,I) [λt∥ϵ − ϵθ(                                  1 − ᾱt , t)∥ ]
+                                                                                                            2
+     𝒩
+                                                                               ᾱt x0 +
+𝔼
+    Training and Inference
+     • The final loss is obtained by taking an expectation over the steps
+
+                        x∼q(x),t∼[1,T],ϵ∼ (0,I) [∥ϵ − ϵθ(              1 − ᾱt , t)∥ ]
+                                                                                   2
+                                                            ᾱt x0 +
+
+
+
+
+               Denoising Score Matching                         Annealed Langevin Dynamics
+
+           𝒩
+
+
+
+
+𝔼
+     Di usion Network
+
+
+
+
+ff
+     In nite Noise Scales
+
+                             q(z1 | x)
+
+
+                  x ∼ p(x)               z ∼ q1(z)
+
+
+
+
+           p(x)                                      q1(z1)   qT−1(zT−1)   qT (zT )
+
+
+
+
+fi
+     Continuous vs Discrete Di usion
+                       Discrete Di usion        Continuous Di usion
+
+
+     Timesteps          t ∈ {1,⋯, T}                 t ∈ [0,1]
+
+     Noise levels      σt ∈ {σ1, ⋯, σT}          σ : [0,1] → ℝ≥0
+                                                                 d
+     Di used samples   zt ∈ {z1, ⋯, zT}           x : [0,1] → ℝ
+
+
+                         zt = x + σtϵ           x(t) = x(0) + σ(t)ϵ
+
+
+
+
+              ff
+         ff
+ff                                         ff
+                Perturbing with Stochastic Process
+                                           Stochastic Di erential Equation (SDE)
+
+                                                 dx = f(x, t)dt + g(t)dwt
+                                                        Drift          Di usion
+                                                      coe cient       coe cient
+
+
+                                                      Di usion Models
+                                                    x(t) =    ᾱt x(0) +   1 − ᾱt ϵ
+
+                                                         1
+                                                   dx = − β(t)xdt +         β(t)dwt
+                                                         2
+
+                                                 Denoising Score Matching
+                                                       x(t) = x(0) + σ(t)ϵ
+
+                                                                 d[σ(t)]
+                                                       dx =              dwt
+                                                                   dt
+                   ff
+          ffi
+          ffi
+     ff
+ff
+Generation via Reverse Stochastic Process
+                            Stochastic Di erential Equation (SDE)
+
+                                    dx = f(x, t)dt + g(t)dwt
+
+                                                    Anderson, 1982
+
+
+
+                                          Reverse SDE
+                                                2
+                          dx = [ f(x, t)dt − g(t) ∇x pt(x)]dt + g(t)dwt
+
+
+
+
+   ff
+From SDE to ODE
+
+
+
+
+        Forward SDE          Forward Ordinary Di erential Equation (ODE)
+                                                 1
+  dx = f(x, t)dt + g(t)dwt                            2
+                                 dx = [ f(x, t) − g(t) ∇x log pt(x)]dt
+                                                 2
+
+
+
+          ff
+Probability Flow ODE
+
+
+
+
+ Think of this as a (continuous time, infinite depth) normalising flow.
+
+ • Unique ODE solution → results in a deterministic, reversible process.
+ • Allows computation of the likelihood using the change of variable formula.
+High-level View
+
+              Reverse SDE               Probability Flow ODE
+
+
+
+    Discretisation               Discretisation
+
+
+
+           Denoising Diffusion
+                                        Denoising Diffusion
+           Probabilistic Model
+                                          Implicit Model
+                (DDPM)
+                                             (DDIM)
+Summary
+1. Iterative Noising and Denoising
+
+2. Denoising Di usion Models
+
+3. Continuous Di usion Models
+
+
+
+
+                 “cat scientist in a classroom with a blackboard
+                              that says “Thank you!”, digital art.”
+
+                                              Flux.1 Merged
+
+            ff
+       ff
+

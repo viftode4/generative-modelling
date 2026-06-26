@@ -1,0 +1,105 @@
+{
+  "version": 1,
+  "minTotalConcepts": 60,
+  "minConceptsPerLecture": 4,
+  "requiredFields": [
+    "title",
+    "mustKnow",
+    "coreIdea",
+    "formulaOrRule",
+    "commonTrap",
+    "examUse"
+  ],
+  "requiredTags": {
+    "w1-intro": [
+      "generative",
+      "discriminative",
+      "conditional",
+      "density",
+      "sampling"
+    ],
+    "w1-mle-lvm": [
+      "maximum likelihood",
+      "kl divergence",
+      "latent variable",
+      "marginal likelihood",
+      "posterior"
+    ],
+    "w2-mle-lvm": [
+      "maximum likelihood",
+      "marginalization",
+      "complete-data",
+      "approximation"
+    ],
+    "w2-em-ppca": [
+      "em",
+      "e-step",
+      "m-step",
+      "elbo",
+      "ppca"
+    ],
+    "w3-vae": [
+      "vae",
+      "encoder",
+      "decoder",
+      "elbo",
+      "reparameterization"
+    ],
+    "w5-ebm": [
+      "energy",
+      "partition function",
+      "positive phase",
+      "negative phase",
+      "langevin"
+    ],
+    "w5-flow": [
+      "normalising flow",
+      "invertible",
+      "change of variables",
+      "jacobian",
+      "coupling"
+    ],
+    "w5-score": [
+      "score function",
+      "score matching",
+      "denoising",
+      "noise levels",
+      "langevin"
+    ],
+    "w6-diffusion": [
+      "forward noising",
+      "reverse process",
+      "noise prediction",
+      "score",
+      "sampling"
+    ],
+    "w6-flow-matching": [
+      "continuous flow",
+      "ode",
+      "continuity equation",
+      "flow matching",
+      "velocity"
+    ],
+    "w6-evaluation": [
+      "likelihood",
+      "precision",
+      "recall",
+      "fid",
+      "mmd"
+    ],
+    "w7-life": [
+      "conditioning",
+      "guidance",
+      "classifier-free",
+      "protein",
+      "validity"
+    ],
+    "w7-causal": [
+      "causal",
+      "intervention",
+      "counterfactual",
+      "scm",
+      "identifiability"
+    ]
+  }
+}

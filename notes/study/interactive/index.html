@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#f7f4ec" />
+  <title>GM lecture notes reader</title>
+  <meta name="description" content="A calm lecture-by-lecture reader for DSAIT4030 Generative Modelling, with MathML formulas and friend-note references." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="friend-note-reader" data-left-collapsed="false" data-right-collapsed="true">
+  <a class="skip-link" href="#readerArticle">Skip to notes</a>
+  <header class="topbar" aria-label="Study reader header">
+    <div class="brand">
+      <strong>Generative Modelling</strong>
+      <span>Lecture notes reader</span>
+    </div>
+    <nav id="quickNav" class="quick-nav" aria-label="Primary study routes">
+      <a href="#/">Lectures</a>
+      <a href="#/concepts">Concepts</a>
+      <a href="#/skill-tree">Skill tree</a>
+      <a href="#/exam">Exam</a>
+      <a href="#/exam/example">Example</a>
+      <a href="#/exam/generated">Generated</a>
+      <a href="#/flashcards">Flashcards</a>
+      <a href="#/speedrun">Speedrun</a>
+    </nav>
+    <div class="rail-controls" aria-label="Layout controls">
+      <button id="toggleLeft" class="rail-toggle" type="button" aria-controls="leftRail" aria-expanded="true">Hide Contents</button>
+      <button id="toggleRight" class="rail-toggle" type="button" aria-controls="rightRail" aria-expanded="false">Show Tools</button>
+    </div>
+    <label class="search-label" for="noteSearch">Search notes</label>
+    <input id="noteSearch" name="noteSearch" type="search" autocomplete="off" placeholder="ELBO, score, FID, guidance…" aria-label="Search lecture and friend notes" />
+    <p id="readerStatus" aria-live="polite">Loading notes…</p>
+  </header>
+
+  <div class="reader-layout">
+    <aside id="leftRail" class="left-rail" aria-label="Notebook navigation">
+      <nav class="route-nav" aria-label="Reader routes">
+        <a href="#/">Lectures</a>
+        <a href="#/concepts">Concepts</a>
+        <a href="#/skill-tree">Skill tree</a>
+        <a href="#/exam">Exam practice</a>
+        <a href="#/exam/example">Example exam</a>
+        <a href="#/exam/generated">Generated exam bank</a>
+        <a href="#/flashcards">Flashcards</a>
+        <a href="#/speedrun">Speedrun</a>
+        <a href="#/coverage">Coverage</a>
+        <a href="#/friend-notes">Friend notes</a>
+        <a href="#/review">Review</a>
+        <a href="#/images">Images</a>
+        <a href="#/sources">Sources</a>
+      </nav>
+      <h2 id="navTitle">Lectures</h2>
+      <nav id="lectureNav" class="chapter-nav" aria-label="Course lecture notes"></nav>
+    </aside>
+
+    <main id="readerArticle" class="reader-article" tabindex="-1"></main>
+
+    <aside id="rightRail" class="right-rail" aria-label="Chapter tools">
+      <div id="readerTools"></div>
+      <nav id="sectionNav" class="section-nav" aria-label="Sections in current note"></nav>
+    </aside>
+  </div>
+
+  <script src="notes-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

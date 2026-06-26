@@ -1,9 +1,4 @@
-"""Score a guidance-gap manifest with ImageReward ONLY.
-
-Run with the isolated env: `.venv-ir/bin/python ...` (transformers==4.44.2).
-Reads the same manifest as the main scorer, writes one row per image with the
-ir field; merged on image_path by the summarize step. Resumable.
-"""
+"""Score a guidance-gap manifest with ImageReward. Run with .venv-ir (transformers==4.44.2). Resumable."""
 from __future__ import annotations
 
 import argparse

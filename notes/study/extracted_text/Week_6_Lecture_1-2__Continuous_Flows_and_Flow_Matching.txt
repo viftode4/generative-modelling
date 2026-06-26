@@ -1,0 +1,474 @@
+Advanced Flows
+Lecture 9 | Continuous Flows and Flow Matching
+
+
+Ojas Shirekar | 26th May 2026
+
+
+
+
+                                   1
+Remember?
+Normalising Flows
+                                                 −1
+                    x = g(z, w),            z = g (x, w)
+
+A normalising ow learns an invertible transformation from simple noise to data.
+
+
+                        g = gK ∘ ⋯ ∘ g1(z)
+                    pX(x) = pZ (g (x)) det Jg−1(x)
+                                   −1
+
+
+
+                                        2
+        fl
+  What changes today?
+  Out with the old, in with the new (?)
+
+
+                            g = gK ∘ ⋯ ∘ g1(z)
+Instead of composing many discrete invertible layers, we de ne a continuous ow
+through a velocity eld.
+
+                                  dxt
+                                      = vθ (xt, t)
+                                  dt
+                                          3
+                                                                        fl
+                                                       fi
+                fi
+Generative Models
+
+• Unknown: data distribution q
+
+
+
+
+                                 4
+Generative Models
+                                               x1 ∼ q
+• Unknown: data distribution q
+
+
+• Given: samples x1 ∼ q
+
+
+     Sampling             Density Estimation
+      x0 ∼ p
+                                 pθ ≈ q
+    x1 = ψθ(x0)
+
+
+                                          5
+Generative Models
+                                                           x1 ∼ q
+• Unknown: data distribution q
+
+
+• Given: samples x1 ∼ q
+
+                           Generative Model
+                                 (ψθ, pθ)
+
+                   Generator          Underlying Density
+                                       6
+Generative Models
+                                                           x1 ∼ q
+• Unknown: data distribution q
+
+
+• Given: samples x1 ∼ q
+
+
+
+                       Goal: nd parameters θ s.t. pθ ≈ q
+
+
+                                       7
+ fi
+Generative Models
+ x0 ∼ p                 x1 ∼ q
+                                     Sampling
+                                      x0 ∼ p
+               ψθ                   x1 = ψθ(x0)
+
+
+
+
+                                 Density Estimation
+                                      pθ ≈ q
+
+
+                    8
+    Continuous Normalising Flows
+
+          x0 ∼ p                                                         x1 ∼ q
+
+
+                                                      ❓
+                                                                2    2
+                                                ψt : [0,1] × ℝ → ℝ
+                                                      dxt
+                                                          = vt(xt)
+                                                      dt
+Neural Ordinary Differential Equations (2018)
+                                                            9
+Continuous Normalising Flows
+A Dynamical View
+                                Flow ODE
+
+          x0 ∼ p             t ( 0) t ( t ( 0))
+                           ·ψ x = v ψ x
+                                                      x1 ∼ q
+
+                                 ψ1
+                                          2   2
+                         ψt : [0,1] × ℝ → ℝ
+                                                  2    2
+               Velocity Field     vt : [0,1] × ℝ → ℝ
+                                     10
+   Continuous Normalising Flows
+   A Dynamical View
+                                     Flow ODE
+                                          t ( t ( 0))
+                       d
+                                   t ( 0)
+              ·ψ (x ) = ψ (x )   ·ψ x = v ψ x
+                t 0       t 0
+                       dt
+
+
+So the full story is
+                                                                       t
+                                                        ψt (x0) = x0 + vs (ψs (x0)) ds
+                                                                      ∫
+Location: xt = ψt(x0)
+          ·
+Velocity: xt = vt(xt)
+                                                                      0
+
+
+
+
+                                           11
+Continuous Normalising Flows
+A Dynamical View
+                        Flow ODE
+                   ψ· t (x0) = vt (ψt (x0))
+
+                                                               Sampling
+
+                                                   e.g., Euler Solver:
+                                                         xti+1 = xti + Δt ⋅ vt (xti)
+
+                                                                   1
+                                                                N=
+                                                                   Δt
+
+                                              12
+Continuous Normalising Flows
+A Dynamical View
+                     Flow ODE                Continuity Equation PDE
+
+                          t ( t ( 0))
+                                                 ·p = − div(p v )
+                   t ( 0)
+                 ·ψ x = v ψ x
+                                                   t         t t
+
+
+
+
+                               x0
+
+
+      vt generates pt i the continuity equation holds ∀t ∈ [0,1], x ∈
+             𝒳
+
+
+
+
+                                        13
+        ff
+What’s div?
+
+
+                                               v1(x1, x2)
+                                              [v2(x1, x2)]
+           With velocity eld         v(x) =
+
+
+                                              ∂v1 ∂v2
+           The divergence is given by ∇ ⋅ v =    +
+                                              ∂x1 ∂x2
+
+
+
+
+                                     14
+      fi
+What’s div?
+
+
+
+
+              15
+Continuity and Flow ODE
+Constant velocity eld example
+                                                         dxt
+                 vt(x) = v(x, t)                             = vt(xt)
+                                                         dt
+                                      vt(x) = a
+
+
+                                    xt = x0 + t ⋅ a
+
+
+                                   ψt(x0) = x0 + t ⋅ a             ∇ ⋅ vt = 0
+
+
+
+
+                                               16
+            fi
+Remember? 💡
+       Normalising Flows                       Continuous Normalising Flows
+                                                              dxt
+           x = g(z)                                               = vθ (xt, t)
+                                                              dt
+                  δg                       we are not applying one big map all at once
+          Jg(z) =
+                  δz                                            ∇ ⋅ vt(x)
+  new vol ≈ | det Jg(z) | × old vol        At this instant,
+
+                                           is the local cloud expanding or contracting?
+         pX(x) dx = pZ(z) dz
+                                                    ∂t pt(x) = − ∇ ⋅ (pt(x) vt(x))
+                                           The density at a point changes depending
+                                           on how probability mass ows into or out
+                                      17   of that point.
+               fl
+Continuous Normalising Flows
+A Dynamical View
+
+          Flow ODE               Continuity Equation PDE
+                                                                     Given: samples x1 ∼ q
+      ψ· t (x0) = vt (ψt (x0))      p· t = − div(ptvt)
+
+
+
+
+                      x0
+
+                                                              Goal: nd velocity eld vt(x) s.t. p1 ≈ q
+
+                                                         18
+                       fi
+ fi
+How do I train one?
+                                             Continuity Equation PDE
+
+                                                  p· t = − div(ptvt)
+
+
+
+  Instantaneous change of coordinates (trajectory xt)
+    d
+       log pt (xt) = − div (vt (xt))                                       Log-likelihood computation
+    dt
+                                                                                                0
+                                                                                                    div (vt (xt)) dt
+                                                                                              ∫1
+                                                                log p1 (x1) = log p (x0) +
+
+                                                                                        t
+
+                                                                                       ∫1
+                                                                           xt = x1 +        vs (xs) ds
+
+
+                                                          19
+How do I train one?
+
+                                            Log-likelihood computation
+• Simulating xt                                                  0
+                                                                     div (vt (xt)) dt
+                                                               ∫1
+                                log p1 (x1) = log p (x0) +
+• Backprop through simulation
+                                                         t
+• Estimate div(vt)
+                                                        ∫1
+                                            xt = x1 +        vs (xs) ds
+• Compute log p(x)
+
+
+                                       DKL (q∥p1) = −        x∼qlog p1(x)+c
+
+          𝔼
+
+
+
+
+                                  20
+     Now, Flow Matching
+     Learn the velocity of a chosen path
+
+                              DKL (q∥p1) = −       x∼qlog p1(x)+c
+
+
+                       In nitely many probability paths pt
+
+                       In nitely many velocity elds vt
+                                 Continuity Equation PDE
+
+                                    p· t = − div(ptvt)
+
+
+
+
+               𝔼
+
+
+
+
+                                                         21
+                         fi
+fi
+fi
+Now, Flow Matching
+Learn the velocity of a chosen path
+                Let us choose a path of distributions pt, p0 is noise
+                               p0 = p,    p1 ≈ q
+                                      dxt          Assume there is a correct velocity
+                                          = ut(xt)
+                                      dt           per-sample
+                                   vθ(x, t) ≈ ut(x)
+
+
+
+                                 t,x∼pt [                        ]
+                                                                2
+                        ℒFM =                vθ(x, t) − ut(x)
+
+
+  𝔼
+
+
+
+
+                                            22
+Now, Flow Matching
+Learn the velocity of a chosen path
+                Let us choose a path of distributions pt, p0 is noise
+                               p0 = p,    p1 ≈ q
+                                     dxt
+                                          = ut(xt) Assume there is a correct velocity
+                                     dt             per-sample
+                                   vθ(x, t) ≈ ut(x)
+
+                                 t,x∼pt [                        ]
+                                                                2
+                        ℒFM =                vθ(x, t) − ut(x)
+
+
+      At random time t, look at a random point x on the path and ask the net:
+                        Which way should this point move?
+  𝔼
+
+
+
+
+                                            23
+Now, Flow Matching
+Learn the velocity of a chosen path
+                                 x0 ∼ p,         x1 ∼ q
+
+
+
+     x0                                     xt                                       x1
+noise                                  time t                                      data
+                            Straight-line interpolation
+                                 xt = (1 − t)x0 + tx1
+                                       dxt
+                                 ut =      = x1 − x0
+                                       dt
+
+                                                           t,x∼pt [                        ]
+                                                                                          2
+Training is supervised regression on velocities! 🫩 ℒFM =              vθ(x, t) − ut(x)
+ 𝔼
+
+
+
+
+                                           24
+  Key Insight
+
+
+ xt ∼ pt
+
+
+           0                                                          1
+The neural network does not memorize pairwise lines. It learns the average velocity
+needed at each location and time.
+
+
+
+                                         25
+ Key Insight
+
+A CNF asks:
+
+“Move particles from noise to data, and keep track of how the density expands or
+compresses.”
+
+
+Flow matching asks:
+
+“Here are examples of how particles should move from noise to data; learn that
+velocity eld.”
+
+
+                                       26
+     fi
+NF, CNF, Flow Matching and Di usion
+
+
+
+
+                      27
+                           ff
+NF, CNF, Flow Matching and Di usion
+One-line intuition for each model family.
+
+
+
+
+                                            28
+                                                 ff
+Recap
+
+• Flow ODE
+• Continuity Equation
+• CNF objective
+• NF vs CNF
+• Flow Matching objective
+
+
+
+                            29
+Further Reading
+
+• https://diffusion ow.github.io/
+• https://diffusion.csail.mit.edu/2026/docs/lecture_notes.pdf
+• https://arxiv.org/abs/2412.06264
+• https://arxiv.org/abs/1806.07366
+
+
+
+
+           fl
+

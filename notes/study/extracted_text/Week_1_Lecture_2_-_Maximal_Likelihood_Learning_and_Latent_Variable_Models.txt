@@ -1,0 +1,457 @@
+Maximum Likelihood Learning &
+Latent Variable Models
+
+
+Chirag Raman
+Assistant Professor
+Department of Intelligent Systems, TUDelft
+
+Generative Modeling DSAIT4030, 29/04/2025
+Making your dream
+indistinguishable from reality
+
+
+
+
+                                 2
+Finding a learning objective
+
+    Recall:
+
+    “a generative model describes a
+    process that is assumed to give
+    rise to some data”
+                   - David J.C. MacKay
+
+
+
+
+                                         3
+Finding a learning objective
+We want to find a good 𝜃መ ∈ Θ such that 𝑝𝜃෡ ≈ 𝑝data (we assume we have a
+dataset 𝐗 = 𝐱1 , 𝐱 2 , … , 𝐱 𝑁 with 𝑁 samples from 𝑝data )
+
+
+
+
+                                                                           4
+Finding a learning objective
+We want to find a good 𝜃መ ∈ Θ such that 𝑝𝜃෡ ≈ 𝑝data (we assume we have a
+dataset 𝐗 = 𝐱1 , 𝐱 2 , … , 𝐱 𝑁 with 𝑁 samples from 𝑝data )
+
+
+
+
+                                                               Θ
+                                                           Model family
+                                       𝑝data         𝑝𝜃෡
+
+
+
+             𝐱 𝑖 ~ 𝑝data
+            𝑖 = 1,2, … , 𝑁
+                                                                Cat images from RedBubble
+                                                                                            4
+Finding a learning objective
+
+                                         𝑑 𝑝data , 𝑝 ෡𝜃
+                                                                    Θ
+                                                                Model family
+                                      𝑝data               𝑝𝜃෡
+
+
+
+                    𝐱 𝑖 ~ 𝑝data
+                   𝑖 = 1,2, … , 𝑁
+
+
+  define an objective 𝑑 𝑝data , 𝑝𝜃 that captures ‘closeness’ between
+   𝑝𝜃 and 𝑝data , and choose the model closest to the truth
+
+
+                                                                               Cat images from RedBubble
+                                                                                                           5
+The weight of evidence
+
+
+
+
+                         6
+The weight of evidence
+
+
+
+
+                         7
+The weight of evidence
+
+
+
+
+                         8
+The weight of evidence
+
+
+
+
+                         9
+Now imagine if one of the hypotheses were true
+
+
+
+
+If was the distribution governing the world, KL Divergence is the expected
+weight of evidence we would accumulate from observing data
+How quickly would we be able to discern between hypotheses and
+if were true.
+
+                                Adapted from “KL is all you need” – Alex Alemi (blog.alexalemi.com KL is All You Need)
+                                                                                                                         10
+Properties of KL Divergence
+
+• KL is asymmetric
+
+
+
+
+• KL is zero iff 𝑝 = 𝑞 (if and only if)
+
+
+
+
+                                          11
+Recap: Jensen’s Inequality and concave functions
+For a concave function 𝑓, we have                          , where
+
+and            .                                                     𝑓(𝑥2 )
+
+                                    𝑓(𝛼𝑥1 + 1 − 𝛼 𝑥2 )
+
+
+                                                         𝛼𝑓(𝑥1 ) + 1 − 𝛼 𝑓(𝑥2 )
+                                        𝑓(𝑥1 )
+
+
+
+                                             𝑥1 𝛼𝑥1 + (1 − 𝛼)𝑥2        𝑥2     𝑥
+
+
+                                                                                  12
+Properties of KL Divergence
+• KL is non-negative
+
+
+
+Proof:
+
+
+
+
+                              13
+Properties of KL Divergence
+• KL is non-negative
+
+
+
+
+• KL is monotonic, follows from a generalized version of data processing
+  inequality (post-processing cannot increase information)
+
+
+
+
+                                                                           14
+From KL divergence to log-likelihood
+Let us revisit the learning objective using KL divergence as a distance
+
+
+
+Simplifying,
+
+
+
+
+                            does not depend on 𝜃     expected log-likelihood
+
+       Minimizing KL divergence is equivalent to maximizing likelihood!
+                                                                               15
+From KL divergence to log-likelihood
+       minimizing KL
+      is equivalent to
+maximizing likelihood
+
+  We do not know 𝑝data , so we can’t compute the expectation
+  We have samples from 𝑝data
+ Use the law of large numbers to approximate the expectation with the empirical
+ distribution:
+
+
+
+
+                                               log-likelihood function
+                                                                                  16
+A universal recipe for objectives
+
+
+
+
+                                    17
+Universal recipe
+
+1. Draw the causal model of the real world (𝑃)
+2. Augment the real world with any components you wish to add
+3. Rewire the diagram to reflect your desires, your dream world (𝑄)
+4. Minimize 𝐾𝐿[𝑃; 𝑄]
+5. …
+6. Profit!
+
+
+
+
+                                       “KL is all you need” – Alex Alemi (blog.alexalemi.com KL is All You Need)
+                                                                                                                   18
+Density estimation using the universal recipe
+  World P                                                              World Q
+  world we have                                                  world we want
+
+
+
+
+                       N                                           N
+
+              Images                                  Images
+
+                           “KL is all you need” – Alex Alemi (blog.alexalemi.com KL is All You Need)
+                                                                                                       19
+Density estimation using the universal recipe
+
+
+
+
+       𝐾𝐿[𝑝; 𝑞]           −𝐻[𝑝]                               𝐻[𝑝; 𝑞]
+              Cross-entropy is KL minimization
+
+
+                              “KL is all you need” – Alex Alemi (blog.alexalemi.com KL is All You Need)
+                                                                                                          20
+Supervised Learning
+  World P                                                                  World Q
+  world we have                                                      world we want
+
+
+
+
+                  “Cat”                                                   “Cat”
+
+                           N                                                         N
+
+        Images    Labels                    Images                       Labels
+
+                               “KL is all you need” – Alex Alemi (blog.alexalemi.com KL is All You Need)
+                                                                                                           21
+Supervised Learning
+
+
+
+
+             Cross entropy               Data entropy
+
+
+                             “KL is all you need” – Alex Alemi (blog.alexalemi.com KL is All You Need)
+                                                                                                         22
+Intermediate layers – a happy accident
+
+
+
+
+                 “"The Building Blocks of Interpretability"” – Olah, et al. , Distill 2018. https://doi.org/10.23915/distill.00010
+                                                                                                                                     23
+Intermediate layers – a happy accident
+
+
+
+
+        How do we learn useful representations?
+                 “"The Building Blocks of Interpretability"” – Olah, et al. , Distill 2018. https://doi.org/10.23915/distill.00010
+                                                                                                                                     24
+Latent Variable Models
+
+
+
+
+                         25
+Motivation
+
+Cat memes 𝐗 can feature a lot of interesting characteristics: fur color, breed,
+pose, expression, etc.
+
+                                            These factors of variation (latent),
+                                            unless annotated, are not available
+                                           How to automatically learn these
+                                            characteristics from data?
+                                           Explicitly model these factors as latent
+                                            variables 𝑍 and learn them using
+                                            unsupervised learning
+
+
+                                                                                      26
+Definition
+A latent variable model defines a probability distribution
+                                                                               z
+
+The joint is also described by the probabilistic graphical model;
+a connection denotes stochastic dependence
+
+Observed variables x represent high-dimensional objects that                   x
+we are directly available
+
+Latent variables z are the unobserved factors associated with x as specified by the
+joint distribution 𝑝(x, z)
+                                                                                      27
+Discrete Latents: Gaussian Mixture Models (GMMs)
+Assumption: data is a convex combination of K Gaussian distributions
+
+Consider a K –dimensional binary random variable z with a 1-of-K
+representation; we introduce mixing coefficients 𝜋𝑘 , such that
+
+
+
+
+The marginal distribution is
+
+The conditional is a Gaussian,
+                                 “Deep Learning: Foundations and Concepts” – Chris Bishop (https://www.bishopbook.com/ )
+                                                                                                                           28
+Discrete Latents: Gaussian Mixture Models (GMMs)
+Taken together, the marginal distribution of x is
+
+
+
+
+                                 “Deep Learning: Foundations and Concepts” – Chris Bishop (https://www.bishopbook.com/ )
+                                                                                                                           29
+Gaussian Mixture Models: Learning
+
+For a dateset X of iid observations 𝐱1 , … , 𝐱 𝑁 , fit a GMM by optimizing the
+log-likelihood function
+
+
+
+
+wrt the model parameters                       .
+
+In principle, for a large enough K and N, a mixture of Gaussians can model
+(approximate) any distribution
+
+                                                                                 30
+Gaussian Mixture Models: Learning
+
+
+Challenges?
+   Summation inside the logarithm -> no closed-form solution
+   Singularities! Assume         . If                              , log-likelihood
+  goes to infinity
+
+
+
+
+                              “Deep Learning: Foundations and Concepts” – Chris Bishop (https://www.bishopbook.com/ )
+                                                                                                                        31
+Gaussian Mixture Models: Learning
+
+
+Challenges?
+   Summation inside the logarithm -> no closed-form solution
+   Singularities! Assume          . If              , log-likelihood
+  goes to infinity
+   Non-identifiability. K ! equivalent solutions for a K –component mixture
+
+
+                                                                              31
+Gaussian Mixture Models: Learning
+
+
+
+We can use gradient-based techniques (e.g. SGD) with the log-sum-exp trick for
+numerical stability:
+
+
+
+
+Challenge:
+Maintain constraints on   and   (covariance matrices are positive semidefinite )
+
+                                                                                   32
+So what can we do?
+
+If 𝑧𝑛 is known for each 𝑥𝑛 , then the summation inside the ln disappears.
+• When 𝑧𝑛 is known, the complete log-likelihood is
+
+
+
+• When 𝑧𝑛 is unknown, the log-likelihood is
+
+
+
+
+                                “Deep Learning: Foundations and Concepts” – Chris Bishop (https://www.bishopbook.com/ )
+                                                                                                                          33
+So what can we do?
+
+If 𝑧𝑛 is known for each 𝑥𝑛 , then the summation inside the ln disappears.
+• When 𝑧𝑛 is known, the complete log-likelihood is
+
+
+
+
+This is a convex optimization problem for GMMs,
+see Bishop Sec. 15.2.2 for derivation
+
+
+                                “Deep Learning: Foundations and Concepts” – Chris Bishop (https://www.bishopbook.com/ )
+                                                                                                                          34
+So what can we do?
+
+When 𝑧𝑛 is unknown, but parameters are known, computation is easy
+
+
+
+
+                              “Deep Learning: Foundations and Concepts” – Chris Bishop (https://www.bishopbook.com/ )
+                                                                                                                        35
+We perform iterative optimization!
+The Expectation Maximization (EM) algorithm is a powerful technique for finding maximum
+likelihood solutions for latent variable models
+
+E Step
+• Solve the inference problem: which Gaussian generated each datapoint? or more
+  precisely, how responsible is each Gaussian for generating each datapoint?
+• Compute the posterior probabilities,
+
+
+M Step
+• Use the assigned responsibilities (the posterior probabilities from the E step) to re-
+  estimate the means, covariances, and mixing coefficients
+
+                                                                                           36
+ELBO: Toward a general perspective on the EM
+Consider a probabilistic model with all observed variables 𝐗 and latent variables 𝐙.
+Introducing a distribution 𝑞 𝐙 , we can write:
+                                           (assuming discrete 𝐙, derivation is identical for
+                                           continuous 𝐙 with integration replacing summation)
+
+
+
+
+                                           … Jensen’s Inequality
+
+                                           … Evidence Lower Bound, or ELBO
+                                                                                                37
+If you cannot answer a hard
+question directly,
+reframe it into an easier question
+you can (hopefully) answer exactly
+
+
+                                     38
+

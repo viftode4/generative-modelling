@@ -1,0 +1,161 @@
+{
+  "version": 1,
+  "staticShell": {
+    "styles": [
+      "styles.css"
+    ],
+    "scripts": [
+      "notes-data.js",
+      "app.js"
+    ],
+    "domMarkers": [
+      "friend-note-reader",
+      "lectureNav",
+      "sectionNav",
+      "readerArticle",
+      "readerTools",
+      "noteSearch",
+      "leftRail",
+      "rightRail",
+      "toggleLeft",
+      "toggleRight",
+      "quickNav",
+      "rail-controls"
+    ],
+    "renderers": [
+      "renderLecture",
+      "renderFriendNote",
+      "renderReview",
+      "renderSkillTree",
+      "renderExam",
+      "renderExampleExam",
+      "renderGeneratedExams",
+      "renderFlashcards",
+      "renderSpeedrun",
+      "renderImages",
+      "renderSources",
+      "renderConcepts",
+      "renderCoverage"
+    ],
+    "navigationRoutes": [
+      "#/concepts",
+      "#/skill-tree",
+      "#/exam",
+      "#/exam/example",
+      "#/exam/generated",
+      "#/flashcards",
+      "#/speedrun",
+      "#/coverage"
+    ],
+    "defaultRouteCall": "renderLecture(activeLectureSlug())",
+    "dynamicLectureRouteMarker": "#/lectures/${lecture.slug}"
+  },
+  "course": {
+    "sourceHighlightsLabel": "Source highlights",
+    "duplicateDeckDisclosure": "same slide deck appears twice"
+  },
+  "friendNotes": {
+    "minCopiedImages": 70,
+    "minDisplayMathBlocks": 20,
+    "minInlineMath": 30,
+    "minMathMlNodes": 320
+  },
+  "deployPayload": {
+    "forbiddenExtensions": [
+      ".pdf",
+      ".pptx",
+      ".zip",
+      ".key"
+    ],
+    "forbiddenPackageFiles": [
+      "package.json",
+      "package-lock.json",
+      "pnpm-lock.yaml",
+      "yarn.lock"
+    ],
+    "forbiddenDirectories": [
+      "node_modules"
+    ]
+  },
+  "uiContract": {
+    "bannedMarkers": [
+      "conceptRail",
+      "inspector",
+      "concept-canvas",
+      "Mark mastered",
+      "Mark weak",
+      "app-shell",
+      "progress-pill",
+      "mock exam",
+      "launch",
+      "dashboard",
+      "Coverage dashboard",
+      "gap-loop dashboard",
+      "hero",
+      "orb ",
+      "grain",
+      "Fly through",
+      "exam cockpit",
+      "Field Guide"
+    ],
+    "requiredCssMarkers": [
+      "--reader-max: 104ch",
+      "grid-template-columns: var(--left-width) minmax(0, var(--reader-max)) var(--right-width)",
+      "body[data-right-collapsed=\"true\"] .reader-layout",
+      "body[data-left-collapsed=\"true\"] .reader-layout"
+    ],
+    "requiredHtmlMarkers": [
+      "data-right-collapsed=\"true\"",
+      "aria-controls=\"leftRail\"",
+      "aria-controls=\"rightRail\""
+    ],
+    "requiredAppMarkers": [
+      "setRailState",
+      "syncRailToggles"
+    ],
+    "maxButtons": 24
+  },
+  "securityContract": {
+    "forbiddenPublishedStrings": [
+      "/Users/",
+      ".omx/scripts"
+    ],
+    "forbiddenRuntimeMarkers": [
+      "apiKey",
+      "fetch(",
+      "XMLHttpRequest",
+      "WebSocket",
+      "EventSource",
+      "sendBeacon"
+    ],
+    "requiredCspFragments": [
+      "script-src",
+      "object-src 'none'"
+    ],
+    "routeSafeSectionMarkers": [
+      "sections/${section.id}",
+      "sections/${image.id}"
+    ],
+    "forbiddenNestedHashMarkers": [
+      "#${section.id}",
+      "#${image.id}"
+    ],
+    "safeAttachmentName": "Pasted image 20260528145205.png",
+    "unsafeAttachmentNames": [
+      "../secret.png",
+      "attachments/figure.png",
+      "figure.jpg",
+      "/tmp/figure.png"
+    ]
+  },
+  "accessibility": {
+    "requiredMarkers": [
+      "skip-link",
+      "aria-label",
+      "aria-live",
+      "aria-current",
+      ":focus-visible",
+      "prefers-reduced-motion"
+    ]
+  }
+}

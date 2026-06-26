@@ -1,0 +1,191 @@
+EM Continued & Probabilistic PCA
+
+
+
+Chirag Raman
+Assistant Professor
+Department of Intelligent Systems, TUDelft
+
+Generative Modeling DSAIT4030, 01/05/2025
+If you cannot answer a hard
+question directly,
+reframe it into an easier question
+you can (hopefully) answer exactly
+
+
+                                     2
+Recall: EM for GMM
+The Expectation Maximization (EM) algorithm is a powerful technique for finding maximum
+likelihood solutions for latent variable models
+
+E Step
+• Solve the inference problem: which Gaussian generated each datapoint? or more
+  precisely, how responsible is each Gaussian for generating each datapoint?
+• Compute the posterior probabilities,
+
+
+M Step
+• Use the assigned responsibilities (the posterior probabilities from the E step) to re-
+  estimate the means, covariances, and mixing coefficients
+
+                                                                                           3
+ELBO: Toward a general perspective on the EM
+Consider a probabilistic model with all observed variables 𝐗 and latent variables 𝐙.
+Introducing a distribution 𝑞 𝐙 , we can write:
+                                           (assuming discrete 𝐙, derivation is identical for
+                                           continuous 𝐙 with integration replacing summation)
+
+
+
+
+                                           … Jensen’s Inequality
+
+                                           … Evidence Lower Bound, or ELBO
+                                                                                                4
+E and M Step Details: Blackboard
+
+
+
+
+                                   5
+Continuous LVMs:
+Probabilistic PCA
+
+
+
+
+                    6
+Let’s revisit the Gaussian model
+
+We assume we have a dataset X with observations
+
+The multivariate Gaussian has two parameters:
+
+MLE yields
+
+
+
+
+                                                  7
+What happens in high dimensions?
+
+Now consider 𝐷 ≫ 𝑁, what can go wrong?
+
+  is a 𝐷 × 𝐷 matrix, with rank min(𝑁, 𝐷) -> noninvertible
+
+
+
+Aside: While the covariance matrix contains many parameters (e.g. ~300K for MNIST
+dimensional data), deep generative models often contain an order of magnitude more
+parameters. One of the factors driving deep learning’s success is how well the techniques
+scale.
+
+                                                  Adapted from Pierre-Alexandre Mattei’s introduction slides to PPCA
+                                                                                                                       8
+So, what can we do?
+A simple idea: replace the full covariance with something more
+parsimonious1!
+
+Examples :
+• Spherical Σ = 𝜆𝐼
+• Diagonal Σ = diag(𝜎12 , … , 𝜎𝐷2 )
+• Low rank + isotropic noise Σ = 𝐖𝐖 𝑇 + 𝜎 2 𝑰 (PPCA structure)
+             1 The law of parsimony, or Occam’s razor — preference for the simplest
+
+             ‘explanation’ (here, the number of parameters) that still fits the data
+                                                  Adapted from Pierre-Alexandre Mattei’s introduction slides to PPCA
+                                                                                                                       9
+The Manifold Hypothesis
+    Most naturally occurring high-
+   dimensional data lies on a low-
+  dimensional manifold embedded
+   in that high-dimensional space
+                                                     CIFAR10 examples. Goldt et al.             Digit images. Bengio
+
+
+
+
+Biology - Wing structure variation. Alba et al.                        Neural activity. Gao et al.
+
+                                                  “Testing the manifold hypothesis”. C. Fefferman, S. Mitter, and H. Narayanan. 2016
+                                                    “Low-dimensional manifolds in neuroscience and evolution”. Joram Keijser. 2022 10
+Principle Component Analysis (PCA)
+  A linear approximation of the
+  manifold hypothesis.
+
+  Like saying “Sure, the data is on a
+  manifold — and I’m going to
+  assume it’s flat.”
+
+  See reading material for the
+  minimum error and maximum
+  variance formulations of PCA
+                                        11
+Recall: The Latent Variable Model
+
+A latent variable model defines a probability distribution
+
+
+
+We assume we have a dataset 𝐗 with iid observations
+We now also now assume associated iid latents
+
+What choices can we make to formulate a probabilistic version of PCA?
+
+
+
+                                                                        12
+Probabilistic PCA
+
+Simple choices:
+• The latent 𝑝 𝐳 is a zero-mean unit-covariance Gaussian
+• The conditional 𝑝 𝐱 𝐳 is also Gaussian where the mean is a linear function
+  of 𝐳 and the covariance is isotropic
+
+Can you write down the probabilistic PCA model?
+
+
+
+
+                                                                               13
+PPCA: Generative Perspective
+
+
+
+
+What’s the dimension of W?
+Note that this perspective maps from latent space to data space! Compare this
+to the conventional PCA view!
+                                                                                14
+PPCA: Likelihood
+
+
+
+
+                   15
+PPCA: Likelihood
+The interpretation:
+• 𝐖𝐖T : low-rank (≤ 𝑄) structure from the latent space
+• 𝜎2𝑰      : isotropic noise    ≤
+
+
+• PPCA models data lying near a linear subspace plus some Gaussian
+  noise
+
+The MLE estimate of 𝐖 can be computed in closed-form, and is
+directly related to PCA! The MLE can also be computed by SVD of the
+covariance (see Reading Material)
+                                                                      16
+The story so far
+
+• We have seen latent variable models with both discrete and
+  continuous latent variables
+• We have also seen how to formulate training objectives for latent
+  variable models
+
+Next week: Deep Latent Variable Models (DLVMs)! Think of DLVMs as
+non-linear PPCA, or as a mixture model with continuous 𝐳
+
+
+                                                                      17
+

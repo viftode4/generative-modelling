@@ -1,0 +1,275 @@
+Energy Based Models
+
+
+
+Chirag Raman
+Assistant Professor
+Department of Intelligent Systems, TUDelft
+
+Generative Modeling DSAIT4030, 19/05/2026
+Generative models: the story so far
+
+                                       𝑑 𝑝data , 𝑝!"
+                                                                 Θ
+                                                             Model family
+                                    𝑝data              𝑝"!
+
+
+
+                   𝐱 # ~ 𝑝data
+                  𝑖 = 1,2, … , 𝑁
+
+
+💡 define an objective 𝑑 𝑝data , 𝑝! that captures ‘closeness’ between
+   𝑝! and 𝑝data , and choose the model closest to the truth
+
+
+                                                                            Cat images from RedBubble
+                                                                                                        2
+Generative models: the story so far
+All the models we have considered are composed of
+probability densities!
+
+Latent Variable Models
+
+Flow-Based Models
+
+Autoregressive Models
+
+
+                                                    3
+Parameterizing probability densities
+Requirements of a pdf
+1. Non-negativity:
+2. Normalization:
+
+... and measurability, integrability, smoothness
+Choosing non-negative functions is easy …
+
+
+                  where     can be some neural network
+but the functions might not be normalized!
+                                                         4
+Parameterizing probability densities
+Having a fixed volume is key!
+When learning from data, we want to make     more likely, so we want
+to increase       but decrease density elsewhere
+
+
+
+
+                                                                       5
+Normalizing a learnable function
+Problem: Finding a non-negative function is easy, but a non-negative and
+         normalized one is hard
+💡 Explicitly normalize a non-negative function by dividing by its volume:
+
+
+
+
+1. Proof of non-negativity
+
+
+
+
+                                                                            6
+Normalizing a learnable function
+Problem: Finding a non-negative function is easy, but a non-negative and
+         normalized one is hard
+💡 Explicitly normalize a non-negative function by dividing by its volume:
+
+
+
+
+2. Proof of normalization
+
+
+
+
+                                                                            7
+Designing models with tractable volume
+So far, we’ve ensured normalization by making smart choices — either in
+the density form with analytical volume or the model structure:
+• Gaussian
+
+
+
+• Laplace
+
+
+
+
+                                                                          8
+Designing models with tractable volume
+So far, we’ve ensured normalization by making smart choices — either in
+the density form with analytical volume or the model structure:
+• Latent Variable Models
+
+
+
+• Flow-Based Models
+ 𝑓 is bijective, we track volume change through the change of variables
+
+• Autoregressive Models
+
+
+                                                                          9
+Designing models with tractable volume
+So far, we’ve ensured normalization by making smart choices — either in
+the density form with analytical volume or the model structure.
+But this can limit the expressiveness of the model.
+
+
+   Can we design models where we don’t have an
+                analytical volume?
+
+
+
+                                                                          10
+Energy Based Models (EBMs)
+
+EBMs specify a probability density of         as a Gibbs distribution
+
+
+
+where
+               , the energy function, maps data points to scalar energy
+              , the normalizing constant, known as the partition function
+
+  Crucially, the energy function can be any function that returns a non-
+             negative scalar; It does not need to integrate to 1!
+                                                                            11
+Why ‘energy’ and ‘partition’?
+
+Physics inspiration originates from Boltzmann, defining the probability of
+a system being in state with energy        at temperature 𝑇 is
+
+
+
+In Machine Learning, we set           , yielding the form of the EBM.
+         behaves like physical energy : low energy ⇒ high likelihood
+      ‘partitions’ or divides the probability mass across all states
+
+   EBMs borrow their form from Gibbs and intuition from Boltzmann—
+            using energy to shape a probability landscape
+                                                                             12
+Why use the exponential?
+We only need a nonnegative function to define a pdf of the form
+
+
+
+so why choose                         ?
+
+• Allows for large variations in probability (small changes in        lead to
+  exponential changes in          , without needing      to be non-smooth)
+• Log-probability becomes linear in energy -> easier to optimize
+• Common distributions (exponential families) can be written in this form
+• Arise under fairly general assumptions in statistical physics (e.g.
+  maximum entropy, thermodynamics)
+                                                                                13
+Properties of EBMs
+Extreme flexibility and expressivity
+          can be any integrable function, e.g. neural network
+   No constraints on normalization structure (unlike flows or autoregressive models)
+
+Computing     numerically is hard
+  Sampling from        is hard
+  Evaluating and optimizing          (learning) is hard
+
+No representation learning (although we can add latent variables, e.g Restricted
+Boltzmann machines)
+
+
+                                                                                       14
+Why is training EBMs hard?
+Maximum likelihood training involves        but the partition function
+  is intractable. Note that
+
+
+
+Given a dataset of X with samples            , the MLE objective is
+
+
+
+
+💡First term: data dependent — pushes energy down at observations
+💡Second term: global — depends on all possible samples, intractable
+                                                                         15
+Training EBMs: Gradient of the MLE Objective
+
+
+                                      … Chain rule
+
+
+
+
+                                      … Chain rule
+
+
+
+
+                                                     16
+Interpreting the Gradient: Push-Pull Dynamics
+
+First term pushes energy down at observed data -> samples are more likely
+Second term pulls energy up on model samples -> suppresses non-data regions
+
+  The push-pull dynamic creates energy wells around the data samples
+
+Let’s look at the second term
+Positive       : gradient inside expectation, no reparameterization needed!
+Negative       : requires sampling from         to estimate the expectation!
+
+
+                                                                               17
+Approximating the gradient by sampling
+To estimate                    we need samples from
+
+💡Use Markov Chain Monte Carlo (MCMC): simulate a Markov chain whose stationary
+ distribution is
+
+
+
+
+                                                       ! Samples are not iid
+                                                       ! Eventually, samples
+                                                       approximate the
+                                                       stationary distribution
+
+                                                                                 18
+Approximating the gradient by sampling
+To estimate                    we need samples from
+
+💡Use Markov Chain Monte Carlo (MCMC): simulate a Markov chain whose stationary
+ distribution is
+
+
+
+
+                                                                                 19
+Metropolis-Hastings: Building the Markov chain
+We use a proposal distribution                  to explore the space.
+Starting with an initial sample        ,
+
+
+
+
+! Accept/reject ensures that the chain converges to the target distribution
+! Acceptance probability only involves ratios of      -> partition function cancels
+                                                                                      20
+Langevin dynamics: smarter MCMC with gradients
+We can use the gradient of the log density (Stein score) to guide sampling!
+• Instead of proposing blindly, move down the energy using the gradient
+
+
+
+                                       does not depend on 𝐱
+• Langevin dynamics adds noise to avoid getting stuck:
+
+
+
+ Note: This defines a proposal distribution
+
+
+                                                                              21
+

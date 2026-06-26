@@ -1,0 +1,585 @@
+                        Evaluation of Generative Models
+                                              DSAIT4030 2025/26
+
+
+
+
+Zonghuan Li
+PhD Student
+Department of Intelligent Systems, TU Delft                       1
+        How to evaluate generative models?
+        • Which model is better?
+
+
+
+
+                                        Model A                                 Model B                              Model C
+        • What do we have at hand?
+                • Test set data
+                • Generate samples
+                • (Sometimes) density function
+
+Sources: https://gaussian37.github.io/deep-learning-chollet-8-4/   https://yang-song.net/blog/2021/score/   https://www.mdpi.com/1099-4300/26/6/479   2
+        How to evaluate generative models?
+        • Which model is better?
+
+        • 𝑝𝑝𝐴𝐴 (            ),        𝑝𝑝𝐵𝐵 (          ),     𝑝𝑝𝐶𝐶 (   )
+
+
+
+        • Density evaluation
+              • Which probability is higher for test data?
+
+
+                                                      Test data
+Cat images from RedBubble                                                 3
+How to evaluate generative models?
+
+
+
+       Model A    Model B          Model C
+
+
+
+
+                     Sample evaluation:
+                     which model generates data that is
+                     close enough to test data distribution?
+                                                         4
+Evaluation paradigm
+• Usually we have train set and test set
+• After training on the train set, we apply the model to test set
+   • Density evaluation
+      • Are the models assigning test data high probability?
+   • Sample evaluation
+      • Are samples generated from the model good enough? (Or are they “close” enough to the
+        distribution of test set data?)
+   • Downstream tasks
+      • Is the model supporting desired application well?
+
+
+• Evaluating GMs is multi-objective
+
+                                                                                           5
+Learning goals
+• Evaluation by likelihood
+   • Direct computation or approximation
+• Evaluation by sampling
+   • IS
+   • FID
+   • MMD & KID
+   • Precision & recall
+• Other concerns of evaluation
+   • Recognizing overfitting
+   • Drawbacks of lack of pretrained classifier
+
+                                                  6
+Explicit likelihood
+• KL divergence between data and model distribution p(x) and q(x)
+
+                                                          Constant   Approximated by
+                                                                     using test data
+• Cross entropy on test data becomes Negative log likelihood (NLL):
+
+                       This is just 1
+
+• Small KL means large likelihood to data from test set
+• We have seen this before (lecture 3)
+
+
+                                                                                7
+Implicit likelihood
+• Not all models have tractable likelihoods
+• VAE
+   • Importance sampling
+• Energy based models
+   • Annealed importance sampling
+• GAN
+   • Non-parametric kernel density estimation (KDE)
+
+
+
+
+                                                      8
+Importance sampling
+• What if we want to estimate the density function in VAE?
+   • Suppose we have sample 𝑥𝑥
+• We can use Monte Carlo                                          Decoder
+                                                                  computes this
+
+
+
+
+• Plain Monte Carlo samples from 𝑝𝑝(𝑧𝑧) directly
+• Think: suppose 𝑥𝑥 is a written 7. How are the values of 𝑝𝑝𝜃𝜃 (𝑥𝑥|𝑧𝑧) for
+  most drawn 𝑧𝑧?
+   • Tiny values and not very efficient for estimation
+
+                                                                                  9
+Importance sampling                                               Importance weight
+
+
+• Consider another way of sampling
+
+
+
+• We can sample from another 𝑞𝑞(𝑧𝑧) instead of original 𝑝𝑝(𝑧𝑧)
+• Using 𝑞𝑞(𝑧𝑧) = 𝑝𝑝𝜃𝜃 (𝑧𝑧|𝑥𝑥) gives ground truth, but it’s intractable. In
+  practice choose 𝑞𝑞(𝑧𝑧) ≈ 𝑞𝑞𝜙𝜙 (𝑧𝑧|𝑥𝑥) .
+• Sample around latent codes that are more likely to reconstruct 𝒙𝒙
+  (more informative)
+
+
+                                                                                  10
+     Kernel density estimation (KDE)
+     • What if we can only sample from the model (for example GANs)?
+          • We can estimate the density function
+     • Suppose we have 6 data samples drawn from the model
+
+
+
+
+     • What is 𝑝𝑝𝜃𝜃 (−0.5)?
+     • Answer 1: 𝑝𝑝𝜃𝜃 (−0.5) = 0, since -0.5 is not in the samples
+
+https://github.com/kuleshov-group/dgm-resources/blob/main/slides_pdf/lecture14.pdf   11
+     Kernel density estimation (KDE)
+     • Answer 2: we can estimate the density function by creating some bins
+
+
+
+
+     • Choose bin width = 2, min height = 1/12 (area of total bins equals 1)
+     • 𝑝𝑝𝜃𝜃 (−0.5) = 1/6, 𝑝𝑝𝜃𝜃 (0.5) = 1/12, 𝑝𝑝𝜃𝜃 (3) = 0
+
+https://github.com/kuleshov-group/dgm-resources/blob/main/slides_pdf/lecture14.pdf   12
+     Kernel density estimation (KDE)
+     • Answer 3: use kernel function instead of rectangular bins
+
+
+
+     • Example: Gaussian kernel
+     • Similar to mixture model
+
+
+
+
+https://github.com/kuleshov-group/dgm-resources/blob/main/slides_pdf/lecture14.pdf   13
+     Kernel density estimation (KDE)
+     • Choice of kernel functions K such that
+          • Measures similarity between points
+
+
+                                                                                                          Controls smoothness
+                                                                                     Grey: true density
+                                                                                     Black: optimal
+                                                                                     Red: undersmooth
+                                                                                     Green: oversmooth
+
+
+     • KDE is unreliable in high dimensions
+
+
+https://github.com/kuleshov-group/dgm-resources/blob/main/slides_pdf/lecture14.pdf                                      14
+Likelihood estimation
+• Do you think good likelihood always ensure good sample quality?
+• … and vice versa?
+
+• No!
+• We’ll show soon (in theory)!
+
+
+
+
+                                                                    15
+Likelihood doesn’t imply sample quality
+• Suppose a good model density is 𝑝𝑝(𝑥𝑥), and bad model (e.g. white
+  noise) density is 𝑞𝑞(𝑥𝑥), with data dimension of 𝑑𝑑
+
+
+
+         0.01                      + 0.99
+
+
+
+
+                    𝑝𝑝(𝑥𝑥)                  𝑞𝑞(𝑥𝑥)
+• Consider model
+• Sample quality? Poor! (99% chance noise)
+                                                                      16
+Likelihood doesn’t imply sample quality
+• How about likelihood?
+
+
+                   0.01              + 0.99
+
+
+
+                            𝑝𝑝(𝑥𝑥)               𝑞𝑞(𝑥𝑥)
+
+
+
+                                        Proportional to dimension d   Constant
+
+• With high dimension d, likelihood can be very large
+   • 32*32*3 image -> d = 3072 , and log 𝑝𝑝(𝑥𝑥) may be something like −3000
+   • While log 100 < 5                                                           17
+Likelihood doesn’t imply sample quality
+
+                                      Proportional to dimension d   Constant
+
+
+• With high dimension d, likelihood can be very large
+   • 32*32*3 image -> d = 3072 , and log 𝑝𝑝(𝑥𝑥) may be something like −3000
+
+
+• What does this imply?
+• The log likelihood of the mixture model is at worst –log100 worse
+  than the ideal model, which is small compared to the actual log
+  likelihood value scale
+
+                                                                               18
+Good sample doesn’t imply high likelihood
+• A model that memorizes all training data
+   • All generated samples are identical to training data
+      • Best possible quality of samples
+   • All test set data are assigned 0 probability
+      • Lowest possible on likelihood
+
+
+• Likelihood and sample quality do not imply each other
+• Likelihood is not everything. We still need to evaluate samples
+
+
+
+                                                                    19
+Evaluation paradigm
+• Usually we have train set and test set
+• After training on the train set, we apply the model to test set
+   • Density evaluation
+      • Are the models assigning test data high probability?
+   • Sample evaluation
+      • Are samples generated from the model good enough? (Or are they “close” enough to the
+        distribution of test set data?)
+   • Downstream tasks
+      • Is the model supporting desired application well?
+
+
+• Evaluating GMs is multi-objective
+
+                                                                                          20
+Evaluating sample quality
+• Can we look at samples directly without the density function?
+• Quantitative metrics
+   • Inception Scores (IS)
+   • Frechet Inception Distance (FID)
+   • Maximum Mean Discrepancy (MMD)
+      • Kernel Inception Distance (KID)
+   • Precision & recall
+
+
+
+
+                                                                  21
+     Evaluating sample quality
+     • Assume we only have access to generated samples and test set
+          • What can we do to evaluate the quality of samples?
+     • Consider the question: given 𝑺𝑺𝟏𝟏 drawn from distribution 𝑷𝑷 and 𝑺𝑺𝟐𝟐
+       drawn from 𝑸𝑸, are 𝑷𝑷 and 𝑸𝑸 the same distribution?
+          • Null hypothesis 𝐻𝐻0 : 𝑃𝑃 = 𝑄𝑄
+          • Alternate hypothesis 𝐻𝐻1 : 𝑃𝑃 ≠ 𝑄𝑄
+     • Design and test statistic 𝑇𝑇 computed from 𝑆𝑆1 and 𝑆𝑆2
+          • If 𝑇𝑇 < 𝛼𝛼 then accept 𝐻𝐻0 else reject it
+     • Also called two-sample test
+
+
+https://github.com/kuleshov-group/dgm-resources/blob/main/slides_pdf/lecture09.pdf   22
+     Two-sample test
+
+
+
+
+     • Think: what 𝑇𝑇 should we design in these cases?
+
+
+https://github.com/kuleshov-group/dgm-resources/blob/main/slides_pdf/lecture09.pdf   23
+Two-sample test
+• Two-sample test is likelihood free: only evaluate on samples
+• In practice: usually assume 𝑃𝑃 is data distribution and 𝑄𝑄 is model
+  distribution
+• Designing a good statistic 𝑇𝑇 is not easy
+
+• FID, MMD, and KID introduced below are based on the form of two-
+  sample test
+
+
+
+                                                                        24
+Inception score (IS)
+• Assumptions:
+   • We have labels for data;
+   • Model distribution 𝑝𝑝𝜃𝜃 (𝑥𝑥)
+   • We have a (trusted) classifier (usually pretrained) for data samples 𝑐𝑐(𝑦𝑦|𝑥𝑥);
+• Sharpness
+
+• High sharpness:
+   • Low entropy when the classifier is classifying generated samples
+   • The classifier is more confident
+   • Model is generating more distinguishable samples / easy to classify
+                                                                                       25
+     Inception score (IS)
+     • Define classifier’s marginal predictive distribution
+
+     • Diversity
+
+
+
+
+     • High diversity
+          • Generated samples have high diversity
+          • Distributed across all classes
+https://github.com/kuleshov-group/dgm-resources/blob/main/slides_pdf/lecture14.pdf   26
+Inception score (IS)
+• Define IS
+
+
+
+• Think: what if this is all data that the model generates?
+   • What would happen to the S and D? And IS?
+• Shortcomings
+   • IS does not evaluate p(x) directly
+   • Rely on classifier and needs the data to be classifiable
+   • Does not account for diversity per class
+      • If a model generates one perfect sample per class, the IS would be perfect
+
+
+                                                                                     27
+Frechet Inception Distance (FID)
+• FID measures similarities in the feature representations, instead of class
+  labels
+   • Still requires the feature extractor
+• Define sample set 𝑆𝑆 and test set 𝑇𝑇
+   • Get feature representations 𝐹𝐹𝑆𝑆 and 𝐹𝐹𝑇𝑇 respectively
+• Fit two multivariate Gaussian models of each of them
+   • Mean: 𝜇𝜇𝑆𝑆 and 𝜇𝜇 𝑇𝑇 ; covariance: 𝛴𝛴𝑆𝑆 and 𝛴𝛴𝑇𝑇
+
+
+   • Low FID is better
+
+                                                                        28
+IS vs. FID
+
+
+
+
+• Think: how would the IS and FID be with cases a and b?
+   • FID captures in-class diversity better than IS
+   • However, FID is highly biased (highly influenced by the number of samples used)
+
+ Probabilistic machine learning: Advanced topics                                29
+Maximum Mean Discrepancy (MMD)
+• Definition with respect to distribution 𝑃𝑃 and 𝑄𝑄:   Kernel mean embedding
+
+
+
+• Defined in RKHS, 𝜙𝜙 is feature representation (more math background
+  not included)
+• Kernel Inception Distance (KID): the square of MMD
+   • With a suitable kernel function 𝐾𝐾
+
+
+
+
+                                                                               30
+Kernel Inception Distance (KID)
+• Kernel Inception Distance (KID):
+
+
+
+
+• KID is comparing the similarity between samples within p and q
+  individually to the samples from the mixture of p and q
+
+                                           Recall what a kernel function does:
+                                           computing high dimensional dot products
+                                           without explicit feature representation
+
+                                                                                     31
+Kernel Inception Distance (KID)
+• Why is KID powerful?
+   • No need to compute 𝜙𝜙 directly
+   • Feature can be very high dimension and capture high order moments of the
+     distributions
+• Unbiased compared to FID
+
+
+
+
+                                                                                32
+Precision & recall
+• We have implicitly mentioned some failure modes so far
+• Single metric can’t tell all of them
+
+
+
+
+   Low fidelity:         Mode collapse: Model covers          Memorization (overfitting):
+   unrealistic samples   only part of the data distribution   reproduces training examples
+
+
+
+
+                                                                                        33
+  Precision & recall
+  • Reference distribution P, model distribution Q
+  • Precision: how much generated data (Q) lies near the real data
+    manifold (P)
+  • Recall: how much of the real data manifold (P) is covered by the
+    generator (Q)
+
+
+
+
+Sajjadi, Mehdi SM, et al. "Assessing generative models via precision and recall." Advances in neural
+information processing systems 31 (2018).                                                              34
+Precision & recall
+
+
+
+
+• 𝜇𝜇 describes the common part between P and Q
+• 𝜐𝜐𝑃𝑃 and 𝜐𝜐𝑄𝑄 describes the remaining “individual” parts
+
+
+
+
+                                                             35
+Precision & recall
+• Suppose with distributions P and Q
+
+
+
+
+• Think: where is 𝜇𝜇 defined? (Hint: common part of 𝑃𝑃 and 𝑄𝑄)
+   • 𝜇𝜇 is only defined on {2} since that’s the only common support
+• Think: If we set 𝛽𝛽 = 0, what values could 𝛼𝛼 be?
+
+                        =0 ×                         +1×
+
+
+                                                                      36
+Precision & recall
+• 𝛼𝛼 is not unique
+
+                      =0 ×                      +1×
+
+
+
+
+                     = 0.7 ×                   + 0.3 ×
+
+
+
+
+• Think: what’s the maximum value of 𝛼𝛼?
+   • Answer: 0.7, since Q has weight 0.7 on common support {2}
+   • What happens if we try to set 𝛼𝛼 > 0.7?
+                                                                 37
+Precision & recall
+• Similarly we can find other possible values of 𝛼𝛼 for different 𝛽𝛽s
+• What if we try to set 𝛽𝛽 > 0.5?
+   • Suppose at 0.7
+   • We get negative mass
+
+
+                    = 0.7 ×                       +
+
+
+
+
+• Only certain combinations of (𝜶𝜶, 𝜷𝜷) are valid -> PRD
+                                                                        38
+  Precision & recall
+  • PRD examples
+
+
+
+
+Sajjadi, Mehdi SM, et al. "Assessing generative models via precision and recall." Advances in neural
+information processing systems 31 (2018).                                                              39
+ Assessing overfitting
+ • What if a model just memorizes all training data (overfitting)?
+ • Think: what happens to the features space when overfitting?
+          • Generated samples are nearly identical around one sample
+ • Visual inspection: check K nearest samples in feature space from
+   pretrained classifier
+
+
+
+
+Probabilistic machine learning: Advanced topics
+                                                                                                                                                                 40
+Brock, Andrew, Jeff Donahue, and Karen Simonyan. "Large scale GAN training for high fidelity natural image synthesis." arXiv preprint arXiv:1809.11096 (2018).
+Drawbacks of pretrained classifiers
+• Most metrics introduced so far require pretrained classifiers
+• However, one might not have the classifier trained on identical
+  dataset used for generation
+• Classifier might not be reliable enough
+
+
+
+
+                                                                    41
+Downstream tasks concerns
+• What is the model intended for?
+   • Image editing/denoising: reconstruction quality;
+   • Text generation: human preference/truthfulness;
+   • Data augmentation: training quality after augmentation
+
+• A model is good only when it performs well on the application that
+  it’s intended to support.
+
+
+
+
+                                                                       42
+Summary
+• Evaluation by likelihood
+   • Direct computation or approximation
+• Evaluation by sampling
+   • IS
+   • FID
+   • MMD & KID
+   • Precision & recall
+• Other concerns of evaluation
+   • Recognizing overfitting
+   • Drawbacks of lack of pretrained classifier
+
+                                                  43
+Summary
+• Quantitative evaluation of generative models is challenging
+• Metrics can significantly vary based on end goal: density estimation,
+  sampling, latent representations
+   • Know their advantages and drawbacks
+• Evaluation should support downstream tasks / end goals, if there are
+
+• There is no universal best metric. Evaluate the distributional
+  property you care about.
+
+
+                                                                          44
+References and further reading
+• Theis, Lucas, Aäron van den Oord, and Matthias Bethge. "A note on the evaluation of generative models." arXiv preprint
+  arXiv:1511.01844 (2015).
+• Sajjadi, Mehdi SM, et al. "Assessing generative models via precision and recall." Advances in neural information processing
+  systems 31 (2018).
+• Murphy, Kevin P. Probabilistic machine learning: Advanced topics. MIT press, 2023.
+• https://kuleshov-group.github.io/dgm-website/
+• Brock, Andrew, Jeff Donahue, and Karen Simonyan. "Large scale GAN training for high fidelity natural image synthesis."
+  arXiv preprint arXiv:1809.11096 (2018).
+
+
+
+
+                                                                                                                           45
+
