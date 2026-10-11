@@ -12,6 +12,7 @@ APP = ROOT / 'app.js'
 INDEX = ROOT / 'index.html'
 README = ROOT / 'README.md'
 EXAMPLE_EXAM = Path('notes/study/08_example_exam.md')
+FORMULA_SHEET = Path('notes/study/06_formula_derivation_sheet.md')
 MIN_FLASHCARDS_PER_CONCEPT = 6
 MIN_QUESTIONS_PER_CONCEPT = 5
 CAUSAL_SLUG = 'w7-causal'
@@ -54,6 +55,7 @@ def load_data() -> dict:
 
 for path in [DATA, APP, INDEX, README, EXAMPLE_EXAM]:
     require(path.is_file(), f'missing {path}')
+require(FORMULA_SHEET.is_file(), f'missing {FORMULA_SHEET}')
 
 data = load_data()
 lectures = data.get('lectures') or []
@@ -67,6 +69,7 @@ causal_concept_ids = {
 }
 
 study_bank = data.get('studyBank') or {}
+master_sheet = study_bank.get('masterSheet') or {}
 flashcards = study_bank.get('flashcards') or []
 questions = study_bank.get('examQuestions') or []
 speedrun = study_bank.get('speedrunGoals') or []
@@ -81,6 +84,67 @@ for seed in ['notes/study/03_practice_questions.md', 'notes/study/07_mock_exam.m
 require(len(flashcards) >= len(exam_concepts) * MIN_FLASHCARDS_PER_CONCEPT, 'not enough flashcards for exam concepts')
 require(len(questions) >= len(exam_concepts) * MIN_QUESTIONS_PER_CONCEPT, 'not enough exam questions for exam concepts')
 require(speedrun, 'speedrun goals missing')
+require(master_sheet.get('version') == 2, 'masterSheet.version must be 2')
+require(master_sheet.get('format') == 'a4-double-sided', 'masterSheet.format must be a4-double-sided')
+require(master_sheet.get('density') == 'dense-exam-cheatsheet', 'masterSheet.density must be dense-exam-cheatsheet')
+master_sides = master_sheet.get('sides') or []
+require([side.get('side') for side in master_sides] == ['A', 'B'], 'masterSheet must have exactly Side A and Side B in order')
+master_cells = [
+    cell
+    for side in master_sides
+    for section in (side.get('sections') or [])
+    for cell in (section.get('cells') or [])
+]
+master_cell_text = ' '.join(' '.join(str(cell.get(field, '')) for field in ['title', 'family', 'body', 'compact']) + ' ' + ' '.join(cell.get('bullets') or []) + ' ' + ' '.join(cell.get('formulaLatex') or []) for cell in master_cells)
+required_concept_ids = {concept.get('id') for concept in exam_concepts}
+covered_concept_ids = {
+    concept_id
+    for cell in master_cells
+    for concept_id in (cell.get('conceptIds') or [])
+}
+require(required_concept_ids <= covered_concept_ids, f'masterSheet missing exam concepts: {sorted(required_concept_ids - covered_concept_ids)[:8]}')
+require(not (covered_concept_ids & causal_concept_ids), 'masterSheet required coverage includes causal concepts')
+
+for cell in master_cells:
+    require(cell.get('kind') == 'cheatsheet-topic', f'masterSheet cell {cell.get("id", "<missing-id>")} must be a cheatsheet topic')
+    require(cell.get('bullets'), f'masterSheet cell {cell.get("id", "<missing-id>")} missing concept bullets')
+    if cell.get('id') != 'cs-life':
+        require(cell.get('formulaLatex'), f'masterSheet cell {cell.get("id", "<missing-id>")} missing formula latex')
+        require('<math' in str(cell.get('formulaHtml', '')), f'masterSheet cell {cell.get("id", "<missing-id>")} formula not rendered')
+require('llm' not in master_cell_text.lower() and 'perplexity' not in master_cell_text.lower() and 'attention' not in master_cell_text.lower(), 'masterSheet should not include LLM material')
+formula_titles = [
+    match.group(1).strip()
+    for match in re.finditer(r'^##\s+(.+)$', FORMULA_SHEET.read_text(encoding='utf-8') if FORMULA_SHEET.is_file() else '', flags=re.M)
+]
+covered_formula_ids = {
+    formula_id
+    for cell in master_cells
+    for formula_id in (cell.get('formulaIds') or [])
+}
+require(len(formula_titles) == 19, f'formula sheet should have 19 sections, got {len(formula_titles)}')
+expected_formula_ids = {f'formula-{index:02d}' for index, _ in enumerate(formula_titles, start=1)}
+require(expected_formula_ids <= covered_formula_ids, f'masterSheet missing formula sections: {sorted(expected_formula_ids - covered_formula_ids)}')
+for family in ['foundations', 'vae', 'energy', 'flow', 'score', 'diffusion', 'flow-matching', 'evaluation', 'guidance', 'life sciences']:
+    require(family in (master_sheet.get('coverageFamilies') or []), f'masterSheet missing coverage family: {family}')
+    require(family in master_cell_text.lower(), f'masterSheet printable text missing family marker: {family}')
+budget = master_sheet.get('contentBudget') or {}
+require(int(budget.get('maxCellsPerSide') or 0) >= 5, 'masterSheet contentBudget.maxCellsPerSide missing or too small')
+require(int(budget.get('maxCharsPerCell') or 0) >= 180, 'masterSheet contentBudget.maxCharsPerCell missing or too small')
+require(int(budget.get('maxCharsPerSide') or 0) >= 2600, 'masterSheet contentBudget.maxCharsPerSide missing or too small')
+max_chars_per_cell = int(budget.get('maxCharsPerCell') or 0)
+max_cells_per_side = int(budget.get('maxCellsPerSide') or 0)
+max_chars_per_side = int(budget.get('maxCharsPerSide') or 0)
+if max_chars_per_cell:
+    for cell in master_cells:
+        actual_chars = len(' '.join(str(cell.get(field, '')) for field in ['title', 'body', 'compact']) + ' '.join(cell.get('bullets') or []) + ' '.join(cell.get('formulaLatex') or []))
+        require(actual_chars <= max_chars_per_cell, f'masterSheet cell {cell.get("id", "<missing-id>")} exceeds contentBudget.maxCharsPerCell')
+for side in master_sides:
+    side_cells = [cell for section in (side.get('sections') or []) for cell in (section.get('cells') or [])]
+    side_chars = sum(len(' '.join(str(cell.get(field, '')) for field in ['title', 'body', 'compact']) + ' '.join(cell.get('bullets') or []) + ' '.join(cell.get('formulaLatex') or [])) for cell in side_cells)
+    if max_cells_per_side:
+        require(len(side_cells) <= max_cells_per_side, f'masterSheet Side {side.get("side", "?")} exceeds contentBudget.maxCellsPerSide')
+    if max_chars_per_side:
+        require(side_chars <= max_chars_per_side, f'masterSheet Side {side.get("side", "?")} exceeds contentBudget.maxCharsPerSide')
 require(example_exam.get('sourcePath') == str(EXAMPLE_EXAM), 'example exam source path missing')
 example_sections = example_exam.get('sections') or []
 example_parts = [part for section in example_sections for part in (section.get('parts') or [])]

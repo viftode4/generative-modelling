@@ -1114,6 +1114,79 @@ function renderSpeedrun() {
   bindSpeedrunChecks();
 }
 
+
+function renderA4FormulaSnippets(cell) {
+  const formulaHtml = cell.formulaHtml ? `<div class="a4-rendered-formulas">${cell.formulaHtml}</div>` : "";
+  const latexList = cell.formulaLatex && cell.formulaLatex.length ? `
+    <ul class="a4-latex-source" aria-label="copyable formulas">
+      ${cell.formulaLatex.map((formula) => `<li>${escapeHtml(formula)}</li>`).join("")}
+    </ul>` : "";
+  return formulaHtml + latexList;
+}
+
+function renderA4Cell(cell) {
+  const bullets = (cell.bullets || []).length ? `
+    <ul class="a4-concept-bullets">
+      ${(cell.bullets || []).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
+    </ul>` : "";
+  return `
+    <article class="a4-cell a4-cell-${escapeHtml(cell.kind || "topic")}">
+      <header>
+        <p class="a4-cell-kicker">${escapeHtml(cell.family || "topic")}</p>
+        <h3>${escapeHtml(cell.title)}</h3>
+      </header>
+      ${renderA4FormulaSnippets(cell)}
+      ${bullets}
+    </article>`;
+}
+
+function renderA4Side(side) {
+  return `
+    <section class="a4-side a4-side-${escapeHtml(String(side.side || "").toLowerCase())}" aria-label="${escapeHtml(side.title)}">
+      <header class="a4-side-header">
+        <p class="a4-side-kicker">Side ${escapeHtml(side.side)} · DSAIT4030 GM cheatsheet</p>
+        <h2>${escapeHtml(side.title)}</h2>
+        <p>${escapeHtml(side.subtitle || "")}</p>
+      </header>
+      ${(side.sections || []).map((section) => `
+        <section class="a4-section">
+          <h3>${escapeHtml(section.title)}</h3>
+          <div class="a4-grid">
+            ${(section.cells || []).map(renderA4Cell).join("")}
+          </div>
+        </section>`).join("")}
+    </section>`;
+}
+
+function renderA4MasterSheet() {
+  renderSideNav("lecture", "");
+  const sheet = studyBank.masterSheet || { sides: [], coverage: {}, contentBudget: {} };
+  const coverage = sheet.coverage || {};
+  $("#readerStatus").textContent = `A4 cheatsheet · ${(sheet.sides || []).length} sides`;
+  $("#readerArticle").innerHTML = `
+    <section class="plain-page study-page a4-preview">
+      <div class="a4-print-intro">
+        <p class="note-kicker">Printable exam sheet</p>
+        <h1 class="note-title">A4 GM cheatsheet</h1>
+        <p class="note-meta">Dense lecture-grounded formulas and short concept facts from the current course notes.</p>
+        <dl class="source-meta">
+          <div><dt>Coverage</dt><dd>${coverage.coveredConceptCount || 0}/${coverage.requiredConceptCount || 0} exam-scope concepts</dd></div>
+          <div><dt>Formulas</dt><dd>${coverage.coveredFormulaCount || 0}/${coverage.formulaSectionCount || 0} formula sections</dd></div>
+          <div><dt>Print target</dt><dd>${escapeHtml((sheet.contentBudget || {}).pageSize || "A4")} · ${(sheet.contentBudget || {}).targetPrintPages || 2} pages</dd></div>
+        </dl>
+      </div>
+      <div class="a4-sheet" aria-label="Printable double-sided A4 GM cheatsheet">
+        ${(sheet.sides || []).map(renderA4Side).join("")}
+      </div>
+    </section>`;
+  $("#readerTools").innerHTML = `
+    <section class="tool-panel">
+      <h2>Print</h2>
+      <p>Use browser print or the generated PDF. This page is designed as two A4 sides.</p>
+    </section>`;
+  $("#sectionNav").innerHTML = "";
+}
+
 function renderReview() {
   renderSideNav("lecture", "");
   $("#readerStatus").textContent = "Review questions";
@@ -1168,7 +1241,7 @@ function renderSources() {
 function render() {
   const parts = routeParts();
   const page = parts[0] || "lectures";
-  const normalizedPage = ["lectures", "concepts", "skill-tree", "exam", "flashcards", "speedrun", "coverage", "friend-notes", "review", "images", "sources"].includes(page) ? page : "lectures";
+  const normalizedPage = ["lectures", "concepts", "skill-tree", "exam", "flashcards", "speedrun", "a4-master-sheet", "coverage", "friend-notes", "review", "images", "sources"].includes(page) ? page : "lectures";
   renderRouteNav(normalizedPage);
   if (normalizedPage === "concepts") renderConcepts();
   else if (normalizedPage === "skill-tree") renderSkillTree();
@@ -1177,6 +1250,7 @@ function render() {
   else if (normalizedPage === "exam") renderExam();
   else if (normalizedPage === "flashcards") renderFlashcards();
   else if (normalizedPage === "speedrun") renderSpeedrun();
+  else if (normalizedPage === "a4-master-sheet") renderA4MasterSheet();
   else if (normalizedPage === "coverage") renderCoverage();
   else if (normalizedPage === "friend-notes") renderFriendNote(activeFriendSlug());
   else if (normalizedPage === "review") renderReview();

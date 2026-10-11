@@ -33,6 +33,7 @@ Open `http://127.0.0.1:4173/`.
 - `#/exam/generated` — generated full-course exam sections that reuse the example-exam style.
 - `#/flashcards` — 432 flippable concept cards with explanations, citations, and known/review state on the back.
 - `#/speedrun` — compact goal loop through the required exam scope, linked to practice and generated sections.
+- `#/a4-master-sheet` — double-sided A4 printable master sheet: formulas on Side A, answer skeletons/traps on Side B.
 - `#/coverage` — concept coverage and gap loop.
 - `#/lectures/w1-intro` — Lecture 1: Introduction.
 - `#/lectures/w1-mle-lvm` — Lecture 2: MLE and latent variable models.
@@ -84,6 +85,7 @@ After changing lecture notes or concept blueprints, regenerate the data and run 
 /usr/bin/python3 scripts/study/audit_genmod_concept_gaps.py
 /usr/bin/python3 scripts/study/validate_genmod_study_site.py
 node scripts/study/smoke_interactive_routes.js
+/usr/bin/python3 scripts/study/verify_a4_print_layout.py
 ```
 
 The audit fails if any lecture has too few concept cards, missing required terms, missing formulas/rules, missing traps, missing exam use, or missing recall checks.

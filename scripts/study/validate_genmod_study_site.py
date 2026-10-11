@@ -241,6 +241,21 @@ for marker in site_contract.get('accessibility', {}).get('requiredMarkers', []):
 require(not re.search(r'outline:\s*none|transition:\s*all', css), 'bad focus/transition pattern found')
 require(not re.search(r'<script[^>]+src=["\']https?://|<link[^>]+href=["\']https?://|@import\s+url|https?://[^\s"\']*(fonts\.googleapis|cdn\.)', combined, re.I), 'external asset/CDN reference found')
 
+# Printable A4 contract: static markers here, render-time page proof in verify_a4_print_layout.py.
+print_contract = site_contract.get('printContract', {})
+print_script = Path(print_contract.get('script', ''))
+require(print_script.is_file(), f'missing print verifier script: {print_script}')
+print_route = print_contract.get('route')
+require(bool(print_route), 'printContract.route missing')
+require(print_route in html or print_route in app, f'missing print route: {print_route}')
+for marker in print_contract.get('requiredCssMarkers', []):
+    require(marker in css, f'required print CSS marker missing: {marker}')
+for marker in print_contract.get('requiredAppMarkers', []):
+    require(marker in app, f'required print app marker missing: {marker}')
+print_script_text = print_script.read_text(encoding='utf-8') if print_script.is_file() else ''
+for marker in print_contract.get('requiredScriptMarkers', []):
+    require(marker in print_script_text, f'required print verifier marker missing: {marker}')
+
 try:
     json.loads(vercel)
 except json.JSONDecodeError as exc:

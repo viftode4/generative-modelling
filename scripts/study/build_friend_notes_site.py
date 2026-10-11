@@ -24,6 +24,7 @@ PRACTICE_QUESTIONS = Path('notes/study/03_practice_questions.md')
 FLASHCARDS_TSV = Path('notes/study/04_flashcards.tsv')
 MOCK_EXAM = Path('notes/study/07_mock_exam.md')
 EXAMPLE_EXAM = Path('notes/study/08_example_exam.md')
+FORMULA_SHEET = Path('notes/study/06_formula_derivation_sheet.md')
 PUBLIC_SOURCE_ROOT_LABEL = 'DSAIT_Notes/Q4/GM'
 EXAM_EXCLUDED_LECTURE_SLUGS = {'w7-causal'}
 
@@ -994,6 +995,323 @@ def build_speedrun_goals(lectures: list[dict]) -> list[dict]:
     return goals
 
 
+
+def latex_math(expr: str) -> str:
+    return render_math(expr, display=True)
+
+
+CHEATSHEET_TOPICS = [
+    {
+        'id': 'cs-density-mle',
+        'title': '1. Density, KL, MLE',
+        'family': 'foundations',
+        'slugs': ['w1-intro', 'w1-mle-lvm', 'w2-mle-lvm'],
+        'formula_latex': [
+            r'\mathrm{KL}(p_{\mathrm{data}}\|p_\theta)=\mathbb{E}_{p_{\mathrm{data}}}[\log p_{\mathrm{data}}(x)-\log p_\theta(x)]',
+            r'\theta^*=\arg\max_\theta\frac{1}{N}\sum_{i=1}^N\log p_\theta(x_i)',
+            r'p_\theta(x)=\int p_\theta(x,z)\,dz\quad\text{or}\quad \sum_z p_\theta(x,z)',
+        ],
+        'bullets': [
+            'Why MLE: minimizing KL(pdata||pθ) differs only by fixed data entropy, so maximize expected log pθ(x).',
+            'Latent model: specify easy joint pθ(x,z); likelihood needs summing/integrating all latent explanations z.',
+            'Hardness: posterior pθ(z|x)=pθ(x,z)/pθ(x) needs the same marginal; exact inference is rare.',
+            'Exam intuition: if z explains x, learning must reward both good reconstruction and plausible latent mass.',
+        ],
+    },
+    {
+        'id': 'cs-em-ppca',
+        'title': '2. EM and PPCA',
+        'family': 'em ppca',
+        'slugs': ['w2-em-ppca'],
+        'formula_latex': [
+            r'\mathcal{L}(q,\theta)=\mathbb{E}_{q(z)}[\log p_\theta(x,z)]+H(q)',
+            r'\mathrm{E\!:\ }q(z)\leftarrow p_{\theta_{old}}(z|x)\qquad \mathrm{M\!:\ }\theta\leftarrow\arg\max_\theta\mathbb{E}_{q(z)}[\log p_\theta(x,z)]',
+            r'z\sim\mathcal{N}(0,I),\quad x|z\sim\mathcal{N}(Wz+\mu,\sigma^2I),\quad x\sim\mathcal{N}(\mu,WW^\top+\sigma^2I)',
+        ],
+        'bullets': [
+            'EM reasoning: E-step makes the bound tight at θold; M-step improves θ under that posterior weighting.',
+            'ELBO view: q handles uncertainty over z; entropy H(q) prevents choosing one latent explanation too cheaply.',
+            'PPCA intuition: Wz creates correlated low-dimensional structure; σ²I is leftover isotropic noise.',
+            'Limitation: EM/PPCA are clean because Gaussian/linear; nonlinear decoders break closed-form updates.',
+        ],
+    },
+    {
+        'id': 'cs-vae',
+        'title': '3. VAE / amortized VI',
+        'family': 'vae',
+        'slugs': ['w3-vae'],
+        'formula_latex': [
+            r'\log p_\theta(x)=\log\int p_\theta(x,z)\,dz\ge\mathbb{E}_{q_\phi(z|x)}[\log p_\theta(x,z)-\log q_\phi(z|x)]',
+            r'\mathcal{L}(\theta,\phi;x)=\mathbb{E}_{q_\phi(z|x)}[\log p_\theta(x|z)]-\mathrm{KL}(q_\phi(z|x)\|p(z))',
+            r'\log p_\theta(x)=\mathcal{L}(\theta,\phi;x)+\mathrm{KL}(q_\phi(z|x)\|p_\theta(z|x))',
+            r'z=\mu_\phi(x)+\sigma_\phi(x)\odot\epsilon,\qquad \epsilon\sim\mathcal{N}(0,I)',
+        ],
+        'bullets': [
+            'Cannot directly optimize log pθ(x) because the marginal integral and true posterior are intractable for nonlinear decoders.',
+            'Lower-bound proof: insert q(z|x), rewrite as expectation, apply Jensen; gap is KL(qφ(z|x)||pθ(z|x)) ≥ 0.',
+            'Two terms: reconstruction/data-fit makes x likely given z; KL-to-prior regularizes latent space for sampling.',
+            'Amortized VI: encoder network predicts qφ parameters per x instead of optimizing a separate q for every datapoint.',
+            'Reparameterization: z=μ+σ⊙ε makes stochastic sampling differentiable w.r.t. μ,σ,φ.',
+        ],
+    },
+    {
+        'id': 'cs-ebm',
+        'title': '4. Energy-based models',
+        'family': 'energy',
+        'slugs': ['w5-ebm'],
+        'formula_latex': [
+            r'p_\theta(x)=\frac{\exp(-E_\theta(x))}{Z_\theta},\qquad Z_\theta=\int\exp(-E_\theta(x))\,dx',
+            r'\log p_\theta(x)=-E_\theta(x)-\log Z_\theta',
+            r'\nabla_\theta\log p_\theta(x)=-\nabla_\theta E_\theta(x)+\mathbb{E}_{x^{\prime}\sim p_\theta}[\nabla_\theta E_\theta(x^{\prime})]',
+        ],
+        'bullets': [
+            'PDF proof: exp(-Eθ(x)) > 0; Zθ is the integral of exp(-Eθ), so dividing by Zθ makes total mass 1.',
+            'Flexibility: Eθ can be almost any neural scoring function; no need for normalized directed likelihood architecture.',
+            'Gradient derivation: ∇logp=-∇E-∇logZ and ∇logZ = -Epθ[∇E], giving data phase minus model phase.',
+            'Qualitative terms: lower data energies; raise energies of samples the model currently believes too much.',
+            'MCMC need: model expectation over pθ is intractable; simulate chain with stationary distribution pθ. Higher energy = lower probability.',
+        ],
+    },
+    {
+        'id': 'cs-flows',
+        'title': '5. Normalising flows',
+        'family': 'flow',
+        'slugs': ['w5-flow'],
+        'formula_latex': [
+            r'x=g_\theta(z),\quad z=f_\theta(x)=g_\theta^{-1}(x)',
+            r'p_X(x)=p_Z(f_\theta(x))\left|\det J_{f_\theta}(x)\right|',
+            r'\log p_X(x)=\log p_Z(f_\theta(x))+\log\left|\det J_{f_\theta}(x)\right|',
+        ],
+        'bullets': [
+            'Validity: invertible map preserves probability mass; determinant corrects local volume change.',
+            'Exact likelihood: evaluate base density at inverse fθ(x) plus log|detJ|, no variational lower bound needed.',
+            'Trade-off: expressive transforms are expensive; tractable triangular/coupling designs constrain architecture.',
+            'Exam trap: forgetting the log determinant means ignoring whether the transform stretches or compresses space.',
+        ],
+    },
+    {
+        'id': 'cs-score',
+        'title': '6. Score-based models',
+        'family': 'score',
+        'slugs': ['w5-score'],
+        'formula_latex': [
+            r's(x)=\nabla_x\log p(x)',
+            r'p(x)=\frac{\exp(-E(x))}{Z}\Rightarrow \nabla_x\log p(x)=-\nabla_xE(x)',
+            r'\min_\theta\mathbb{E}_{p_{data}}\left\|s_\theta(x)-\nabla_x\log p_{data}(x)\right\|^2',
+            r'x_{t+1}=x_t+\eta s_\theta(x_t)+\sqrt{2\eta}\epsilon_t',
+        ],
+        'bullets': [
+            'Direct density modelling needs nonnegative normalized pθ; normalization is the hard part.',
+            'Score benefit: ∇x log p(x) ignores constants like Z and gives direction toward higher density.',
+            'Score matching terms: norm penalizes large/uncontrolled scores; divergence term prevents trivial zero field and matches data geometry.',
+            'Finite data issue: empirical distribution is spikes/deltas, so its score is useless between samples.',
+            'Fix: add noise and learn noise-conditional/denoising scores; Langevin adds noise to sample the distribution, not just ascend one mode.',
+        ],
+    },
+    {
+        'id': 'cs-diffusion',
+        'title': '7. Diffusion models',
+        'family': 'diffusion',
+        'slugs': ['w6-diffusion'],
+        'formula_latex': [
+            r'q(x_t|x_{t-1})=\mathcal{N}(\sqrt{1-\beta_t}x_{t-1},\beta_tI)',
+            r'q(x_t|x_0)=\mathcal{N}(\sqrt{\bar\alpha_t}x_0,(1-\bar\alpha_t)I)',
+            r'x_t=\sqrt{\bar\alpha_t}x_0+\sqrt{1-\bar\alpha_t}\epsilon',
+            r'\mathbb{E}_{x_0,\epsilon,t}\left\|\epsilon-\epsilon_\theta(x_t,t)\right\|^2',
+        ],
+        'bullets': [
+            'Forward noising is fixed and tractable: every xt is a noisy version of x0 with known Gaussian form.',
+            'Learning target εθ: if the model predicts added noise, it also knows how to denoise one reverse step.',
+            'Sampling intuition: start from pure noise and repeatedly remove predicted noise while preserving uncertainty.',
+            'Relation to score: denoising/noise prediction estimates the direction toward higher noisy-data density.',
+            'Reason for stochasticity: avoids deterministic collapse and represents the whole reverse distribution.',
+        ],
+    },
+    {
+        'id': 'cs-cnf-fm',
+        'title': '8. Continuous flows / Flow Matching',
+        'family': 'flow-matching',
+        'slugs': ['w6-flow-matching'],
+        'formula_latex': [
+            r'\frac{dx_t}{dt}=v_\theta(t,x_t)',
+            r'\frac{d\log p_t(x_t)}{dt}=-\operatorname{div}v_\theta(t,x_t)',
+            r'\min_\theta\mathbb{E}_{t,x_t}\left\|v_\theta(t,x_t)-u_t(x_t)\right\|^2',
+        ],
+        'bullets': [
+            'CNF intuition: particles move continuously; density decreases where velocity field expands volume.',
+            'Divergence is the continuous analogue of log determinant in normalizing flows.',
+            'Flow matching target: choose an interpolation path, then train vθ to match the true velocity u_t at sampled points.',
+            'Reason it helps: supervised velocity regression avoids likelihood ODE simulation inside each training objective.',
+        ],
+    },
+    {
+        'id': 'cs-guidance',
+        'title': '9. Guidance / conditioning',
+        'family': 'guidance',
+        'slugs': ['w7-life'],
+        'formula_latex': [
+            r'\nabla_x\log p(x|y)=\nabla_x\log p(x)+\nabla_x\log p(y|x)',
+            r'\epsilon_{guided}=\epsilon_{uncond}+w(\epsilon_{cond}-\epsilon_{uncond})',
+        ],
+        'bullets': [
+            'Classifier guidance follows Bayes: conditional score = prior/sample score + gradient making y more likely.',
+            'Classifier-free guidance approximates the same push by subtracting unconditional from conditional predictions.',
+            'Guidance scale w is a trade-off: stronger condition adherence can reduce diversity or realism.',
+            'For scientific generation, constraints and physical validity are part of the model objective, not decoration.',
+        ],
+    },
+    {
+        'id': 'cs-eval',
+        'title': '10. Evaluation of generative models',
+        'family': 'evaluation',
+        'slugs': ['w6-evaluation'],
+        'formula_latex': [
+            r'\mathrm{IS}=\exp\left(\mathbb{E}_x\mathrm{KL}(p(y|x)\|p(y))\right)',
+            r'\mathrm{FID}=\|\mu_r-\mu_g\|^2+\operatorname{Tr}(\Sigma_r+\Sigma_g-2(\Sigma_r\Sigma_g)^{1/2})',
+            r'\mathrm{MMD}^2(P,Q)=\mathbb{E}k(x,x^{\prime})+\mathbb{E}k(y,y^{\prime})-2\mathbb{E}k(x,y)',
+        ],
+        'bullets': [
+            'No single metric proves generative quality: likelihood, fidelity, diversity, and memorization can disagree.',
+            'FID intuition: compare Gaussian moments of real/generated features; lower means closer feature distribution.',
+            'Precision vs recall: precision = samples look real/on manifold; recall = model covers data modes.',
+            'IS rewards confident diverse classifier labels but can miss memorization and domain mismatch.',
+            'Always state metric failure mode: feature extractor bias, finite-sample noise, mode dropping, copying.',
+        ],
+    },
+    {
+        'id': 'cs-life',
+        'title': '11. Generative models for life sciences',
+        'family': 'life sciences',
+        'slugs': ['w7-life'],
+        'formula_latex': [],
+        'bullets': [
+            'Scientific generative modelling is constrained generation: samples must be valid under chemistry/biology rules.',
+            'Novelty alone is not enough; check usefulness, stability, toxicity, synthesizability, and uncertainty.',
+            'Conditional generation/property optimization creates a quality-diversity trade-off like guidance.',
+            'Main risk: model exploits proxy metrics or memorizes known structures instead of discovering useful candidates.',
+        ],
+    },
+]
+
+
+def parse_formula_sections() -> list[dict]:
+    if not FORMULA_SHEET.is_file():
+        return []
+    text = FORMULA_SHEET.read_text(encoding='utf-8')
+    matches = list(re.finditer(r'^##\s+(.+)$', text, flags=re.M))
+    sections: list[dict] = []
+    for index, match in enumerate(matches, start=1):
+        start = match.end()
+        end = matches[index].start() if index < len(matches) else len(text)
+        title = match.group(1).strip()
+        body = text[start:end].strip()
+        code_blocks = [re.sub(r'\s+', ' ', block.strip()) for block in re.findall(r'```text\s*(.*?)```', body, flags=re.S)]
+        bullets = [line.strip('- ').strip() for line in body.splitlines() if line.strip().startswith('-')]
+        compact_parts = code_blocks[:2] or bullets[:2] or [strip_markdown_for_data(body)]
+        compact = ' ; '.join(part for part in compact_parts if part)
+        sections.append({
+            'id': f'formula-{index:02d}',
+            'order': index,
+            'title': re.sub(r'^\d+\.\s*', '', title),
+            'compact': compact[:420],
+        })
+    return sections
+
+
+def concepts_for_slugs(lectures: list[dict], slugs: list[str]) -> list[dict]:
+    allowed = set(slugs)
+    return [
+        {**concept, 'lectureSlug': lecture['slug'], 'lectureTitle': lecture['shortTitle']}
+        for lecture in lectures
+        if lecture['slug'] in allowed
+        for concept in (lecture.get('concepts') or [])
+    ]
+
+
+def master_formula_ids(start: int, end: int) -> list[str]:
+    return [f'formula-{index:02d}' for index in range(start, end + 1)]
+
+
+CHEATSHEET_FORMULA_IDS = {
+    'cs-density-mle': master_formula_ids(1, 2),
+    'cs-em-ppca': master_formula_ids(4, 5),
+    'cs-vae': master_formula_ids(3, 6),
+    'cs-ebm': master_formula_ids(7, 8),
+    'cs-flows': master_formula_ids(9, 9),
+    'cs-score': master_formula_ids(10, 11),
+    'cs-diffusion': master_formula_ids(12, 14),
+    'cs-cnf-fm': master_formula_ids(15, 16),
+    'cs-guidance': master_formula_ids(17, 18),
+    'cs-eval': master_formula_ids(19, 19),
+    'cs-life': [],
+}
+
+
+def build_cheatsheet_cell(topic: dict, lectures: list[dict]) -> dict:
+    concepts = concepts_for_slugs(lectures, topic['slugs'])
+    latex_items = topic.get('formula_latex') or []
+    return {
+        'id': topic['id'],
+        'title': topic['title'],
+        'kind': 'cheatsheet-topic',
+        'family': topic['family'],
+        'body': '',
+        'bullets': topic['bullets'],
+        'compact': ' · '.join(concept['title'] for concept in concepts[:6]),
+        'conceptIds': [concept['id'] for concept in concepts],
+        'lectureSlugs': sorted({concept.get('lectureSlug', '') for concept in concepts if concept.get('lectureSlug')}),
+        'formulaIds': CHEATSHEET_FORMULA_IDS.get(topic['id'], []),
+        'formulaLatex': latex_items,
+        'formulaHtml': ''.join(latex_math(expr) for expr in latex_items),
+        'formulaSnippets': [],
+    }
+
+
+def build_master_sheet(lectures: list[dict]) -> dict:
+    exam_lectures = [lecture for lecture in lectures if lecture['slug'] not in EXAM_EXCLUDED_LECTURE_SLUGS]
+    formula_sections = parse_formula_sections()
+    cells = [build_cheatsheet_cell(topic, exam_lectures) for topic in CHEATSHEET_TOPICS]
+    all_required_concepts = [concept for lecture in exam_lectures for concept in (lecture.get('concepts') or [])]
+    covered_concepts = {concept_id for cell in cells for concept_id in cell.get('conceptIds', [])}
+    covered_formulas = {formula_id for cell in cells for formula_id in cell.get('formulaIds', [])}
+    side_a_cells = cells[:6]
+    side_b_cells = cells[6:]
+    return {
+        'version': 2,
+        'format': 'a4-double-sided',
+        'density': 'dense-exam-cheatsheet',
+        'sourcePaths': [str(FORMULA_SHEET), str(LECTURE_NOTES_BLUEPRINTS), str(CONCEPT_BLUEPRINTS)],
+        'coverageFamilies': ['foundations', 'vae', 'energy', 'flow', 'score', 'diffusion', 'flow-matching', 'evaluation', 'guidance', 'life sciences'],
+        'contentBudget': {
+            'maxCellsPerSide': 6,
+            'maxCharsPerCell': 1400,
+            'maxCharsPerSide': 7200,
+            'targetPrintPages': 2,
+            'pageSize': 'A4',
+        },
+        'coverage': {
+            'requiredConceptCount': len(all_required_concepts),
+            'coveredConceptCount': len(covered_concepts),
+            'formulaSectionCount': len(formula_sections),
+            'coveredFormulaCount': len(covered_formulas),
+            'questionArchetypes': ['definition', 'derive/prove', 'interpret terms', 'limitations', 'sampling/training procedure', 'multiple choice'],
+        },
+        'sides': [
+            {
+                'side': 'A',
+                'title': 'Side A — core likelihoods and model families',
+                'subtitle': 'Lecture-grounded formulas and facts only.',
+                'sections': [{'id': 'a-cheatsheet', 'title': 'Formulas + concepts', 'cells': side_a_cells}],
+            },
+            {
+                'side': 'B',
+                'title': 'Side B — diffusion, flow matching, guidance, evaluation',
+                'subtitle': 'Use as a memory sheet: equation, object meaning, limitation.',
+                'sections': [{'id': 'b-cheatsheet', 'title': 'Formulas + concepts', 'cells': side_b_cells}],
+            },
+        ],
+    }
+
 def build_study_bank(lectures: list[dict]) -> dict:
     exam_lectures = [lecture for lecture in lectures if lecture['slug'] not in EXAM_EXCLUDED_LECTURE_SLUGS]
     example_exam = parse_example_exam(exam_lectures)
@@ -1024,6 +1342,7 @@ def build_study_bank(lectures: list[dict]) -> dict:
         'flashcards': flashcards,
         'examQuestions': exam_questions,
         'speedrunGoals': build_speedrun_goals(lectures),
+        'masterSheet': build_master_sheet(lectures),
     }
 
 

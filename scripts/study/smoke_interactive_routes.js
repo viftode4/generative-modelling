@@ -16,10 +16,11 @@ const routes = {
   "#/exam/generated": ["Generated full-course exam bank", "Generated from the example-exam pattern", "Lecture 1", "Lecture 12", "subparts"],
   "#/flashcards": ["Fast concept recall", "Flip card", "flashcards"],
   "#/speedrun": ["compact route through the exam scope", "Goal 1:", "speedrun goals"],
+  "#/a4-master-sheet": ["A4 GM cheatsheet", "Side A", "Side B", "ELBO", "Energy-based", "Diffusion", "Flow Matching", "FID", "life sciences"],
 };
 
 const indexHtml = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
-for (const marker of ["quickNav", "#/concepts", "#/skill-tree", "#/exam", "#/exam/example", "#/exam/generated", "#/flashcards", "#/speedrun"]) {
+for (const marker of ["quickNav", "#/concepts", "#/skill-tree", "#/exam", "#/exam/example", "#/exam/generated", "#/flashcards", "#/speedrun", "#/a4-master-sheet"]) {
   if (!indexHtml.includes(marker)) {
     console.error(`index.html missing always-visible navigation marker: ${marker}`);
     process.exit(1);
@@ -78,6 +79,7 @@ function makeDocument() {
     ["#/exam/generated"],
     ["#/flashcards"],
     ["#/speedrun"],
+    ["#/a4-master-sheet"],
     ["#/coverage"],
     ["#/friend-notes"],
     ["#/review"],

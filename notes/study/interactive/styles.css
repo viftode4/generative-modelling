@@ -741,6 +741,276 @@ code.path { word-break: break-word; font-family: var(--mono); font-size: .86rem;
 }
 .empty { color: var(--muted); font-style: italic; }
 
+
+.a4-preview {
+  background: #f3f0e8;
+}
+.a4-print-intro {
+  margin-bottom: 1rem;
+}
+.a4-sheet {
+  display: grid;
+  gap: 1rem;
+}
+.a4-side {
+  display: grid;
+  gap: .55rem;
+  min-height: 72rem;
+  border: 1px solid #c8c0b0;
+  border-radius: 10px;
+  background: #fffefa;
+  padding: .85rem;
+  box-shadow: 0 10px 30px rgba(35, 30, 20, .10);
+  page-break-after: always;
+  break-after: page;
+}
+.a4-side:last-child {
+  page-break-after: auto;
+  break-after: auto;
+}
+.a4-side-header {
+  display: grid;
+  gap: .12rem;
+  border-bottom: 2px solid #111;
+  padding-bottom: .35rem;
+}
+.a4-side-header h2 {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: clamp(1.1rem, 1.6vw, 1.35rem);
+  line-height: 1.03;
+}
+.a4-side-header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: .78rem;
+}
+.a4-side-kicker,
+.a4-cell-kicker {
+  margin: 0;
+  color: #3d3529;
+  font-size: .62rem;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.a4-section > h3 {
+  margin: .1rem 0 .35rem;
+  color: #4f493f;
+  font-size: .68rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.a4-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .42rem;
+}
+.a4-cell {
+  display: grid;
+  align-content: start;
+  gap: .2rem;
+  border: 1px solid #bcb29f;
+  border-left: 3px solid #111;
+  border-radius: 7px;
+  background: #fffdf8;
+  padding: .42rem .46rem;
+  min-width: 0;
+}
+.a4-cell header {
+  display: grid;
+  gap: .02rem;
+}
+.a4-cell h3 {
+  margin: 0;
+  font-size: .82rem;
+  line-height: 1.08;
+  letter-spacing: -.01em;
+}
+.a4-rendered-formulas {
+  display: grid;
+  gap: .12rem;
+  overflow: hidden;
+}
+.a4-rendered-formulas .math-block,
+.a4-rendered-formulas math[display="block"] {
+  margin: 0;
+}
+.a4-rendered-formulas .math-block {
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  overflow: hidden;
+}
+.a4-rendered-formulas math {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  font-size: .67rem;
+}
+.a4-latex-source {
+  display: none;
+}
+.a4-concept-bullets {
+  display: grid;
+  gap: .12rem;
+  margin: .04rem 0 0;
+  padding-left: .9rem;
+}
+.a4-concept-bullets li {
+  margin: 0;
+  font-family: var(--serif);
+  color: #27231d;
+  font-size: .72rem;
+  line-height: 1.19;
+}
+
+@page {
+  size: A4;
+  margin: 7mm;
+}
+@page :left {
+  margin-left: 8mm;
+  margin-right: 6mm;
+}
+@page :right {
+  margin-left: 6mm;
+  margin-right: 8mm;
+}
+
+@media print {
+  html,
+  body {
+    width: 210mm;
+    min-height: 297mm;
+    background: white !important;
+  }
+  body {
+    margin: 0 !important;
+    color: #111 !important;
+    overflow: visible !important;
+  }
+  .skip-link,
+  .topbar,
+  .left-rail,
+  .right-rail,
+  .a4-print-intro {
+    display: none !important;
+  }
+  .reader-layout,
+  body[data-right-collapsed="true"] .reader-layout,
+  body[data-left-collapsed="true"] .reader-layout,
+  body[data-left-collapsed="true"][data-right-collapsed="true"] .reader-layout {
+    display: block !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .reader-article,
+  .plain-page,
+  .a4-preview {
+    width: auto !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: white !important;
+    box-shadow: none !important;
+  }
+  .a4-sheet {
+    display: block !important;
+    width: 196mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+  }
+  .a4-side {
+    width: 196mm !important;
+    height: 283mm !important;
+    min-height: 283mm !important;
+    max-height: 283mm !important;
+    overflow: hidden !important;
+    display: grid !important;
+    grid-template-rows: auto 1fr;
+    gap: 1mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: white !important;
+    box-shadow: none !important;
+    page-break-after: always;
+    break-after: page;
+  }
+  .a4-side:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+  .a4-side-header {
+    border-bottom: .35mm solid #111 !important;
+    padding-bottom: .9mm !important;
+  }
+  .a4-side-header h2 {
+    font-size: 9.2pt !important;
+    line-height: 1.01 !important;
+  }
+  .a4-side-header p {
+    font-size: 5.2pt !important;
+    line-height: 1.08 !important;
+  }
+  .a4-side-kicker,
+  .a4-cell-kicker,
+  .a4-section > h3 {
+    color: #111 !important;
+  }
+  .a4-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 1.05mm !important;
+  }
+  .a4-cell {
+    gap: .45mm !important;
+    border: .22mm solid #777 !important;
+    border-left: .7mm solid #111 !important;
+    border-radius: 1mm !important;
+    padding: 1mm !important;
+    background: white !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .a4-cell h3 {
+    font-size: 6.4pt !important;
+    line-height: 1.03 !important;
+  }
+  .a4-cell-kicker,
+  .a4-section > h3 {
+    font-size: 4.1pt !important;
+    line-height: 1 !important;
+  }
+  .a4-rendered-formulas {
+    gap: .25mm !important;
+  }
+  .a4-rendered-formulas .math-block {
+    border: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+  }
+  .a4-rendered-formulas math {
+    font-size: 4.55pt !important;
+  }
+  .a4-concept-bullets {
+    gap: .3mm !important;
+    margin: .2mm 0 0 !important;
+    padding-left: 2.8mm !important;
+  }
+  .a4-concept-bullets li {
+    font-size: 5.15pt !important;
+    line-height: 1.08 !important;
+  }
+}
+
 @media (max-width: 1120px) {
   .topbar { grid-template-columns: minmax(12rem, 1fr) auto; }
   .quick-nav { grid-column: 1 / -1; }

@@ -32,6 +32,7 @@
       "renderGeneratedExams",
       "renderFlashcards",
       "renderSpeedrun",
+      "renderA4MasterSheet",
       "renderImages",
       "renderSources",
       "renderConcepts",
@@ -45,6 +46,7 @@
       "#/exam/generated",
       "#/flashcards",
       "#/speedrun",
+      "#/a4-master-sheet",
       "#/coverage"
     ],
     "defaultRouteCall": "renderLecture(activeLectureSlug())",
@@ -156,6 +158,30 @@
       "aria-current",
       ":focus-visible",
       "prefers-reduced-motion"
+    ]
+  },
+  "printContract": {
+    "script": "scripts/study/verify_a4_print_layout.py",
+    "route": "#/a4-master-sheet",
+    "requiredCssMarkers": [
+      "@page",
+      "size: A4",
+      "@page :left",
+      "@page :right",
+      "@media print",
+      ".a4-sheet",
+      ".a4-side",
+      "page-break-after: always"
+    ],
+    "requiredAppMarkers": [
+      "renderA4MasterSheet",
+      "a4-master-sheet",
+      "A4 GM cheatsheet"
+    ],
+    "requiredScriptMarkers": [
+      "assert_print_content_fits",
+      "overflowingCells",
+      "Emulation.setEmulatedMedia"
     ]
   }
 }
